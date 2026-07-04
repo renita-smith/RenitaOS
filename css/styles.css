@@ -24,8 +24,12 @@
 
 * { box-sizing: border-box; }
 
-body {
+html, body {
+  height: 100%;
   margin: 0;
+}
+
+body {
   background: var(--surface);
   color: var(--text);
   font-family: 'IBM Plex Sans', sans-serif;
@@ -35,14 +39,36 @@ body {
 
 .hidden { display: none !important; }
 
+/* dvh (not vh) tracks the actual visible viewport, so the footer below
+   stays above the on-screen keyboard on mobile instead of hiding behind it. */
 .capture-screen {
   max-width: 560px;
   margin: 0 auto;
-  min-height: 100vh;
+  height: 100vh;
+  height: 100dvh;
   display: flex;
   flex-direction: column;
-  padding: 20px 20px 32px;
+  padding: 0 20px;
+}
+
+.capture-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
   gap: 16px;
+  padding-top: 20px;
+}
+
+.capture-footer {
+  position: relative;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 10px 0 max(16px, env(safe-area-inset-bottom));
+  background: var(--surface);
 }
 
 .capture-header {
@@ -450,11 +476,14 @@ body {
 }
 .recent-when { flex-shrink: 0; color: var(--faint-text); }
 
+/* Anchored to the footer (not the viewport) so it floats just above the
+   Save button regardless of footer height or keyboard state. */
 .toast {
-  position: fixed;
-  bottom: 28px;
+  position: absolute;
+  bottom: 100%;
   left: 50%;
   transform: translateX(-50%);
+  margin-bottom: 12px;
   background: var(--text);
   color: #fff;
   font-size: 13px;

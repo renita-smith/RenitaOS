@@ -1,8 +1,9 @@
 // In-memory title -> id caches for the lookup databases (Tags/People/Projects),
 // so token classification while typing is instant. Refreshed after any create.
 // Domains are the fixed §4 set (resolved straight from config.js), not queried.
-import { DB, TITLE_PROP } from './config.js';
+import { DB } from './config.js';
 import { queryAllPages } from './notion.js';
+import { titlePropertyName } from './schema.js';
 
 function titleOf(page, propName) {
   const prop = page.properties[propName];
@@ -11,9 +12,10 @@ function titleOf(page, propName) {
   return arr.map((t) => t.plain_text).join('');
 }
 
-async function loadEntries(databaseId, titleProp) {
+async function loadEntries(databaseId) {
+  const titleProp = await titlePropertyName(databaseId);
   const pages = await queryAllPages(databaseId);
-  return pages.map((page) => ({ id: page.id, name: titleOf(page, titleProp) })).filter((e) => e.name);
+  return { titleProp, entries: pages.map((page) => ({ id: page.id, name: titleOf(page, titleProp) })).filter((e) => e.name) };
 }
 
 export class LookupCache {
@@ -21,17 +23,19 @@ export class LookupCache {
     this.tags = [];
     this.people = [];
     this.projects = [];
+    this.titleProps = { tags: null, people: null, projects: null };
   }
 
   async load() {
     const [tags, people, projects] = await Promise.all([
-      loadEntries(DB.TAGS, TITLE_PROP.TAGS),
-      loadEntries(DB.PEOPLE, TITLE_PROP.PEOPLE),
-      loadEntries(DB.PROJECTS, TITLE_PROP.PROJECTS),
+      loadEntries(DB.TAGS),
+      loadEntries(DB.PEOPLE),
+      loadEntries(DB.PROJECTS),
     ]);
-    this.tags = tags;
-    this.people = people;
-    this.projects = projects;
+    this.tags = tags.entries;
+    this.people = people.entries;
+    this.projects = projects.entries;
+    this.titleProps = { tags: tags.titleProp, people: people.titleProp, projects: projects.titleProp };
   }
 
   findExact(list, value) {

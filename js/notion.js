@@ -34,6 +34,10 @@ export async function queryAllPages(databaseId, filter) {
   return results;
 }
 
+export function getDatabase(databaseId) {
+  return request(`/v1/databases/${databaseId}`);
+}
+
 export function createPage(databaseId, properties, children) {
   const body = { parent: { database_id: databaseId }, properties };
   if (children && children.length) body.children = children;
