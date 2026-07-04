@@ -164,3 +164,56 @@ Each Domain has one **catch-all project** that holds loose tasks — a `%`-tagge
 - `%`domain with no `!`project → route the item to that Domain's Inbox project.
 - Creating a brand-new Tag or Project is allowed but **confirmed** first (no silent duplicates).
 - Keep `@person` names in the body; keep the full text (incl. any date phrase) in a Task's title.
+
+---
+
+## 11. Note titling (auto-generated)
+
+On save, set each entry's title by this **cascade** — stop at the first match:
+
+1. **Task** → title = the task's own text. (No code, no `[ ]`.)
+2. **Dream** → title = `DRM` + `MMDDYY`, always. Dreams never take a `[ ]` title.
+3. **`[title]` typed** → use it (see bracket rule below).
+4. **Otherwise** → `[TYPE PREFIX][MMDDYY] — [snippet]`, where snippet = the first ~5 words of the body.
+
+**Bracket title rule:** the first complete `[...]` in the entry (first `[` to the next `]`) is the title; it may appear anywhere; remove the brackets and their contents from the body and use the contents verbatim; only the first `[...]` counts; an unclosed `[` is not a title.
+
+Rules:
+- The MMDDYY date comes from the Note's **Date field** (not Created time), so it matches when the date is adjusted.
+- **Multi-Type note**: title prefix = `MLT`; the card's color and label still use the **first** Type.
+- **No-Type note**: fallback prefix `NTE`.
+- **Regenerate** an auto-title when Type or Date changes — but *never* overwrite a typed `[title]` or a hand-edited title.
+
+**Type-prefix map**
+
+| Type | Prefix |
+|---|---|
+| Dream 💤 | DRM |
+| Thought 💭 | THT |
+| Idea 💡 | IDA |
+| Convo 👥 | CNV |
+| Sermon 🗣️ | SRM |
+| Prophetic Word 📣 | PRW |
+| Virtual 🖥️ | VRT |
+| Teaching 📝 | TCH |
+| Prayer 🙏🏾 | PRA |
+| Quote 🔏 | QTE |
+| Study 📚 | STU |
+| Reflection 🤔 | REF |
+| Download 📥 | DWN |
+| (multi-Type) | MLT |
+| (untyped — fallback) | NTE |
+
+---
+
+## 12. Dream records — day-merge (Dreams only)
+
+Dreams **upsert by date**; all other Types always create individual records.
+
+- On a Dream capture, look for an existing note where **Type = Dream** and **Date = that entry's Date**.
+  - **Found** → append the new dream to that record's body, beneath a **subtle divider**.
+  - **Not found** → create the day's record (title = `DRM` + `MMDDYY`).
+- Merge key is the **Date field** (a backdated dream lands on the correct day).
+- **Relations accumulate**: all `@people` and `#tags` from every dream that day are added to the one record.
+- Counts **dream-days**, not individual dreams.
+- The old two-column DREAM / NOTES template is **retired** — dreams stack in one column; the user italicizes their own notes inline.
