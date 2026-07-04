@@ -1,0 +1,937 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <meta name="design_doc_mode" content="canvas">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:ital,wght@0,400;0,500;0,600;1,400;1,500&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap">
+  <style>
+    :root {
+      /* Radius — two dials, both feeding every rounded rectangle. Circles (avatars/dots) and device chrome are exempt. */
+      --radius-sm: 4px;  /* small elements: badges, tags, toggle (track + thumb), bridge chips */
+      --radius-lg: 12px; /* large elements: cards, sheets, buttons */
+
+      /* Color */
+      --text: #2A3408;
+      --surface: oklch(0.975 0.006 75);
+      --surface-soft: #E7ECD6;
+      --cream: #F5F2E8;
+      --button-home: #6B7A45;
+      --button-pressed: #2A3408;
+
+      /* Domain palette — base hue per RenitaOS domain; tints/borders derive from these via color-mix() */
+      --domain-rcbs: oklch(0.4 0.1 275);
+      --domain-rws: oklch(0.36 0.11 165);
+      --domain-sm: oklch(0.42 0.11 35);
+      --domain-mts: oklch(0.42 0.1 80);
+      --domain-eplc: oklch(0.4 0.1 230);
+      --domain-peeps: oklch(0.42 0.11 345);
+
+      /* Type palette — one color per Type, drives each resolving card's left border + label */
+      --type-dream: oklch(0.5 0.13 345);
+      --type-thought: oklch(0.42 0.1 165);
+      --type-sermon: oklch(0.45 0.13 25);
+      --type-reflection: oklch(0.44 0.1 300);
+      --type-note: var(--text);
+      --type-task: oklch(0.4 0.1 275);
+      --type-reminder: oklch(0.5 0.13 60);
+      --type-idea: oklch(0.46 0.12 275);
+      --type-study: oklch(0.42 0.1 230);
+    }
+    body { background: var(--surface); }
+    ::placeholder { color: oklch(0.68 0.01 75); }
+    textarea { font-family: inherit; }
+  </style>
+</helmet>
+
+<section id="1-capture" style="background:var(--surface); padding:56px 48px; display:flex; flex-direction:column; gap:20px; font-family:'IBM Plex Sans',sans-serif;">
+  <div style="display:flex; align-items:center; gap:10px;">
+    <span style="font-size:11px; font-weight:700; letter-spacing:.08em; color:#fff; background:var(--text); padding:4px 10px; border-radius:var(--radius-sm);">CAPTURE</span>
+    <span style="font-size:13px; color:oklch(0.52 0.012 75);">The always-open input door — fully interactive</span>
+  </div>
+
+  <div style="display:flex; gap:40px; align-items:flex-start; flex-wrap:wrap;">
+
+    <!-- ═══ FULL SCREEN, FUNCTIONAL ═══ -->
+    <div>
+      <div style="width:402px; height:874px; border-radius:44px; background:oklch(0.99 0.004 75); box-shadow:0 30px 70px rgba(0,0,0,0.16), 0 0 0 1px oklch(0.9 0.01 75); overflow:hidden; position:relative; display:flex; flex-direction:column;">
+
+        <div style="display:flex; align-items:center; justify-content:space-between; padding:24px 20px 4px;">
+          <div style="width:32px;height:32px;border-radius:50%;background:var(--surface-soft);display:flex;align-items:center;justify-content:center;color:oklch(0.5 0.012 75);font-size:14px;cursor:pointer;">✕</div>
+          <div style="font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:oklch(0.62 0.012 75);font-weight:600;">Capture</div>
+          <div style="width:32px;"></div>
+        </div>
+
+        <div style="padding:16px 24px 0; display:flex; align-items:center; gap:10px;">
+          <span style="display:inline-flex;align-items:center;font-size:12px;font-weight:600;padding:4px 12px;border-radius:var(--radius-sm); background:{{ taskPillBg }}; color:{{ taskPillColor }};">{{ taskPillLabel }}</span>
+          <span style="font-size:11px; color:oklch(0.68 0.01 75);">#tag · @person · !project · %domain · /type · +task</span>
+        </div>
+
+        <div style="flex:1; padding:10px 24px 0; position:relative; display:flex; flex-direction:column; min-height:0;">
+          <textarea
+            value="{{ text }}"
+            onChange="{{ onTextChange }}"
+            placeholder="What's on your mind?"
+            style="flex:0 0 auto; min-height:170px; border:none; outline:none; background:transparent; resize:none; font-family:'Newsreader',serif; font-size:26px; line-height:1.4; color:var(--text); font-weight:400;"
+          ></textarea>
+
+          <sc-if value="{{ hasAutocomplete }}" hint-placeholder-val="{{ false }}">
+            <div style="background:#fff;border:1px solid oklch(0.9 0.01 75);border-radius:var(--radius-lg);box-shadow:0 8px 24px rgba(0,0,0,0.1); padding:6px; max-height:190px; overflow:auto; position:relative; z-index:5;">
+              <sc-for list="{{ acList }}" as="item" hint-placeholder-count="3">
+                <div onClick="{{ item.pick }}" style="display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:var(--radius-sm);cursor:pointer;font-size:14px;color:var(--text);" style-hover="background:oklch(0.96 0.006 75);">
+                  <span style="width:22px;height:22px;border-radius:50%;background:var(--surface-soft);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:oklch(0.5 0.012 75); flex-shrink:0;">{{ acTrigger }}</span>
+                  {{ item.name }}
+                </div>
+              </sc-for>
+            </div>
+          </sc-if>
+        </div>
+
+        <sc-if value="{{ isVoiceMode }}" hint-placeholder-val="{{ false }}">
+          <div style="margin:10px 24px 10px; padding:16px; background:oklch(0.96 0.008 75); border-radius:var(--radius-lg); display:flex; align-items:center; gap:12px;">
+            <div style="width:38px;height:38px;border-radius:50%;background:oklch(0.6 0.11 275);display:flex;align-items:center;justify-content:center;color:#fff;font-size:15px; flex-shrink:0;">●</div>
+            <div style="flex:1;">
+              <div style="font-size:13px;font-weight:600;color:var(--text);">Listening…</div>
+              <div style="font-size:12px;color:oklch(0.55 0.012 75);">Tap to stop and transcribe</div>
+            </div>
+            <div onClick="{{ toggleTaskManual }}" style="font-size:11px; font-weight:600; padding:6px 12px;border-radius:var(--radius-sm);border:1px solid oklch(0.78 0.01 75); color:oklch(0.5 0.012 75); cursor:pointer; white-space:nowrap;">{{ manualTaskLabel }}</div>
+          </div>
+        </sc-if>
+        <sc-if value="{{ isPhotoMode }}" hint-placeholder-val="{{ false }}">
+          <div style="margin:10px 24px 10px; padding:16px; background:oklch(0.96 0.008 75); border-radius:var(--radius-lg); display:flex; align-items:center; gap:12px;">
+            <div style="width:38px;height:38px;border-radius:var(--radius-sm);flex-shrink:0;background:repeating-linear-gradient(45deg, oklch(0.88 0.01 75), oklch(0.88 0.01 75) 4px, var(--surface-soft) 4px, var(--surface-soft) 8px);"></div>
+            <div style="flex:1;">
+              <div style="font-size:13px;font-weight:600;color:var(--text);">Photo attached</div>
+              <div style="font-size:12px;color:oklch(0.55 0.012 75);">Extracting text (OCR)…</div>
+            </div>
+            <div onClick="{{ toggleTaskManual }}" style="font-size:11px; font-weight:600; padding:6px 12px;border-radius:var(--radius-sm);border:1px solid oklch(0.78 0.01 75); color:oklch(0.5 0.012 75); cursor:pointer; white-space:nowrap;">{{ manualTaskLabel }}</div>
+          </div>
+        </sc-if>
+
+        <div style="display:flex; justify-content:center; padding:6px 24px 16px;">
+          <div style="display:flex; background:var(--surface-soft); border-radius:var(--radius-sm); padding:3px; gap:2px;">
+            <div onClick="{{ setModeType }}" style="padding:8px 20px;border-radius:var(--radius-sm);font-size:13px;font-weight:600;cursor:pointer; background:{{ typeBtnBg }}; color:{{ typeBtnColor }}; box-shadow:{{ typeBtnShadow }};">Type</div>
+            <div onClick="{{ setModeVoice }}" style="padding:8px 20px;border-radius:var(--radius-sm);font-size:13px;font-weight:600;cursor:pointer; background:{{ voiceBtnBg }}; color:{{ voiceBtnColor }}; box-shadow:{{ voiceBtnShadow }};">Voice</div>
+            <div onClick="{{ setModePhoto }}" style="padding:8px 20px;border-radius:var(--radius-sm);font-size:13px;font-weight:600;cursor:pointer; background:{{ photoBtnBg }}; color:{{ photoBtnColor }}; box-shadow:{{ photoBtnShadow }};">Photo</div>
+          </div>
+        </div>
+
+        <sc-if value="{{ hasThoughts }}" hint-placeholder-val="{{ false }}">
+          <div style="padding:6px 24px 18px; display:flex; flex-direction:column; gap:10px;">
+            <div style="font-size:10px; font-weight:600; text-transform:uppercase; letter-spacing:.08em; color:oklch(0.68 0.01 75); margin-bottom:-2px;">Recognized</div>
+            <sc-for list="{{ thoughts }}" as="thought" hint-placeholder-count="1">
+              <div style="background:oklch(0.99 0.004 75); border:1px solid oklch(0.92 0.008 75); border-left:4px solid {{ thought.typeColor }}; border-radius:var(--radius-lg); padding:16px 18px; display:flex; flex-direction:column; gap:10px;">
+                <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+                  <span style="width:6px; height:6px; border-radius:50%; background:{{ thought.typeColor }}; flex-shrink:0;"></span>
+                  <span style="font-size:11px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; color:{{ thought.typeColor }};">{{ thought.typeLabel }}</span>
+                  <sc-if value="{{ thought.hasDomain }}" hint-placeholder-val="{{ false }}">
+                    <span style="font-size:10px; font-weight:600; padding:2px 9px; border-radius:var(--radius-sm); background:{{ thought.domain.bg }}; color:{{ thought.domain.color }}; border:{{ thought.domain.border }};">{{ thought.domain.label }}</span>
+                  </sc-if>
+                  <div style="flex:1;"></div>
+                  <sc-if value="{{ thought.isTask }}" hint-placeholder-val="{{ false }}">
+                    <span style="font-size:10px; font-weight:600; color:oklch(0.55 0.012 75); border:1px dashed oklch(0.75 0.012 75); padding:3px 9px; border-radius:var(--radius-sm); white-space:nowrap;">+ Due date</span>
+                  </sc-if>
+                </div>
+                <div style="font-family:'Newsreader',serif; font-size:16px; line-height:1.5; color:oklch(0.26 0.014 75);">{{ thought.body }}</div>
+                <sc-if value="{{ thought.hasChips }}" hint-placeholder-val="{{ false }}">
+                  <div style="display:flex; flex-wrap:wrap; gap:6px;">
+                    <sc-for list="{{ thought.people }}" as="p" hint-placeholder-count="0">
+                      <div style="display:flex; align-items:center; gap:5px; padding:3px 10px 3px 3px; border-radius:var(--radius-sm); background:{{ p.bg }}; border:{{ p.border }}; opacity:{{ p.opacity }};">
+                        <span style="width:18px; height:18px; border-radius:50%; background:{{ p.color }}; color:#fff; font-size:9px; font-weight:700; display:flex; align-items:center; justify-content:center; flex-shrink:0;">{{ p.initial }}</span>
+                        <span style="font-size:11px; font-weight:600; color:{{ p.color }};">{{ p.label }}</span>
+                        <sc-if value="{{ p.isNew }}" hint-placeholder-val="{{ false }}"><span style="font-size:9px; font-weight:700; color:{{ p.color }};">+</span></sc-if>
+                      </div>
+                    </sc-for>
+                    <sc-for list="{{ thought.tags }}" as="t" hint-placeholder-count="0">
+                      <div style="display:flex; align-items:center; gap:4px; padding:4px 10px; border-radius:var(--radius-sm); background:{{ t.bg }}; border:{{ t.border }}; opacity:{{ t.opacity }};">
+                        <span style="font-size:11px; font-weight:600; color:{{ t.color }};">#{{ t.label }}</span>
+                        <sc-if value="{{ t.isNew }}" hint-placeholder-val="{{ false }}"><span style="font-size:9px; font-weight:700; color:{{ t.color }};">+</span></sc-if>
+                      </div>
+                    </sc-for>
+                  </div>
+                </sc-if>
+              </div>
+            </sc-for>
+          </div>
+        </sc-if>
+
+        <div style="padding:0 20px 20px;">
+          <button onClick="{{ handleSave }}" style="box-sizing:border-box; width:100%; padding:16px; border-radius:var(--radius-lg); border:none; background:var(--surface-soft); color:var(--text); font-size:16px; font-weight:600; font-family:'IBM Plex Sans',sans-serif; cursor:pointer; display:block; text-align:center; transition:background .1s, color .1s;" style-active="background:var(--button-pressed); color:var(--cream);">Save to Inbox</button>
+        </div>
+
+        <sc-if value="{{ hasRecent }}" hint-placeholder-val="{{ false }}">
+          <div style="padding:0 24px 22px;">
+            <div style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:oklch(0.65 0.01 75);margin-bottom:8px;">Just captured</div>
+            <sc-for list="{{ recent }}" as="r" hint-placeholder-count="2">
+              <div style="display:flex; align-items:center; gap:8px; padding:7px 0; font-size:12px; color:oklch(0.5 0.012 75); border-top:1px solid var(--surface-soft);">
+                <span style="width:7px;height:7px;border-radius:3px;flex-shrink:0;background:{{ r.dotColor }};"></span>
+                <span style="flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">{{ r.text }}</span>
+                <span style="flex-shrink:0; color:oklch(0.68 0.01 75);">{{ r.when }}</span>
+              </div>
+            </sc-for>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{ showToast }}" hint-placeholder-val="{{ false }}">
+          <div style="position:absolute; bottom:104px; left:50%; transform:translateX(-50%); background:var(--text); color:#fff; font-size:13px; font-weight:500; padding:10px 18px; border-radius:var(--radius-lg); box-shadow:0 10px 24px rgba(0,0,0,0.22); white-space:nowrap;">{{ toast }}</div>
+        </sc-if>
+
+      </div>
+      <p style="text-align:center; font-size:12px; color:oklch(0.55 0.012 75); margin-top:10px; max-width:402px;">Full screen — e.g. opened from its own tab</p>
+    </div>
+
+    <!-- ═══ SHEET PRESENTATION (static illustration) ═══ -->
+    <div>
+      <div style="width:402px; height:874px; border-radius:44px; background:var(--surface-soft); box-shadow:0 30px 70px rgba(0,0,0,0.16), 0 0 0 1px oklch(0.9 0.01 75); overflow:hidden; position:relative; display:flex; flex-direction:column;">
+        <!-- dimmed home behind -->
+        <div style="padding:24px 22px; opacity:0.35; filter:grayscale(0.2);">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:18px;">
+            <div style="width:34px;height:34px;border-radius:50%;background:var(--text);"></div>
+            <div style="font-size:11px;color:oklch(0.5 0.012 75);">Home</div>
+          </div>
+          <div style="height:52px;border-radius:var(--radius-lg);background:#fff;margin-bottom:14px;"></div>
+          <div style="display:flex;gap:10px;margin-bottom:16px;">
+            <div style="flex:1;height:64px;border-radius:var(--radius-lg);background:#fff;"></div>
+            <div style="flex:1;height:64px;border-radius:var(--radius-lg);background:#fff;"></div>
+          </div>
+          <div style="height:90px;border-radius:var(--radius-lg);background:#fff;margin-bottom:12px;"></div>
+          <div style="height:90px;border-radius:var(--radius-lg);background:#fff;"></div>
+        </div>
+        <!-- scrim -->
+        <div style="position:absolute; inset:0; background:rgba(20,18,14,0.28);"></div>
+        <!-- sheet -->
+        <div style="position:absolute; left:0; right:0; bottom:0; height:62%; background:oklch(0.99 0.004 75); border-radius:28px 28px 0 0; box-shadow:0 -20px 50px rgba(0,0,0,0.25); padding:14px 24px 24px; display:flex; flex-direction:column;">
+          <div style="width:36px;height:4px;border-radius:2px;background:oklch(0.85 0.01 75); margin:0 auto 16px;"></div>
+          <span style="align-self:flex-start; display:inline-flex;align-items:center;font-size:12px;font-weight:600;padding:4px 12px;border-radius:var(--radius-sm); background:var(--surface-soft); color:oklch(0.5 0.012 75); margin-bottom:14px;">Note</span>
+          <div style="font-family:'Newsreader',serif; font-size:24px; color:oklch(0.3 0.012 75); flex:1;">Pray for Becky's mom's surgery tomorrow</div>
+          <div style="display:flex; justify-content:center; margin-bottom:14px;">
+            <div style="display:flex; background:var(--surface-soft); border-radius:var(--radius-sm); padding:3px; gap:2px;">
+              <div style="padding:7px 16px;border-radius:var(--radius-sm);font-size:12px;font-weight:600;background:#fff;color:var(--text);box-shadow:0 1px 3px rgba(0,0,0,0.1);">Type</div>
+              <div style="padding:7px 16px;border-radius:var(--radius-sm);font-size:12px;font-weight:600;color:oklch(0.55 0.012 75);">Voice</div>
+              <div style="padding:7px 16px;border-radius:var(--radius-sm);font-size:12px;font-weight:600;color:oklch(0.55 0.012 75);">Photo</div>
+            </div>
+          </div>
+          <div style="box-sizing:border-box; width:100%; padding:15px; border-radius:var(--radius-lg); border:none; background:var(--surface-soft); color:var(--text); font-size:15px; font-weight:600; text-align:center;">Save to Inbox</div>
+        </div>
+      </div>
+      <p style="text-align:center; font-size:12px; color:oklch(0.55 0.012 75); margin-top:10px; max-width:402px;">As a sheet — slides up over whatever screen you were on (Home, a project, anywhere)</p>
+    </div>
+
+  </div>
+</section>
+
+<section id="1a" style="background:var(--surface); padding:56px 48px; display:flex; flex-direction:column; gap:20px; font-family:'IBM Plex Sans',sans-serif;">
+  <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+    <span style="font-size:11px; font-weight:700; letter-spacing:.08em; color:#fff; background:var(--text); padding:4px 10px; border-radius:var(--radius-sm);">HOME</span>
+    <span style="font-size:13px; color:oklch(0.52 0.012 75);">Calm Feed — single column, doorway cards tagged by domain/project</span>
+    <div style="flex:1;"></div>
+    <span style="font-size:12px; color:oklch(0.52 0.012 75);">Simulate a calm week</span>
+    <div onClick="{{ toggleCalmWeek }}" style="width:42px;height:24px;border-radius:var(--radius-sm);background:{{ calmToggleBg }};position:relative;cursor:pointer;">
+      <div style="position:absolute;top:2px;left:{{ calmToggleLeft }};width:20px;height:20px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,0.25);transition:left .18s;"></div>
+    </div>
+  </div>
+
+  <div style="width:402px; height:874px; border-radius:44px; background:oklch(0.99 0.004 75); box-shadow:0 30px 70px rgba(0,0,0,0.16), 0 0 0 1px oklch(0.9 0.01 75); overflow:auto; position:relative; padding:26px 22px 32px;">
+
+    <sc-if value="{{ showToast }}" hint-placeholder-val="{{ false }}">
+      <div style="position:absolute; top:18px; left:50%; transform:translateX(-50%); background:var(--text); color:#fff; font-size:12px; font-weight:500; padding:8px 16px; border-radius:var(--radius-lg); box-shadow:0 10px 24px rgba(0,0,0,0.22); white-space:nowrap; z-index:20;">{{ toast }}</div>
+    </sc-if>
+
+    <div style="border-radius:var(--radius-lg); background:var(--surface-soft); margin-bottom:16px; overflow:hidden;">
+      <div onClick="{{ toggleCaptureInline }}" style="display:flex; align-items:center; gap:10px; padding:15px 18px; cursor:pointer;">
+        <span style="width:26px;height:26px;border-radius:50%;background:var(--text);color:#fff;display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0;">+</span>
+        <span style="flex:1; font-size:14px; color:oklch(0.5 0.012 75);">Capture a thought…</span>
+        <span style="font-size:12px; color:oklch(0.6 0.012 75); transform:{{ captureChevronRotate }}; transition:transform .18s; display:inline-block;">⌄</span>
+      </div>
+      <sc-if value="{{ captureOpen }}" hint-placeholder-val="{{ false }}">
+        <div style="padding:0 18px 18px;">
+          <div style="display:flex; align-items:center; gap:8px; margin-bottom:8px;">
+            <span style="display:inline-flex;align-items:center;font-size:11px;font-weight:600;padding:3px 10px;border-radius:var(--radius-sm); background:{{ taskPillBg }}; color:{{ taskPillColor }};">{{ taskPillLabel }}</span>
+            <span style="font-size:10px; color:oklch(0.65 0.01 75);">#tag · @person · !project · %domain · /type · +task</span>
+          </div>
+          <textarea
+            value="{{ text }}"
+            onChange="{{ onTextChange }}"
+            placeholder="What's on your mind?"
+            style="width:100%; min-height:88px; border:none; outline:none; background:transparent; resize:none; font-family:'Newsreader',serif; font-size:19px; line-height:1.4; color:var(--text); font-weight:400;"
+          ></textarea>
+          <sc-if value="{{ hasAutocomplete }}" hint-placeholder-val="{{ false }}">
+            <div style="background:#fff;border:1px solid oklch(0.9 0.01 75);border-radius:var(--radius-lg);box-shadow:0 8px 20px rgba(0,0,0,0.1); padding:5px; max-height:160px; overflow:auto; margin-bottom:8px;">
+              <sc-for list="{{ acList }}" as="item" hint-placeholder-count="3">
+                <div onClick="{{ item.pick }}" style="display:flex;align-items:center;gap:9px;padding:8px 9px;border-radius:var(--radius-sm);cursor:pointer;font-size:13px;color:var(--text);" style-hover="background:oklch(0.96 0.006 75);">
+                  <span style="width:20px;height:20px;border-radius:50%;background:var(--surface-soft);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:oklch(0.5 0.012 75); flex-shrink:0;">{{ acTrigger }}</span>
+                  {{ item.name }}
+                </div>
+              </sc-for>
+            </div>
+          </sc-if>
+          <div style="display:flex; justify-content:center; margin:8px 0 12px;">
+            <div style="display:flex; background:#fff; border-radius:var(--radius-sm); padding:3px; gap:2px;">
+              <div onClick="{{ setModeType }}" style="padding:6px 16px;border-radius:var(--radius-sm);font-size:12px;font-weight:600;cursor:pointer; background:{{ typeBtnBg }}; color:{{ typeBtnColor }}; box-shadow:{{ typeBtnShadow }};">Type</div>
+              <div onClick="{{ setModeVoice }}" style="padding:6px 16px;border-radius:var(--radius-sm);font-size:12px;font-weight:600;cursor:pointer; background:{{ voiceBtnBg }}; color:{{ voiceBtnColor }}; box-shadow:{{ voiceBtnShadow }};">Voice</div>
+              <div onClick="{{ setModePhoto }}" style="padding:6px 16px;border-radius:var(--radius-sm);font-size:12px;font-weight:600;cursor:pointer; background:{{ photoBtnBg }}; color:{{ photoBtnColor }}; box-shadow:{{ photoBtnShadow }};">Photo</div>
+            </div>
+          </div>
+          <sc-if value="{{ hasThoughts }}" hint-placeholder-val="{{ false }}">
+            <div style="margin-bottom:12px; display:flex; flex-direction:column; gap:8px;">
+              <div style="font-size:9px; font-weight:600; text-transform:uppercase; letter-spacing:.08em; color:oklch(0.68 0.01 75); margin-bottom:-2px;">Recognized</div>
+              <sc-for list="{{ thoughts }}" as="thought" hint-placeholder-count="1">
+                <div style="background:oklch(0.99 0.004 75); border:1px solid oklch(0.92 0.008 75); border-left:3px solid {{ thought.typeColor }}; border-radius:var(--radius-lg); padding:12px 14px; display:flex; flex-direction:column; gap:8px;">
+                  <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
+                    <span style="width:5px; height:5px; border-radius:50%; background:{{ thought.typeColor }}; flex-shrink:0;"></span>
+                    <span style="font-size:10px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; color:{{ thought.typeColor }};">{{ thought.typeLabel }}</span>
+                    <sc-if value="{{ thought.hasDomain }}" hint-placeholder-val="{{ false }}">
+                      <span style="font-size:9px; font-weight:600; padding:2px 8px; border-radius:var(--radius-sm); background:{{ thought.domain.bg }}; color:{{ thought.domain.color }}; border:{{ thought.domain.border }};">{{ thought.domain.label }}</span>
+                    </sc-if>
+                    <div style="flex:1;"></div>
+                    <sc-if value="{{ thought.isTask }}" hint-placeholder-val="{{ false }}">
+                      <span style="font-size:9px; font-weight:600; color:oklch(0.55 0.012 75); border:1px dashed oklch(0.75 0.012 75); padding:2px 8px; border-radius:var(--radius-sm); white-space:nowrap;">+ Due date</span>
+                    </sc-if>
+                  </div>
+                  <div style="font-family:'Newsreader',serif; font-size:14px; line-height:1.5; color:oklch(0.26 0.014 75);">{{ thought.body }}</div>
+                  <sc-if value="{{ thought.hasChips }}" hint-placeholder-val="{{ false }}">
+                    <div style="display:flex; flex-wrap:wrap; gap:5px;">
+                      <sc-for list="{{ thought.people }}" as="p" hint-placeholder-count="0">
+                        <div style="display:flex; align-items:center; gap:4px; padding:2px 8px 2px 2px; border-radius:var(--radius-sm); background:{{ p.bg }}; border:{{ p.border }}; opacity:{{ p.opacity }};">
+                          <span style="width:15px; height:15px; border-radius:50%; background:{{ p.color }}; color:#fff; font-size:8px; font-weight:700; display:flex; align-items:center; justify-content:center; flex-shrink:0;">{{ p.initial }}</span>
+                          <span style="font-size:10px; font-weight:600; color:{{ p.color }};">{{ p.label }}</span>
+                          <sc-if value="{{ p.isNew }}" hint-placeholder-val="{{ false }}"><span style="font-size:8px; font-weight:700; color:{{ p.color }};">+</span></sc-if>
+                        </div>
+                      </sc-for>
+                      <sc-for list="{{ thought.tags }}" as="t" hint-placeholder-count="0">
+                        <div style="display:flex; align-items:center; gap:3px; padding:3px 8px; border-radius:var(--radius-sm); background:{{ t.bg }}; border:{{ t.border }}; opacity:{{ t.opacity }};">
+                          <span style="font-size:10px; font-weight:600; color:{{ t.color }};">#{{ t.label }}</span>
+                          <sc-if value="{{ t.isNew }}" hint-placeholder-val="{{ false }}"><span style="font-size:8px; font-weight:700; color:{{ t.color }};">+</span></sc-if>
+                        </div>
+                      </sc-for>
+                    </div>
+                  </sc-if>
+                </div>
+              </sc-for>
+            </div>
+          </sc-if>
+          <button onClick="{{ handleSave }}" style="box-sizing:border-box; width:100%; padding:13px; border-radius:var(--radius-lg); border:none; background:var(--button-home); color:var(--cream); font-size:14px; font-weight:600; font-family:'IBM Plex Sans',sans-serif; cursor:pointer; transition:background .1s, color .1s;" style-active="background:var(--button-pressed); color:var(--cream);">Save to Inbox</button>
+        </div>
+      </sc-if>
+    </div>
+
+    <div style="display:flex; gap:10px; margin-bottom:22px;">
+      <div onClick="{{ openInboxBridge }}" style="flex:1; padding:14px 16px; border-radius:var(--radius-sm); background:#fff; border:1px solid oklch(0.92 0.008 75); cursor:pointer;">
+        <div style="font-size:22px; font-weight:700; color:var(--text); font-family:'Newsreader',serif;">{{ inboxCount }}</div>
+        <div style="font-size:11px; color:oklch(0.55 0.012 75); text-transform:uppercase; letter-spacing:.04em; margin-top:2px;">Inbox</div>
+      </div>
+      <div onClick="{{ openTodayBridge }}" style="flex:1; padding:14px 16px; border-radius:var(--radius-sm); background:#fff; border:1px solid oklch(0.92 0.008 75); cursor:pointer;">
+        <div style="font-size:22px; font-weight:700; color:var(--text); font-family:'Newsreader',serif;">3 <span style="font-size:13px;font-weight:500;color:oklch(0.6 0.012 75);">due</span> · 2 <span style="font-size:13px;font-weight:500;color:oklch(0.6 0.012 75);">events</span></div>
+        <div style="font-size:11px; color:oklch(0.55 0.012 75); text-transform:uppercase; letter-spacing:.04em; margin-top:2px;">Today</div>
+      </div>
+    </div>
+
+    <sc-if value="{{ allQuiet }}" hint-placeholder-val="{{ false }}">
+      <div style="text-align:center; padding:60px 20px; color:oklch(0.6 0.012 75);">
+        <div style="font-family:'Newsreader',serif; font-style:italic; font-size:18px; line-height:1.5;">Nothing's asking for your attention.<br/>Go enjoy your day.</div>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ personalPulsePresent }}" hint-placeholder-val="{{ true }}">
+      <div style="padding:18px; border-radius:var(--radius-lg); background:#fff; border:1px solid oklch(0.92 0.008 75); margin-bottom:12px; cursor:pointer;" style-hover="box-shadow:0 6px 18px rgba(0,0,0,0.06);">
+        <div style="display:flex; justify-content:space-between; align-items:center; gap:10px; margin-bottom:8px;">
+          <span style="font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:.05em; color:oklch(0.55 0.012 75);">Personal pulse</span>
+          <span style="font-size:11px; font-weight:600; padding:3px 9px; border-radius:var(--radius-sm); background:oklch(0.94 0.045 135); color:oklch(0.36 0.09 135); white-space:nowrap;">prayer</span>
+        </div>
+        <div style="font-family:'Newsreader',serif; font-size:17px; line-height:1.4; color:var(--text);">Entries are up 3× this week — your highest week in months.</div>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ operationalPresent }}" hint-placeholder-val="{{ true }}">
+      <div style="padding:18px; border-radius:var(--radius-lg); background:#fff; border:1px solid oklch(0.92 0.008 75); margin-bottom:12px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; gap:10px; margin-bottom:8px;">
+          <span style="font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:.05em; color:oklch(0.55 0.012 75);">Operational pulse</span>
+          <span style="font-size:11px; font-weight:600; padding:3px 9px; border-radius:var(--radius-sm); background:color-mix(in oklch, var(--domain-rcbs) 12%, white); color:var(--domain-rcbs); white-space:nowrap;">dWell</span>
+        </div>
+        <div style="font-family:'Newsreader',serif; font-size:17px; line-height:1.4; color:var(--text);">{{ operationalText }}</div>
+        <div style="display:flex; align-items:center; gap:10px; margin-top:12px; padding-top:12px; border-top:1px solid var(--surface-soft);">
+          <div onClick="{{ completeOverdue }}" style="width:18px;height:18px;border-radius:var(--radius-sm);flex-shrink:0;cursor:pointer;background:{{ overdueCheckBg }};border:1.5px solid {{ overdueCheckBorder }};display:flex;align-items:center;justify-content:center;color:#fff;font-size:11px;">{{ overdueCheckMark }}</div>
+          <div style="font-size:13px; color:{{ overdueTextColor }}; text-decoration:{{ overdueTextDecoration }};">Call the venue — overdue</div>
+        </div>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ driftPresent }}" hint-placeholder-val="{{ true }}">
+      <div style="padding:18px; border-radius:var(--radius-lg); background:#fff; border:1px solid oklch(0.92 0.008 75); margin-bottom:12px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; gap:10px; margin-bottom:8px;">
+          <span style="font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:.05em; color:oklch(0.55 0.012 75);">Drift alert</span>
+          <span style="font-size:11px; font-weight:600; padding:3px 9px; border-radius:var(--radius-sm); background:color-mix(in oklch, var(--domain-peeps) 12%, white); color:var(--domain-peeps); white-space:nowrap;">PEEPS</span>
+        </div>
+        <div style="font-family:'Newsreader',serif; font-size:17px; line-height:1.4; color:var(--text); margin-bottom:12px;">Has had no activity in 2 weeks.</div>
+        <div onClick="{{ markPaused }}" style="display:inline-block; font-size:12px; font-weight:600; padding:6px 14px; border-radius:var(--radius-sm); border:1px solid oklch(0.78 0.01 75); color:oklch(0.4 0.012 75); cursor:pointer;">Mark paused</div>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ onThisDayPresent }}" hint-placeholder-val="{{ true }}">
+      <div onClick="{{ openOnThisDay }}" style="padding:18px; border-radius:var(--radius-lg); background:#fff; border:1px solid oklch(0.92 0.008 75); margin-bottom:12px; cursor:pointer;">
+        <div style="font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:.05em; color:oklch(0.55 0.012 75); margin-bottom:8px;">On this day · 2 years ago</div>
+        <div style="font-family:'Newsreader',serif; font-style:italic; font-size:17px; line-height:1.4; color:var(--text);">"Dreamed about the lake house again — woke up homesick for a place that isn't home anymore."</div>
+      </div>
+    </sc-if>
+
+  </div>
+</section>
+
+<section id="desktop" style="background:var(--surface); padding:56px 48px; display:flex; flex-direction:column; gap:20px; font-family:'IBM Plex Sans',sans-serif;">
+  <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+    <span style="font-size:11px; font-weight:700; letter-spacing:.08em; color:#fff; background:var(--text); padding:4px 10px; border-radius:var(--radius-sm);">DESKTOP</span>
+    <span style="font-size:13px; color:oklch(0.52 0.012 75);">Sidebar shell, centered content column, Capture as a modal — same data as Home above</span>
+    <div style="flex:1;"></div>
+    <span style="font-size:12px; color:oklch(0.52 0.012 75);">Simulate a calm week</span>
+    <div onClick="{{ toggleCalmWeek }}" style="width:42px;height:24px;border-radius:var(--radius-sm);background:{{ calmToggleBg }};position:relative;cursor:pointer;">
+      <div style="position:absolute;top:2px;left:{{ calmToggleLeft }};width:20px;height:20px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,0.25);transition:left .18s;"></div>
+    </div>
+  </div>
+
+  <div style="width:1280px; height:800px; border-radius:var(--radius-lg); background:oklch(0.99 0.004 75); box-shadow:0 30px 70px rgba(0,0,0,0.16), 0 0 0 1px oklch(0.9 0.01 75); overflow:hidden; position:relative; display:flex;">
+
+    <div style="width:232px; flex-shrink:0; background:oklch(0.965 0.007 75); border-right:1px solid oklch(0.9 0.01 75); padding:28px 18px; display:flex; flex-direction:column; gap:4px;">
+      <div style="font-family:'Newsreader',serif; font-size:19px; font-weight:600; color:var(--text); padding:0 10px; margin-bottom:22px;">RenitaOS</div>
+
+      <div onClick="{{ toggleDesktopCapture }}" style="display:flex; align-items:center; gap:10px; padding:11px 14px; border-radius:var(--radius-lg); background:oklch(0.4 0.08 135); color:#fff; cursor:pointer; margin-bottom:18px;">
+        <span style="width:18px;height:18px;border-radius:calc(var(--radius-lg) * 0.4);background:rgba(255,255,255,0.25);display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0;">+</span>
+        <span style="font-size:13px; font-weight:600; flex:1;">Capture</span>
+        <span style="font-size:10px; opacity:0.75; border:1px solid rgba(255,255,255,0.4); border-radius:calc(var(--radius-lg) * 0.33); padding:1px 5px;">C</span>
+      </div>
+
+      <div style="display:flex; align-items:center; padding:10px 14px; border-radius:var(--radius-sm); background:var(--surface-soft); color:var(--text); font-size:13px; font-weight:600; cursor:pointer;">Home</div>
+      <div onClick="{{ openInboxBridge }}" style="display:flex; align-items:center; justify-content:space-between; padding:10px 14px; border-radius:var(--radius-sm); color:oklch(0.5 0.012 75); font-size:13px; cursor:pointer;">
+        <span>Inbox</span><span style="font-size:12px; color:oklch(0.6 0.012 75);">{{ inboxCount }}</span>
+      </div>
+      <div onClick="{{ openTodayBridge }}" style="display:flex; align-items:center; padding:10px 14px; border-radius:var(--radius-sm); color:oklch(0.5 0.012 75); font-size:13px; cursor:pointer;">Today</div>
+      <div style="display:flex; align-items:center; padding:10px 14px; border-radius:var(--radius-sm); color:oklch(0.5 0.012 75); font-size:13px; cursor:pointer;">Insights</div>
+    </div>
+
+    <div style="flex:1; overflow:auto; padding:56px 64px;">
+      <div style="max-width:640px; margin:0 auto;">
+        <div style="font-family:'Newsreader',serif; font-size:28px; color:var(--text); margin-bottom:4px;">Home</div>
+        <div style="font-size:13px; color:oklch(0.55 0.012 75); margin-bottom:28px;">Sunday, June 29</div>
+
+        <div style="display:flex; gap:12px; margin-bottom:26px;">
+          <div onClick="{{ openInboxBridge }}" style="flex:1; padding:18px 20px; border-radius:var(--radius-sm); background:#fff; border:1px solid oklch(0.92 0.008 75); cursor:pointer;">
+            <div style="font-size:26px; font-weight:700; color:var(--text); font-family:'Newsreader',serif;">{{ inboxCount }}</div>
+            <div style="font-size:11px; color:oklch(0.55 0.012 75); text-transform:uppercase; letter-spacing:.04em; margin-top:2px;">Inbox</div>
+          </div>
+          <div onClick="{{ openTodayBridge }}" style="flex:1; padding:18px 20px; border-radius:var(--radius-sm); background:#fff; border:1px solid oklch(0.92 0.008 75); cursor:pointer;">
+            <div style="font-size:26px; font-weight:700; color:var(--text); font-family:'Newsreader',serif;">3 <span style="font-size:14px;font-weight:500;color:oklch(0.6 0.012 75);">due</span> · 2 <span style="font-size:14px;font-weight:500;color:oklch(0.6 0.012 75);">events</span></div>
+            <div style="font-size:11px; color:oklch(0.55 0.012 75); text-transform:uppercase; letter-spacing:.04em; margin-top:2px;">Today</div>
+          </div>
+        </div>
+
+        <sc-if value="{{ allQuiet }}" hint-placeholder-val="{{ false }}">
+          <div style="text-align:center; padding:60px 20px; color:oklch(0.6 0.012 75);">
+            <div style="font-family:'Newsreader',serif; font-style:italic; font-size:18px; line-height:1.5;">Nothing's asking for your attention.<br/>Go enjoy your day.</div>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{ personalPulsePresent }}" hint-placeholder-val="{{ true }}">
+          <div style="padding:20px; border-radius:var(--radius-lg); background:#fff; border:1px solid oklch(0.92 0.008 75); margin-bottom:14px; cursor:pointer;">
+            <div style="display:flex; justify-content:space-between; align-items:center; gap:10px; margin-bottom:8px;">
+              <span style="font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:.05em; color:oklch(0.55 0.012 75);">Personal pulse</span>
+              <span style="font-size:11px; font-weight:600; padding:3px 9px; border-radius:var(--radius-sm); background:oklch(0.94 0.045 135); color:oklch(0.36 0.09 135); white-space:nowrap;">prayer</span>
+            </div>
+            <div style="font-family:'Newsreader',serif; font-size:18px; line-height:1.4; color:var(--text);">Entries are up 3× this week — your highest week in months.</div>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{ operationalPresent }}" hint-placeholder-val="{{ true }}">
+          <div style="padding:20px; border-radius:var(--radius-lg); background:#fff; border:1px solid oklch(0.92 0.008 75); margin-bottom:14px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; gap:10px; margin-bottom:8px;">
+              <span style="font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:.05em; color:oklch(0.55 0.012 75);">Operational pulse</span>
+              <span style="font-size:11px; font-weight:600; padding:3px 9px; border-radius:var(--radius-sm); background:color-mix(in oklch, var(--domain-rcbs) 12%, white); color:var(--domain-rcbs); white-space:nowrap;">dWell</span>
+            </div>
+            <div style="font-family:'Newsreader',serif; font-size:18px; line-height:1.4; color:var(--text);">{{ operationalText }}</div>
+            <div style="display:flex; align-items:center; gap:10px; margin-top:14px; padding-top:14px; border-top:1px solid var(--surface-soft);">
+              <div onClick="{{ completeOverdue }}" style="width:18px;height:18px;border-radius:var(--radius-sm);flex-shrink:0;cursor:pointer;background:{{ overdueCheckBg }};border:1.5px solid {{ overdueCheckBorder }};display:flex;align-items:center;justify-content:center;color:#fff;font-size:11px;">{{ overdueCheckMark }}</div>
+              <div style="font-size:13px; color:{{ overdueTextColor }}; text-decoration:{{ overdueTextDecoration }};">Call the venue — overdue</div>
+            </div>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{ driftPresent }}" hint-placeholder-val="{{ true }}">
+          <div style="padding:20px; border-radius:var(--radius-lg); background:#fff; border:1px solid oklch(0.92 0.008 75); margin-bottom:14px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; gap:10px; margin-bottom:8px;">
+              <span style="font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:.05em; color:oklch(0.55 0.012 75);">Drift alert</span>
+              <span style="font-size:11px; font-weight:600; padding:3px 9px; border-radius:var(--radius-sm); background:color-mix(in oklch, var(--domain-peeps) 12%, white); color:var(--domain-peeps); white-space:nowrap;">PEEPS</span>
+            </div>
+            <div style="font-family:'Newsreader',serif; font-size:18px; line-height:1.4; color:var(--text); margin-bottom:14px;">Has had no activity in 2 weeks.</div>
+            <div onClick="{{ markPaused }}" style="display:inline-block; font-size:12px; font-weight:600; padding:6px 14px; border-radius:var(--radius-sm); border:1px solid oklch(0.78 0.01 75); color:oklch(0.4 0.012 75); cursor:pointer;">Mark paused</div>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{ onThisDayPresent }}" hint-placeholder-val="{{ true }}">
+          <div onClick="{{ openOnThisDay }}" style="padding:20px; border-radius:var(--radius-lg); background:#fff; border:1px solid oklch(0.92 0.008 75); margin-bottom:14px; cursor:pointer;">
+            <div style="font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:.05em; color:oklch(0.55 0.012 75); margin-bottom:8px;">On this day · 2 years ago</div>
+            <div style="font-family:'Newsreader',serif; font-style:italic; font-size:18px; line-height:1.4; color:var(--text);">"Dreamed about the lake house again — woke up homesick for a place that isn't home anymore."</div>
+          </div>
+        </sc-if>
+      </div>
+    </div>
+
+    <sc-if value="{{ desktopCaptureOpen }}" hint-placeholder-val="{{ false }}">
+      <div onClick="{{ toggleDesktopCapture }}" style="position:absolute; inset:0; background:rgba(20,18,14,0.35); display:flex; align-items:center; justify-content:center; z-index:30;">
+        <div onClick="{{ stopClick }}" style="width:480px; max-height:620px; background:#fff; border-radius:var(--radius-lg); box-shadow:0 30px 60px rgba(0,0,0,0.3); padding:26px; display:flex; flex-direction:column;">
+          <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:14px;">
+            <span style="display:inline-flex;align-items:center;font-size:12px;font-weight:600;padding:4px 12px;border-radius:var(--radius-sm); background:{{ taskPillBg }}; color:{{ taskPillColor }};">{{ taskPillLabel }}</span>
+            <div onClick="{{ toggleDesktopCapture }}" style="width:28px;height:28px;border-radius:50%;background:var(--surface-soft);display:flex;align-items:center;justify-content:center;color:oklch(0.5 0.012 75);font-size:13px;cursor:pointer;">✕</div>
+          </div>
+          <textarea
+            value="{{ text }}"
+            onChange="{{ onTextChange }}"
+            placeholder="What's on your mind?"
+            style="width:100%; min-height:120px; border:none; outline:none; background:transparent; resize:none; font-family:'Newsreader',serif; font-size:22px; line-height:1.4; color:var(--text); font-weight:400;"
+          ></textarea>
+          <sc-if value="{{ hasAutocomplete }}" hint-placeholder-val="{{ false }}">
+            <div style="background:#fff;border:1px solid oklch(0.9 0.01 75);border-radius:var(--radius-lg);box-shadow:0 8px 20px rgba(0,0,0,0.1); padding:5px; max-height:160px; overflow:auto; margin-bottom:10px;">
+              <sc-for list="{{ acList }}" as="item" hint-placeholder-count="3">
+                <div onClick="{{ item.pick }}" style="display:flex;align-items:center;gap:9px;padding:8px 9px;border-radius:var(--radius-sm);cursor:pointer;font-size:13px;color:var(--text);" style-hover="background:oklch(0.96 0.006 75);">
+                  <span style="width:20px;height:20px;border-radius:50%;background:var(--surface-soft);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:oklch(0.5 0.012 75); flex-shrink:0;">{{ acTrigger }}</span>
+                  {{ item.name }}
+                </div>
+              </sc-for>
+            </div>
+          </sc-if>
+          <div style="display:flex; align-items:center; justify-content:space-between; margin:8px 0 16px;">
+            <span style="font-size:10px; color:oklch(0.65 0.01 75);">#tag · @person · !project · %domain · /type · +task</span>
+            <div style="display:flex; background:var(--surface-soft); border-radius:var(--radius-sm); padding:3px; gap:2px;">
+              <div onClick="{{ setModeType }}" style="padding:6px 14px;border-radius:var(--radius-sm);font-size:12px;font-weight:600;cursor:pointer; background:{{ typeBtnBg }}; color:{{ typeBtnColor }}; box-shadow:{{ typeBtnShadow }};">Type</div>
+              <div onClick="{{ setModeVoice }}" style="padding:6px 14px;border-radius:var(--radius-sm);font-size:12px;font-weight:600;cursor:pointer; background:{{ voiceBtnBg }}; color:{{ voiceBtnColor }}; box-shadow:{{ voiceBtnShadow }};">Voice</div>
+              <div onClick="{{ setModePhoto }}" style="padding:6px 14px;border-radius:var(--radius-sm);font-size:12px;font-weight:600;cursor:pointer; background:{{ photoBtnBg }}; color:{{ photoBtnColor }}; box-shadow:{{ photoBtnShadow }};">Photo</div>
+            </div>
+          </div>
+          <sc-if value="{{ hasThoughts }}" hint-placeholder-val="{{ false }}">
+            <div style="margin-bottom:16px; display:flex; flex-direction:column; gap:10px;">
+              <div style="font-size:10px; font-weight:600; text-transform:uppercase; letter-spacing:.08em; color:oklch(0.68 0.01 75); margin-bottom:-2px;">Recognized</div>
+              <sc-for list="{{ thoughts }}" as="thought" hint-placeholder-count="1">
+                <div style="background:oklch(0.99 0.004 75); border:1px solid oklch(0.92 0.008 75); border-left:4px solid {{ thought.typeColor }}; border-radius:var(--radius-lg); padding:16px 18px; display:flex; flex-direction:column; gap:10px;">
+                  <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+                    <span style="width:6px; height:6px; border-radius:50%; background:{{ thought.typeColor }}; flex-shrink:0;"></span>
+                    <span style="font-size:11px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; color:{{ thought.typeColor }};">{{ thought.typeLabel }}</span>
+                    <sc-if value="{{ thought.hasDomain }}" hint-placeholder-val="{{ false }}">
+                      <span style="font-size:10px; font-weight:600; padding:2px 9px; border-radius:var(--radius-sm); background:{{ thought.domain.bg }}; color:{{ thought.domain.color }}; border:{{ thought.domain.border }};">{{ thought.domain.label }}</span>
+                    </sc-if>
+                    <div style="flex:1;"></div>
+                    <sc-if value="{{ thought.isTask }}" hint-placeholder-val="{{ false }}">
+                      <span style="font-size:10px; font-weight:600; color:oklch(0.55 0.012 75); border:1px dashed oklch(0.75 0.012 75); padding:3px 9px; border-radius:var(--radius-sm); white-space:nowrap;">+ Due date</span>
+                    </sc-if>
+                  </div>
+                  <div style="font-family:'Newsreader',serif; font-size:16px; line-height:1.5; color:oklch(0.26 0.014 75);">{{ thought.body }}</div>
+                  <sc-if value="{{ thought.hasChips }}" hint-placeholder-val="{{ false }}">
+                    <div style="display:flex; flex-wrap:wrap; gap:6px;">
+                      <sc-for list="{{ thought.people }}" as="p" hint-placeholder-count="0">
+                        <div style="display:flex; align-items:center; gap:5px; padding:3px 10px 3px 3px; border-radius:var(--radius-sm); background:{{ p.bg }}; border:{{ p.border }}; opacity:{{ p.opacity }};">
+                          <span style="width:18px; height:18px; border-radius:50%; background:{{ p.color }}; color:#fff; font-size:9px; font-weight:700; display:flex; align-items:center; justify-content:center; flex-shrink:0;">{{ p.initial }}</span>
+                          <span style="font-size:11px; font-weight:600; color:{{ p.color }};">{{ p.label }}</span>
+                          <sc-if value="{{ p.isNew }}" hint-placeholder-val="{{ false }}"><span style="font-size:9px; font-weight:700; color:{{ p.color }};">+</span></sc-if>
+                        </div>
+                      </sc-for>
+                      <sc-for list="{{ thought.tags }}" as="t" hint-placeholder-count="0">
+                        <div style="display:flex; align-items:center; gap:4px; padding:4px 10px; border-radius:var(--radius-sm); background:{{ t.bg }}; border:{{ t.border }}; opacity:{{ t.opacity }};">
+                          <span style="font-size:11px; font-weight:600; color:{{ t.color }};">#{{ t.label }}</span>
+                          <sc-if value="{{ t.isNew }}" hint-placeholder-val="{{ false }}"><span style="font-size:9px; font-weight:700; color:{{ t.color }};">+</span></sc-if>
+                        </div>
+                      </sc-for>
+                    </div>
+                  </sc-if>
+                </div>
+              </sc-for>
+            </div>
+          </sc-if>
+          <button onClick="{{ handleSave }}" style="box-sizing:border-box; width:100%; padding:15px; border-radius:var(--radius-lg); border:none; background:var(--surface-soft); color:var(--text); font-size:15px; font-weight:600; font-family:'IBM Plex Sans',sans-serif; cursor:pointer; transition:background .1s, color .1s;" style-active="background:var(--button-pressed); color:var(--cream);">Save to Inbox</button>
+        </div>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ showToast }}" hint-placeholder-val="{{ false }}">
+      <div style="position:absolute; bottom:32px; left:50%; transform:translateX(-50%); background:var(--text); color:#fff; font-size:13px; font-weight:500; padding:10px 18px; border-radius:var(--radius-lg); box-shadow:0 10px 24px rgba(0,0,0,0.22); white-space:nowrap; z-index:40;">{{ toast }}</div>
+    </sc-if>
+
+  </div>
+</section>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+const TYPE_SET = ['Dream', 'Thought', 'Sermon', 'Reflection', 'Note', 'Reminder', 'Idea', 'Study'];
+
+const TRIGGER_DATA = {
+  '#': ['prayer', 'gratitude', 'family', 'health', 'urgent', 'rest', 'work'],
+  '@': ['Becky', 'David', 'Mom', 'Jordan'],
+  '!': ['dWell', 'Launch', 'Book Draft'],
+  '%': ['RCBS', 'RWS', 'SM', 'MTS', 'EPLC', 'PEEPS'],
+  '/': TYPE_SET,
+};
+
+const TYPE_PALETTE = {
+  Dream:      'var(--type-dream)',
+  Thought:    'var(--type-thought)',
+  Sermon:     'var(--type-sermon)',
+  Reflection: 'var(--type-reflection)',
+  Note:       'var(--type-note)',
+  Task:       'var(--type-task)',
+  Reminder:   'var(--type-reminder)',
+  Idea:       'var(--type-idea)',
+  Study:      'var(--type-study)',
+};
+
+const INK = 'var(--text)';
+const MUTE = 'var(--surface-soft)';
+const MUTE_TEXT = 'oklch(0.5 0.012 75)';
+const TASK_TINT_BG = 'oklch(0.945 0.028 275)';
+const TASK_TINT_TEXT = 'oklch(0.4 0.1 275)';
+
+// bg/border are derived from the single domain token via color-mix — one dial per domain, everywhere.
+function domainShades(varName) {
+  return {
+    bg: `color-mix(in oklch, var(${varName}) 12%, white)`,
+    text: `var(${varName})`,
+    border: `color-mix(in oklch, var(${varName}) 40%, transparent)`,
+  };
+}
+const DOMAIN_PALETTE = {
+  RCBS:  domainShades('--domain-rcbs'),
+  RWS:   domainShades('--domain-rws'),
+  SM:    domainShades('--domain-sm'),
+  MTS:   domainShades('--domain-mts'),
+  EPLC:  domainShades('--domain-eplc'),
+  PEEPS: domainShades('--domain-peeps'),
+};
+const PROJECT_DOMAIN = { dwell: 'RCBS', launch: 'MTS', 'book draft': 'RWS' };
+const TAG_PALETTE = { bg: 'oklch(0.94 0.045 135)', text: 'oklch(0.36 0.09 135)', border: 'oklch(0.36 0.09 135 / 0.35)' };
+const PERSON_PALETTE = { bg: 'var(--surface-soft)', text: 'oklch(0.4 0.012 75)', border: 'oklch(0.4 0.012 75 / 0.3)' };
+const NEUTRAL_NEW_PALETTE = { bg: '#fff', text: 'oklch(0.45 0.012 75)', border: 'oklch(0.45 0.012 75 / 0.4)' };
+const PENDING_PALETTE = { bg: 'oklch(0.96 0.006 75)', text: 'oklch(0.62 0.012 75)', border: 'oklch(0.7 0.012 75 / 0.5)' };
+
+class Component extends DCLogic {
+  state = {
+    text: '',
+    mode: 'type',
+    taskManual: false,
+    autocomplete: null,
+    recent: [],
+    toast: '',
+    calmWeek: false,
+    overdueDone: false,
+    driftDismissed: false,
+    inboxCount: 7,
+    captureOpen: false,
+    desktopCaptureOpen: false,
+  };
+
+  toggleCaptureInline = () => this.setState((s) => ({ captureOpen: !s.captureOpen }));
+  toggleDesktopCapture = () => this.setState((s) => ({ desktopCaptureOpen: !s.desktopCaptureOpen }));
+  stopClick = (e) => { if (e) e.stopPropagation(); };
+
+  onTextChange = (e) => {
+    const val = e.target.value;
+    const pos = e.target.selectionStart;
+    this.setState({ text: val }, () => this.updateAutocomplete(val, pos));
+  };
+
+  updateAutocomplete(val, pos) {
+    const before = val.slice(0, pos);
+    const m = before.match(/(^|\s)([#@!%/])([a-zA-Z0-9]*)$/);
+    if (m) {
+      const trigger = m[2];
+      const query = m[3];
+      const source = TRIGGER_DATA[trigger] || [];
+      const matches = source.filter((x) => x.toLowerCase().startsWith(query.toLowerCase()));
+      if (matches.length) {
+        const tokenEnd = pos;
+        const tokenStart = pos - query.length - 1;
+        const list = matches.map((name) => ({
+          name,
+          pick: () => this.pickAutocomplete(trigger, name, tokenStart, tokenEnd),
+        }));
+        this.setState({ autocomplete: { trigger, list } });
+        return;
+      }
+    }
+    if (this.state.autocomplete) this.setState({ autocomplete: null });
+  }
+
+  pickAutocomplete(trigger, name, tokenStart, tokenEnd) {
+    const val = this.state.text;
+    const newVal = val.slice(0, tokenStart) + trigger + name + ' ' + val.slice(tokenEnd);
+    this.setState({ text: newVal, autocomplete: null });
+  }
+
+  setMode = (mode) => this.setState({ mode, autocomplete: null });
+  toggleTaskManual = () => this.setState((s) => ({ taskManual: !s.taskManual }));
+
+  // Classifies one #/@/%  occurrence into a confirmed / new / pending chip descriptor.
+  classifyChip(symbol, rawValue, isPending, palette) {
+    const list = TRIGGER_DATA[symbol] || [];
+    const canonical = list.find((x) => x.toLowerCase() === rawValue.toLowerCase());
+    const exists = !!canonical;
+    const isNew = !isPending && !exists;
+    let bg, border, color, opacity;
+    if (isPending) {
+      bg = 'oklch(0.97 0.004 75)';
+      border = '1px dashed oklch(0.78 0.012 75 / 0.7)';
+      color = 'oklch(0.6 0.012 75)';
+      opacity = '0.55';
+    } else if (isNew) {
+      bg = '#fff';
+      border = `1.5px dashed ${palette.text}`;
+      color = palette.text;
+      opacity = '1';
+    } else {
+      bg = palette.bg;
+      border = `1px solid ${palette.border}`;
+      color = palette.text;
+      opacity = '1';
+    }
+    return { label: rawValue + (isPending ? '…' : ''), bg, color, border, opacity, isNew, isPending };
+  }
+
+  // Splits a braindump into separate entries: a new entry starts at any line
+  // beginning with /type or a leading +, or after a blank line. Plain
+  // continuation lines stay attached to the entry above them.
+  splitEntries(text) {
+    const lines = text.split('\n');
+    const entries = [];
+    let current = [];
+    const startsMarker = (line) => /^\s*(\/[A-Za-z]+|\+)/.test(line);
+    for (const line of lines) {
+      if (line.trim() === '') {
+        if (current.length) { entries.push(current.join('\n')); current = []; }
+        continue;
+      }
+      if (startsMarker(line) && current.length) {
+        entries.push(current.join('\n'));
+        current = [line];
+      } else {
+        current.push(line);
+      }
+    }
+    if (current.length) entries.push(current.join('\n'));
+    return entries;
+  }
+
+  computeThoughts() {
+    const full = this.state.text;
+    if (!full.trim()) return [];
+    return this.splitEntries(full)
+      .map((entryText) => this.computeThoughtFromEntry(entryText))
+      .filter(Boolean);
+  }
+
+  // Parses ONE entry's text into a thought-record preview: a Type (from /word),
+  // an optional Domain (only if % was typed), tag pills, people, task/due state,
+  // and the remaining prose with all recognized syntax stripped out.
+  computeThoughtFromEntry(raw) {
+    if (!raw.trim()) return null;
+
+    const isTask = /^\s*\+/.test(raw);
+
+    // Type: only a FULL /word match against the known Type set counts — else it's plain text.
+    // A leading + with no explicit /type defaults the label to Task rather than Note.
+    let typeName = isTask ? 'Task' : 'Note';
+    const typeMatch = raw.match(/(^|\s)\/([A-Za-z]+)/);
+    let typeSpan = null;
+    if (typeMatch) {
+      const canonical = TYPE_SET.find((t) => t.toLowerCase() === typeMatch[2].toLowerCase());
+      if (canonical) {
+        typeName = canonical;
+        typeSpan = { start: typeMatch.index + typeMatch[1].length, end: typeMatch.index + typeMatch[0].length };
+      }
+    }
+
+    // Walk #, @, !, % occurrences once, classify each, and mark their spans for removal from the body.
+    const removeSpans = typeSpan ? [typeSpan] : [];
+    let domain = null;
+    const tags = [];
+    const people = [];
+    const regex = /(^|\s)([#@!%])([A-Za-z0-9][A-Za-z0-9'-]*)/g;
+    let m;
+    while ((m = regex.exec(raw))) {
+      const symbol = m[2];
+      const rawValue = m[3];
+      const start = m.index + m[1].length;
+      const end = m.index + m[0].length;
+      const isPending = end === raw.length;
+
+      if (symbol === '@') {
+        // Only the '@' character is recognized syntax — the person's name stays in the prose.
+        removeSpans.push({ start, end: start + 1 });
+        const chip = this.classifyChip('@', rawValue, isPending, PERSON_PALETTE);
+        chip.initial = rawValue[0] ? rawValue[0].toUpperCase() : '?';
+        people.push(chip);
+        continue;
+      }
+
+      removeSpans.push({ start, end });
+
+      if (symbol === '#') {
+        tags.push(this.classifyChip('#', rawValue, isPending, TAG_PALETTE));
+      } else if (symbol === '%' && !domain) {
+        const canonical = (TRIGGER_DATA['%'] || []).find((x) => x.toLowerCase() === rawValue.toLowerCase());
+        const palette = canonical ? DOMAIN_PALETTE[canonical] : NEUTRAL_NEW_PALETTE;
+        domain = this.classifyChip('%', rawValue, isPending, palette);
+      }
+      // '!' project tokens are recognized syntax (stripped from prose) but not surfaced on this card.
+    }
+
+    // Strip every recognized span (+ the leading task marker) out of the raw text to get clean prose.
+    removeSpans.sort((a, b) => a.start - b.start);
+    let body = '';
+    let cursor = 0;
+    for (const span of removeSpans) {
+      body += raw.slice(cursor, span.start);
+      cursor = span.end;
+    }
+    body += raw.slice(cursor);
+    body = body.replace(/^\s*\+/, '').replace(/\s+/g, ' ').trim();
+
+    return {
+      typeLabel: typeName,
+      typeColor: TYPE_PALETTE[typeName] || TYPE_PALETTE.Note,
+      hasDomain: !!domain,
+      domain,
+      tags,
+      people,
+      hasChips: tags.length > 0 || people.length > 0,
+      isTask,
+      body,
+    };
+  }
+
+  computeIsTask() {
+    if (this.state.mode === 'type') return /^\s*\+/.test(this.state.text);
+    return this.state.taskManual;
+  }
+
+  handleSave = () => {
+    const raw = this.state.text.trim();
+    const mode = this.state.mode;
+    let displayText = raw;
+    if (!displayText) {
+      displayText = mode === 'voice' ? 'Voice memo — transcribing…' : mode === 'photo' ? 'Photo — extracting text…' : '';
+    }
+    if (!displayText) return;
+    const isTask = this.computeIsTask();
+    const entry = { text: displayText, when: 'Just now', dotColor: isTask ? 'oklch(0.6 0.11 275)' : 'oklch(0.8 0.01 75)' };
+    clearTimeout(this._toastTimer);
+    this.setState((s) => ({
+      recent: [entry, ...s.recent].slice(0, 3),
+      text: '',
+      mode: 'type',
+      taskManual: false,
+      autocomplete: null,
+      toast: 'Saved to Inbox',
+      inboxCount: s.inboxCount + 1,
+      captureOpen: false,
+      desktopCaptureOpen: false,
+    }));
+    this._toastTimer = setTimeout(() => this.setState({ toast: '' }), 2200);
+  };
+
+  completeOverdue = (e) => { if (e) e.stopPropagation(); this.setState({ overdueDone: true }); };
+  markPaused = (e) => { if (e) e.stopPropagation(); this.setState({ driftDismissed: true }); };
+  toggleCalmWeek = () => this.setState((s) => ({ calmWeek: !s.calmWeek }));
+
+  openCapture = () => {};
+  openInboxBridge = () => {};
+  openTodayBridge = () => {};
+  openOnThisDay = () => {};
+
+  renderVals() {
+    const s = this.state;
+    const mode = s.mode;
+    const isTask = this.computeIsTask();
+
+    const btnStyle = (active) => ({
+      bg: active ? '#fff' : 'transparent',
+      color: active ? INK : MUTE_TEXT,
+      shadow: active ? '0 1px 3px rgba(0,0,0,0.12)' : 'none',
+    });
+    const typeS = btnStyle(mode === 'type');
+    const voiceS = btnStyle(mode === 'voice');
+    const photoS = btnStyle(mode === 'photo');
+
+    const personalPulsePresent = !s.calmWeek;
+    const operationalPresent = !s.calmWeek;
+    const driftPresent = !s.calmWeek && !s.driftDismissed;
+    const onThisDayPresent = !s.calmWeek;
+    const allQuiet = !personalPulsePresent && !operationalPresent && !driftPresent && !onThisDayPresent;
+
+    const operationalText = s.overdueDone
+      ? 'Two tasks from done — back on track for Friday.'
+      : 'Two tasks from done — on pace for Friday, 1 overdue.';
+    const operationalTextShort = s.overdueDone ? 'Back on track for Friday.' : '2 left, 1 overdue.';
+
+    return {
+      text: s.text,
+      onTextChange: this.onTextChange,
+      isVoiceMode: mode === 'voice',
+      isPhotoMode: mode === 'photo',
+      typeBtnBg: typeS.bg, typeBtnColor: typeS.color, typeBtnShadow: typeS.shadow,
+      voiceBtnBg: voiceS.bg, voiceBtnColor: voiceS.color, voiceBtnShadow: voiceS.shadow,
+      photoBtnBg: photoS.bg, photoBtnColor: photoS.color, photoBtnShadow: photoS.shadow,
+      setModeType: () => this.setMode('type'),
+      setModeVoice: () => this.setMode('voice'),
+      setModePhoto: () => this.setMode('photo'),
+      manualTaskLabel: s.taskManual ? '✓ Task' : 'Mark as Task',
+      toggleTaskManual: this.toggleTaskManual,
+      taskPillLabel: isTask ? 'Task' : 'Note',
+      taskPillBg: isTask ? TASK_TINT_BG : MUTE,
+      taskPillColor: isTask ? TASK_TINT_TEXT : MUTE_TEXT,
+      thoughts: (this._thoughtsCache = this.computeThoughts()),
+      hasThoughts: this._thoughtsCache.length > 0,
+      hasAutocomplete: !!s.autocomplete,
+      acTrigger: s.autocomplete ? s.autocomplete.trigger : '',
+      acList: s.autocomplete ? s.autocomplete.list : [],
+      handleSave: this.handleSave,
+      hasRecent: s.recent.length > 0,
+      recent: s.recent,
+      showToast: !!s.toast,
+      toast: s.toast,
+
+      inboxCount: s.inboxCount,
+      calmToggleBg: s.calmWeek ? 'oklch(0.6 0.11 275)' : 'oklch(0.85 0.01 75)',
+      calmToggleLeft: s.calmWeek ? '20px' : '2px',
+      toggleCalmWeek: this.toggleCalmWeek,
+      openCapture: this.openCapture,
+      openInboxBridge: this.openInboxBridge,
+      openTodayBridge: this.openTodayBridge,
+      openOnThisDay: this.openOnThisDay,
+      captureOpen: s.captureOpen,
+      toggleCaptureInline: this.toggleCaptureInline,
+      captureChevronRotate: s.captureOpen ? 'rotate(180deg)' : 'rotate(0deg)',
+      desktopCaptureOpen: s.desktopCaptureOpen,
+      toggleDesktopCapture: this.toggleDesktopCapture,
+      stopClick: this.stopClick,
+
+      allQuiet,
+      personalPulsePresent,
+      operationalPresent,
+      driftPresent,
+      onThisDayPresent,
+      operationalText,
+      operationalTextShort,
+      completeOverdue: this.completeOverdue,
+      markPaused: this.markPaused,
+      overdueCheckBg: s.overdueDone ? 'oklch(0.5 0.13 155)' : 'transparent',
+      overdueCheckBorder: s.overdueDone ? 'oklch(0.5 0.13 155)' : 'oklch(0.7 0.13 25)',
+      overdueCheckMark: s.overdueDone ? '✓' : '',
+      overdueTextColor: s.overdueDone ? MUTE_TEXT : 'oklch(0.5 0.15 25)',
+      overdueTextDecoration: s.overdueDone ? 'line-through' : 'none',
+    };
+  }
+}
+
+</script>
+</body>
+</html>
