@@ -1,9 +1,10 @@
 import {
-  DB, TITLE_PROP, NOTES_PROP, TASKS_PROP, NOTE_STATUS_INBOX, TASK_STATUS_INBOX,
+  DB, NOTES_PROP, TASKS_PROP, NOTE_STATUS_INBOX, TASK_STATUS_INBOX,
   TYPE_SET, DOMAIN_CODES, DOMAINS, DAY_MERGE_TYPE,
 } from './config.js';
 import { queryAllPages, createPage, updatePageProperties, appendBlockChildren, paragraphBlocks } from './notion.js';
 import { todayISO } from './dateParse.js';
+import { titlePropertyName } from './schema.js';
 import { LookupCache } from './cache.js';
 import { computeThoughts } from './parse.js';
 
@@ -158,6 +159,11 @@ function renderThoughtCard(thought) {
 }
 
 function render() {
+  // Programmatic edits (autocomplete pick, accept-suggestion, clear, save)
+  // mutate state.text directly — sync it back to the DOM here. Typing itself
+  // already keeps el.textarea.value === state.text, so this is a no-op then.
+  if (el.textarea.value !== state.text) el.textarea.value = state.text;
+
   const isTask = computeIsTask();
   el.taskPill.textContent = isTask ? 'Task' : 'Note';
   el.taskPill.classList.toggle('task-pill--task', isTask);
@@ -281,6 +287,9 @@ el.thoughtsList.addEventListener('click', (e) => {
     const suggestion = target.dataset.suggestion;
     state.text = state.text.slice(0, start) + symbol + suggestion + state.text.slice(end);
     render();
+    el.textarea.focus();
+    const caret = start + symbol.length + suggestion.length;
+    el.textarea.setSelectionRange(caret, caret);
   } else if (action === 'force-new') {
     e.stopPropagation();
     const key = target.dataset.key;
@@ -295,15 +304,17 @@ if (el.closeBtn) {
     state.confirmedNew.clear();
     state.autocomplete = null;
     render();
+    el.textarea.focus();
   });
 }
 
-async function resolveRelation(chip, list, dbId, titleProp) {
+async function resolveRelation(chip, list, dbId) {
   if (chip.state === 'confirmed') {
     const entry = caches.findExact(list, chip.canonical);
     return entry ? entry.id : null;
   }
   if (chip.state === 'willCreate' && chip.confirmed) {
+    const titleProp = await titlePropertyName(dbId);
     const page = await createPage(dbId, { [titleProp]: titleProperty(chip.value) });
     const entry = { id: page.id, name: chip.value };
     caches.addEntry(list, entry);
@@ -313,26 +324,27 @@ async function resolveRelation(chip, list, dbId, titleProp) {
   return null;
 }
 
-async function resolveAll(chips, list, dbId, titleProp) {
+async function resolveAll(chips, list, dbId) {
   const ids = [];
   for (const chip of chips) {
-    const id = await resolveRelation(chip, list, dbId, titleProp);
+    const id = await resolveRelation(chip, list, dbId);
     if (id) ids.push(id);
   }
   return ids;
 }
 
 async function saveThought(thought) {
-  const tagIds = await resolveAll(thought.tags, caches.tags, DB.TAGS, TITLE_PROP.TAGS);
-  const peopleIds = await resolveAll(thought.people, caches.people, DB.PEOPLE, TITLE_PROP.PEOPLE);
-  const projectIds = await resolveAll(thought.projects, caches.projects, DB.PROJECTS, TITLE_PROP.PROJECTS);
+  const tagIds = await resolveAll(thought.tags, caches.tags, DB.TAGS);
+  const peopleIds = await resolveAll(thought.people, caches.people, DB.PEOPLE);
+  const projectIds = await resolveAll(thought.projects, caches.projects, DB.PROJECTS);
   const domainCfg = thought.domain && thought.domain.state === 'confirmed' ? DOMAINS[thought.domain.canonical] : null;
 
   if (thought.isTask) {
     const finalProjectIds = projectIds.length ? projectIds : (domainCfg ? [domainCfg.catchAllProjectId] : []);
+    const tasksTitleProp = await titlePropertyName(DB.TASKS);
     const properties = {
-      [TASKS_PROP.TITLE]: titleProperty(thought.title),
-      [TASKS_PROP.STATUS]: { select: { name: TASK_STATUS_INBOX } },
+      [tasksTitleProp]: titleProperty(thought.title),
+      [TASKS_PROP.STATUS]: { status: { name: TASK_STATUS_INBOX } },
     };
     if (finalProjectIds.length) properties[TASKS_PROP.PROJECTS] = { relation: finalProjectIds.map((id) => ({ id })) };
     if (thought.dueDateISO) properties[TASKS_PROP.DUE_DATE] = { date: { start: thought.dueDateISO } };
@@ -341,11 +353,12 @@ async function saveThought(thought) {
     return;
   }
 
+  const notesTitleProp = await titlePropertyName(DB.NOTES);
   const properties = {
-    [NOTES_PROP.TITLE]: titleProperty(thought.title),
+    [notesTitleProp]: titleProperty(thought.title),
     [NOTES_PROP.TYPE]: { multi_select: thought.noteType ? [{ name: thought.noteType }] : [] },
     [NOTES_PROP.DATE]: { date: { start: todayISO() } },
-    [NOTES_PROP.STATUS]: { select: { name: NOTE_STATUS_INBOX } },
+    [NOTES_PROP.STATUS]: { status: { name: NOTE_STATUS_INBOX } },
   };
   if (domainCfg) properties[NOTES_PROP.DOMAINS] = { relation: [{ id: domainCfg.pageId }] };
   if (projectIds.length) properties[NOTES_PROP.PROJECTS] = { relation: projectIds.map((id) => ({ id })) };
@@ -402,6 +415,7 @@ async function handleSave() {
     state.autocomplete = null;
     state.saving = false;
     render();
+    el.textarea.focus();
     showToast('Saved to Inbox');
   } catch (err) {
     state.saving = false;

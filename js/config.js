@@ -14,19 +14,12 @@ export const DB = {
   TAGS: '1a39ff9fd10747ad9d418577707c012f',
 };
 
-// Exact title-property name to match/create against, per lookup database.
-export const TITLE_PROP = {
-  TAGS: 'Tag',
-  PEOPLE: 'Person',
-  PROJECTS: 'Project',
-  DOMAINS: 'Domain',
-};
+// Title properties are never hardcoded — schema.js resolves each database's
+// title property by its actual type ('title') at runtime, so a rename in
+// Notion never silently breaks a save.
 
-// Exact property names on the Notes database (§2). "Name" is Notion's usual
-// default title-property name — confirm against your actual database if it
-// differs.
+// Exact non-title property names on the Notes database (§2).
 export const NOTES_PROP = {
-  TITLE: 'Name',
   TYPE: 'Type',
   DATE: 'Date',
   STATUS: 'Status',
@@ -36,11 +29,10 @@ export const NOTES_PROP = {
   TAGS: 'Tags',
 };
 
-// Exact property names on the Tasks database (§2). "People" is used for the
-// "For" field — confirm against your actual database if the property is
-// literally named "For" instead.
+// Exact non-title property names on the Tasks database (§2). "People" is
+// used for the "For" field — confirm against your actual database if the
+// property is literally named "For" instead.
 export const TASKS_PROP = {
-  TITLE: 'Task',
   PROJECTS: 'Projects',
   DUE_DATE: 'Due Date',
   DO_DATE: 'Do Date',

@@ -5,7 +5,57 @@ import { TYPE_SET, DOMAIN_CODES } from './config.js';
 import { findNearMatch } from './similarity.js';
 import { parseLocalDate } from './dateParse.js';
 
-const TOKEN_RE = /(^|\s)([#@!%])([A-Za-z0-9][A-Za-z0-9'-]*)/g;
+// Finds the next occurrence of any of `symbolChars` at a word boundary,
+// starting the search at or after `from`. Returns {symbol, symbolIndex} or
+// null. The value that follows is resolved separately (see resolveToken)
+// since it may span multiple words ("Becky Fuller", "Prophetic Word").
+function nextSymbol(raw, from, symbolChars) {
+  const re = new RegExp(`(^|\\s)([${symbolChars}])`, 'g');
+  re.lastIndex = from;
+  const m = re.exec(raw);
+  if (!m) return null;
+  return { symbol: m[2], symbolIndex: m.index + m[1].length };
+}
+
+const WORD_RE = /^[A-Za-z0-9][A-Za-z0-9'-]*/;
+
+function isBoundaryChar(ch) {
+  return ch === undefined || /\s/.test(ch);
+}
+
+// Longest exact (case-insensitive) match of a known candidate starting at
+// `pos`, that ends at a word boundary — so "Becky Fuller" matches as one
+// value instead of just "Becky".
+function matchKnownExact(text, pos, candidates) {
+  const remainder = text.slice(pos);
+  const sorted = candidates.slice().sort((a, b) => b.length - a.length);
+  for (const cand of sorted) {
+    if (remainder.length < cand.length) continue;
+    if (remainder.slice(0, cand.length).toLowerCase() !== cand.toLowerCase()) continue;
+    if (isBoundaryChar(remainder[cand.length])) return { value: cand, end: pos + cand.length };
+  }
+  return null;
+}
+
+// Resolves the value following a symbol at `pos`: an exact known-candidate
+// match (possibly multi-word) wins. Otherwise, if everything from `pos` to
+// the end of the entry is itself a case-insensitive prefix of some known
+// candidate, the whole typed-so-far run (including internal spaces) is kept
+// as the pending value — so "Becky Fu|" still ghosts as one token instead of
+// truncating to just "Becky". Trailing prose that ISN'T part of a known name
+// breaks the prefix test naturally, so this never swallows a whole sentence.
+// Failing both, fall back to a bare single word.
+function resolveToken(raw, pos, candidates, wordRe) {
+  const exact = matchKnownExact(raw, pos, candidates);
+  if (exact) return exact;
+  const remainder = raw.slice(pos);
+  if (remainder && candidates.some((c) => c.toLowerCase().startsWith(remainder.toLowerCase()))) {
+    return { value: remainder, end: raw.length };
+  }
+  const m = remainder.match(wordRe);
+  const word = m ? m[0] : '';
+  return { value: word, end: pos + word.length };
+}
 
 // A new entry starts at any line beginning with /type or a leading +, or
 // after a blank line. Continuation lines with no marker stay attached to the
@@ -76,14 +126,16 @@ export function parseEntry(raw, caches, confirmedNew, offset = 0) {
 
   const isTask = /^\s*\+/.test(raw);
 
+  // Only a FULL match against the known Type set counts (incl. two-word
+  // values like "Prophetic Word") — a non-matching /word is left as plain text.
   let typeName = null;
-  const typeMatch = raw.match(/(^|\s)\/([A-Za-z]+)/);
   let typeSpan = null;
-  if (typeMatch) {
-    const canonical = TYPE_SET.find((t) => t.toLowerCase() === typeMatch[2].toLowerCase());
-    if (canonical) {
-      typeName = canonical;
-      typeSpan = { start: typeMatch.index + typeMatch[1].length, end: typeMatch.index + typeMatch[0].length };
+  const slashStart = nextSymbol(raw, 0, '/');
+  if (slashStart) {
+    const exact = matchKnownExact(raw, slashStart.symbolIndex + 1, TYPE_SET);
+    if (exact) {
+      typeName = exact.value;
+      typeSpan = { start: slashStart.symbolIndex, end: exact.end };
     }
   }
 
@@ -107,32 +159,39 @@ export function parseEntry(raw, caches, confirmedNew, offset = 0) {
   const tags = [];
   const people = [];
   const projects = [];
-  let m;
-  TOKEN_RE.lastIndex = 0;
-  while ((m = TOKEN_RE.exec(raw))) {
-    const symbol = m[2];
-    const rawValue = m[3];
-    const start = m.index + m[1].length;
-    const end = m.index + m[0].length;
+  let searchPos = 0;
+  while (searchPos <= raw.length) {
+    const found = nextSymbol(raw, searchPos, '#@!%');
+    if (!found) break;
+    const { symbol, symbolIndex } = found;
+    const valueStart = symbolIndex + 1;
+    if (!WORD_RE.test(raw.slice(valueStart))) { searchPos = valueStart; continue; }
+
+    const candidateList = symbol === '#' ? caches.names(caches.tags)
+      : symbol === '@' ? caches.names(caches.people)
+      : symbol === '!' ? caches.names(caches.projects)
+      : DOMAIN_CODES;
+    const { value: rawValue, end } = resolveToken(raw, valueStart, candidateList, WORD_RE);
     const isPending = end === raw.length;
+    searchPos = end;
 
     if (symbol === '@') {
       // Only the '@' character is recognized syntax — the name stays in the prose.
-      removeSpans.push({ start, end: start + 1 });
-      const chip = classify('@', rawValue, isPending, caches.names(caches.people), confirmedNew, offset + start, offset + end);
+      removeSpans.push({ start: symbolIndex, end: symbolIndex + 1 });
+      const chip = classify('@', rawValue, isPending, caches.names(caches.people), confirmedNew, offset + symbolIndex, offset + end);
       chip.initial = rawValue[0] ? rawValue[0].toUpperCase() : '?';
       people.push(chip);
       continue;
     }
 
-    removeSpans.push({ start, end });
+    removeSpans.push({ start: symbolIndex, end });
 
     if (symbol === '#') {
-      tags.push(classify('#', rawValue, isPending, caches.names(caches.tags), confirmedNew, offset + start, offset + end));
+      tags.push(classify('#', rawValue, isPending, caches.names(caches.tags), confirmedNew, offset + symbolIndex, offset + end));
     } else if (symbol === '!') {
-      projects.push(classify('!', rawValue, isPending, caches.names(caches.projects), confirmedNew, offset + start, offset + end));
+      projects.push(classify('!', rawValue, isPending, caches.names(caches.projects), confirmedNew, offset + symbolIndex, offset + end));
     } else if (symbol === '%' && !domain) {
-      domain = classifyDomain(rawValue, isPending, offset + start, offset + end);
+      domain = classifyDomain(rawValue, isPending, offset + symbolIndex, offset + end);
     }
   }
 
