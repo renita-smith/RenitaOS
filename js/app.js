@@ -4,7 +4,7 @@ import {
 } from './config.js';
 import { queryAllPages, createPage, updatePageProperties, appendBlockChildren, paragraphBlocks } from './notion.js';
 import { todayISO } from './dateParse.js';
-import { titlePropertyName } from './schema.js';
+import { titlePropertyName, relationPropertyName } from './schema.js';
 import { LookupCache } from './cache.js';
 import { computeThoughts } from './parse.js';
 
@@ -30,6 +30,12 @@ function titleProperty(value) {
 
 function unionIds(a, b) {
   return Array.from(new Set([...a, ...b]));
+}
+
+// Display only — Notion still gets the full ISO date (see saveThought).
+function formatDueDisplay(iso) {
+  const [, month, day] = iso.split('-');
+  return `${month}-${day}`;
 }
 
 const state = {
@@ -94,7 +100,11 @@ function chipExtra(chip, symbolPrefix) {
   if (chip.state === 'nearMatch') {
     return `<span class="chip-hint">did you mean ${symbolPrefix}${escapeHtml(chip.suggestion)}? <button class="chip-force-new" ${chipAttrs(chip)} data-action="force-new">new instead</button></span>`;
   }
-  if (chip.state === 'willCreate') return `<span class="chip-plus">${chip.confirmed ? '✓' : '+'}</span>`;
+  if (chip.state === 'willCreate') {
+    return chip.confirmed
+      ? `<span class="chip-confirm chip-confirm--yes">✓ Will create</span>`
+      : `<span class="chip-confirm chip-confirm--no">Create?</span>`;
+  }
   return '';
 }
 
@@ -151,7 +161,7 @@ function renderThoughtCard(thought) {
       <span class="thought-type">${escapeHtml(thought.typeLabel)}</span>
       ${renderDomainBadge(thought.domain)}
       <div class="spacer"></div>
-      ${thought.isTask ? `<span class="due-chip">${thought.dueDateISO ? `Due ${escapeHtml(thought.dueDateISO)}` : '+ Due date'}</span>` : ''}
+      ${thought.isTask ? `<span class="due-chip">${thought.dueDateISO ? `Due ${escapeHtml(formatDueDisplay(thought.dueDateISO))}` : '+ Due date'}</span>` : ''}
     </div>
     <div class="thought-body">${escapeHtml(thought.body)}</div>
     ${chips ? `<div class="chip-row">${chips}</div>` : ''}
@@ -341,29 +351,39 @@ async function saveThought(thought) {
 
   if (thought.isTask) {
     const finalProjectIds = projectIds.length ? projectIds : (domainCfg ? [domainCfg.catchAllProjectId] : []);
-    const tasksTitleProp = await titlePropertyName(DB.TASKS);
+    const [tasksTitleProp, tasksProjectsProp, tasksPeopleProp] = await Promise.all([
+      titlePropertyName(DB.TASKS),
+      finalProjectIds.length ? relationPropertyName(DB.TASKS, DB.PROJECTS) : null,
+      peopleIds.length ? relationPropertyName(DB.TASKS, DB.PEOPLE) : null,
+    ]);
     const properties = {
       [tasksTitleProp]: titleProperty(thought.title),
       [TASKS_PROP.STATUS]: { status: { name: TASK_STATUS_INBOX } },
     };
-    if (finalProjectIds.length) properties[TASKS_PROP.PROJECTS] = { relation: finalProjectIds.map((id) => ({ id })) };
+    if (tasksProjectsProp) properties[tasksProjectsProp] = { relation: finalProjectIds.map((id) => ({ id })) };
     if (thought.dueDateISO) properties[TASKS_PROP.DUE_DATE] = { date: { start: thought.dueDateISO } };
-    if (peopleIds.length) properties[TASKS_PROP.PEOPLE] = { relation: peopleIds.map((id) => ({ id })) };
+    if (tasksPeopleProp) properties[tasksPeopleProp] = { relation: peopleIds.map((id) => ({ id })) };
     await createPage(DB.TASKS, properties);
     return;
   }
 
-  const notesTitleProp = await titlePropertyName(DB.NOTES);
+  const [notesTitleProp, notesDomainsProp, notesProjectsProp, notesPeopleProp, notesTagsProp] = await Promise.all([
+    titlePropertyName(DB.NOTES),
+    domainCfg ? relationPropertyName(DB.NOTES, DB.DOMAINS) : null,
+    projectIds.length ? relationPropertyName(DB.NOTES, DB.PROJECTS) : null,
+    relationPropertyName(DB.NOTES, DB.PEOPLE),
+    relationPropertyName(DB.NOTES, DB.TAGS),
+  ]);
   const properties = {
     [notesTitleProp]: titleProperty(thought.title),
     [NOTES_PROP.TYPE]: { multi_select: thought.noteType ? [{ name: thought.noteType }] : [] },
     [NOTES_PROP.DATE]: { date: { start: todayISO() } },
     [NOTES_PROP.STATUS]: { status: { name: NOTE_STATUS_INBOX } },
   };
-  if (domainCfg) properties[NOTES_PROP.DOMAINS] = { relation: [{ id: domainCfg.pageId }] };
-  if (projectIds.length) properties[NOTES_PROP.PROJECTS] = { relation: projectIds.map((id) => ({ id })) };
-  if (peopleIds.length) properties[NOTES_PROP.PEOPLE] = { relation: peopleIds.map((id) => ({ id })) };
-  if (tagIds.length) properties[NOTES_PROP.TAGS] = { relation: tagIds.map((id) => ({ id })) };
+  if (notesDomainsProp) properties[notesDomainsProp] = { relation: [{ id: domainCfg.pageId }] };
+  if (notesProjectsProp) properties[notesProjectsProp] = { relation: projectIds.map((id) => ({ id })) };
+  if (peopleIds.length) properties[notesPeopleProp] = { relation: peopleIds.map((id) => ({ id })) };
+  if (tagIds.length) properties[notesTagsProp] = { relation: tagIds.map((id) => ({ id })) };
 
   if (thought.noteType === DAY_MERGE_TYPE) {
     const existing = await queryAllPages(DB.NOTES, {
@@ -375,11 +395,11 @@ async function saveThought(thought) {
     if (existing.length) {
       const page = existing[0];
       await appendBlockChildren(page.id, paragraphBlocks(thought.body));
-      const existingPeople = (page.properties[NOTES_PROP.PEOPLE]?.relation || []).map((r) => r.id);
-      const existingTags = (page.properties[NOTES_PROP.TAGS]?.relation || []).map((r) => r.id);
+      const existingPeople = (page.properties[notesPeopleProp]?.relation || []).map((r) => r.id);
+      const existingTags = (page.properties[notesTagsProp]?.relation || []).map((r) => r.id);
       await updatePageProperties(page.id, {
-        [NOTES_PROP.PEOPLE]: { relation: unionIds(existingPeople, peopleIds).map((id) => ({ id })) },
-        [NOTES_PROP.TAGS]: { relation: unionIds(existingTags, tagIds).map((id) => ({ id })) },
+        [notesPeopleProp]: { relation: unionIds(existingPeople, peopleIds).map((id) => ({ id })) },
+        [notesTagsProp]: { relation: unionIds(existingTags, tagIds).map((id) => ({ id })) },
       });
       return;
     }

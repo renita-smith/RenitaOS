@@ -19,8 +19,11 @@ function nextSymbol(raw, from, symbolChars) {
 
 const WORD_RE = /^[A-Za-z0-9][A-Za-z0-9'-]*/;
 
+// Whitespace and common sentence punctuation both end a token — "@Becky."
+// must resolve to "Becky" with the period left in the body, not rejected as
+// unbounded.
 function isBoundaryChar(ch) {
-  return ch === undefined || /\s/.test(ch);
+  return ch === undefined || /[\s.,;:!?]/.test(ch);
 }
 
 // Longest exact (case-insensitive) match of a known candidate starting at
@@ -205,7 +208,7 @@ export function parseEntry(raw, caches, confirmedNew, offset = 0) {
     cursor = span.end;
   }
   body += raw.slice(cursor);
-  body = body.replace(/^\s*\+/, '').replace(/\s+/g, ' ').trim();
+  body = body.replace(/^\s*\+/, '').replace(/\s+/g, ' ').replace(/\s+([.,;:!?])/g, '$1').trim();
 
   const dueDateISO = isTask ? parseLocalDate(body) : null;
   const title = isTask ? body : (explicitTitle || deriveTitle(body));

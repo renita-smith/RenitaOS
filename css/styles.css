@@ -356,7 +356,21 @@ body {
   justify-content: center;
   flex-shrink: 0;
 }
-.chip-plus { font-size: 9px; font-weight: 700; }
+.chip-confirm {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: var(--radius-sm);
+  white-space: nowrap;
+}
+.chip-confirm--no {
+  border: 1px solid oklch(0.45 0.012 75 / 0.6);
+  text-decoration: underline;
+}
+.chip-confirm--yes {
+  background: oklch(0.36 0.09 135);
+  color: #fff;
+}
 .chip-hint {
   font-size: 10px;
   font-weight: 500;
@@ -392,11 +406,13 @@ body {
   color: oklch(0.45 0.012 75);
   cursor: pointer;
 }
+.chip--create:hover { background: oklch(0.96 0.006 75); }
 .chip--confirmed-new {
   background: oklch(0.94 0.045 135 / 0.4);
   border: 1.5px solid oklch(0.36 0.09 135 / 0.5);
   color: oklch(0.36 0.09 135);
 }
+.chip--confirmed-new:hover { background: oklch(0.9 0.045 135 / 0.5); }
 .chip--pending {
   background: oklch(0.97 0.004 75);
   border: 1px dashed oklch(0.78 0.012 75 / 0.7);
@@ -495,16 +511,8 @@ body {
   z-index: 40;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --surface: oklch(0.22 0.01 75);
-    --surface-soft: oklch(0.3 0.02 110);
-    --text: oklch(0.9 0.03 110);
-    --cream: oklch(0.24 0.01 75);
-    --hairline: oklch(0.38 0.01 75);
-    --muted-text: oklch(0.72 0.012 75);
-    --faint-text: oklch(0.55 0.01 75);
-  }
-  .thought-card, .autocomplete, .chip--near, .chip--create, .domain-badge--invalid { background: oklch(0.26 0.012 75); }
-  .ac-item:hover { background: oklch(0.32 0.012 75); }
+/* This app is locked to its light design — it must not invert under the
+   browser/OS dark-mode preference (card body text was unreadable when it did). */
+:root {
+  color-scheme: light only;
 }

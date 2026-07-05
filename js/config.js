@@ -14,30 +14,24 @@ export const DB = {
   TAGS: '1a39ff9fd10747ad9d418577707c012f',
 };
 
-// Title properties are never hardcoded — schema.js resolves each database's
-// title property by its actual type ('title') at runtime, so a rename in
-// Notion never silently breaks a save.
+// Title AND relation properties are never hardcoded — schema.js resolves the
+// title property by its type ('title'), and each relation property by which
+// database it targets, at runtime. Notion property names can be renamed or
+// emoji-prefixed (e.g. the Notes -> Projects relation is literally named
+// "🚧 Projects") without ever breaking a save.
 
-// Exact non-title property names on the Notes database (§2).
+// Exact non-title, non-relation property names on the Notes database (§2).
 export const NOTES_PROP = {
   TYPE: 'Type',
   DATE: 'Date',
   STATUS: 'Status',
-  DOMAINS: 'Domains',
-  PROJECTS: 'Projects',
-  PEOPLE: 'People',
-  TAGS: 'Tags',
 };
 
-// Exact non-title property names on the Tasks database (§2). "People" is
-// used for the "For" field — confirm against your actual database if the
-// property is literally named "For" instead.
+// Exact non-title, non-relation property names on the Tasks database (§2).
 export const TASKS_PROP = {
-  PROJECTS: 'Projects',
   DUE_DATE: 'Due Date',
   DO_DATE: 'Do Date',
   STATUS: 'Status',
-  PEOPLE: 'People',
 };
 
 export const NOTE_STATUS_INBOX = 'Inbox';
