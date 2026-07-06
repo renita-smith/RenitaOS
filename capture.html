@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light">
+<title>RenitaOS — Capture</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:ital,wght@0,400;0,500;0,600;1,400;1,500&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="./css/styles.css">
+</head>
+<body>
+<div class="capture-screen">
+
+  <div class="capture-scroll">
+    <header class="capture-header">
+      <button id="closeBtn" class="icon-circle" aria-label="Clear">✕</button>
+      <div class="header-label">Capture</div>
+      <div class="header-spacer"></div>
+    </header>
+
+    <div class="pill-row">
+      <span id="taskPill" class="task-pill">Note</span>
+      <span class="hint-row">#tag · @person · !project · %domain · /type · +task</span>
+    </div>
+
+    <div class="composer">
+      <textarea id="captureText" class="capture-textarea" placeholder="What's on your mind?"></textarea>
+      <div id="autocomplete" class="autocomplete hidden"></div>
+    </div>
+
+    <div id="voicePanel" class="mode-panel hidden">
+      <div class="mode-panel-icon">●</div>
+      <div class="mode-panel-copy">
+        <div class="mode-panel-title">Listening…</div>
+        <div class="mode-panel-sub">Voice capture isn't wired up yet</div>
+      </div>
+      <button class="manual-task-toggle">Mark as Task</button>
+    </div>
+
+    <div id="photoPanel" class="mode-panel hidden">
+      <div class="mode-panel-icon mode-panel-icon--photo"></div>
+      <div class="mode-panel-copy">
+        <div class="mode-panel-title">Photo attached</div>
+        <div class="mode-panel-sub">Photo capture isn't wired up yet</div>
+      </div>
+      <button class="manual-task-toggle">Mark as Task</button>
+    </div>
+
+    <section id="recognizedSection" class="hidden">
+      <div class="recognized-label">Recognized</div>
+      <div id="thoughtsList"></div>
+    </section>
+
+    <section id="recentSection" class="hidden">
+      <div class="recent-label">Just captured</div>
+      <div id="recentList"></div>
+    </section>
+  </div>
+
+  <div class="capture-footer">
+    <div class="mode-toggle">
+      <div class="mode-toggle-track">
+        <button class="mode-btn active" data-mode="type">Type</button>
+        <button class="mode-btn" data-mode="voice">Voice</button>
+        <button class="mode-btn" data-mode="photo">Photo</button>
+      </div>
+    </div>
+
+    <div class="save-row">
+      <button id="saveBtn" class="save-btn">Save to Inbox</button>
+    </div>
+
+    <div id="toast" class="toast hidden"></div>
+  </div>
+
+</div>
+
+<script type="module" src="./js/app.js"></script>
+</body>
+</html>

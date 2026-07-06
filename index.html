@@ -4,79 +4,302 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="color-scheme" content="light">
-<title>RenitaOS — Capture</title>
+<title>RenitaOS — Shell</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:ital,wght@0,400;0,500;0,600;1,400;1,500&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap">
-<link rel="stylesheet" href="./css/styles.css">
+<style>
+  /* Tokens copied verbatim from css/styles.css so the shell reads as the
+     same app as Capture. This file intentionally stays self-contained
+     (no imports from js/*.js) so it can't affect the live Capture page. */
+  :root {
+    --radius-sm: 4px;
+    --radius-lg: 12px;
+
+    --text: #2A3408;
+    --surface: oklch(0.975 0.006 75);
+    --surface-soft: #E7ECD6;
+    --cream: #F5F2E8;
+    --button-pressed: #2A3408;
+
+    --muted-text: oklch(0.55 0.012 75);
+    --faint-text: oklch(0.68 0.01 75);
+    --hairline: oklch(0.92 0.008 75);
+
+    color-scheme: light only;
+  }
+
+  * { box-sizing: border-box; }
+
+  html, body {
+    height: 100%;
+    margin: 0;
+  }
+
+  body {
+    background: var(--surface);
+    color: var(--text);
+    font-family: 'IBM Plex Sans', sans-serif;
+  }
+
+  .shell {
+    max-width: 560px;
+    margin: 0 auto;
+    height: 100vh;
+    height: 100dvh;
+    display: flex;
+    flex-direction: column;
+    padding: 0 20px;
+  }
+
+  .shell-topbar {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-top: 20px;
+  }
+
+  .shell-title {
+    font-size: 11px;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: oklch(0.62 0.012 75);
+    font-weight: 600;
+  }
+
+  .inbox-pill {
+    display: inline-flex;
+    align-items: center;
+    font-size: 12px;
+    font-weight: 600;
+    padding: 6px 14px;
+    border-radius: var(--radius-sm);
+    background: var(--surface-soft);
+    color: var(--text);
+    border: none;
+    cursor: pointer;
+    font-family: inherit;
+  }
+  .inbox-pill:active { background: var(--button-pressed); color: var(--cream); }
+
+  .shell-content {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px 0;
+  }
+
+  .placeholder {
+    text-align: center;
+    color: var(--muted-text);
+  }
+
+  .placeholder-title {
+    font-family: 'Newsreader', serif;
+    font-size: 22px;
+    color: var(--text);
+    margin-bottom: 8px;
+  }
+
+  .placeholder-sub {
+    font-size: 13px;
+    color: var(--faint-text);
+  }
+
+  .shell-nav {
+    flex-shrink: 0;
+    display: flex;
+    justify-content: center;
+    padding: 10px 0 max(16px, env(safe-area-inset-bottom));
+    background: var(--surface);
+  }
+
+  .nav-track {
+    display: flex;
+    width: 100%;
+    background: var(--surface-soft);
+    border-radius: var(--radius-sm);
+    padding: 3px;
+    gap: 2px;
+  }
+
+  .nav-btn {
+    flex: 1;
+    text-align: center;
+    padding: 10px 12px;
+    border-radius: var(--radius-sm);
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    border: none;
+    background: transparent;
+    color: var(--muted-text);
+    font-family: inherit;
+    text-decoration: none;
+  }
+  .nav-btn.active {
+    background: #fff;
+    color: var(--text);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+  }
+</style>
 </head>
 <body>
-<div class="capture-screen">
+<div class="shell">
 
-  <div class="capture-scroll">
-    <header class="capture-header">
-      <button id="closeBtn" class="icon-circle" aria-label="Clear">✕</button>
-      <div class="header-label">Capture</div>
-      <div class="header-spacer"></div>
-    </header>
+  <header class="shell-topbar">
+    <div class="shell-title">RenitaOS</div>
+    <button id="inboxPill" class="inbox-pill" type="button">… to sort</button>
+  </header>
 
-    <div class="pill-row">
-      <span id="taskPill" class="task-pill">Note</span>
-      <span class="hint-row">#tag · @person · !project · %domain · /type · +task</span>
+  <main id="content" class="shell-content"></main>
+
+  <nav class="shell-nav">
+    <div class="nav-track">
+      <a href="#/home" class="nav-btn" data-route="home">Home</a>
+      <a href="./capture.html" class="nav-btn">Capture</a>
+      <a href="#/triage" class="nav-btn" data-route="triage">Triage</a>
     </div>
-
-    <div class="composer">
-      <textarea id="captureText" class="capture-textarea" placeholder="What's on your mind?"></textarea>
-      <div id="autocomplete" class="autocomplete hidden"></div>
-    </div>
-
-    <div id="voicePanel" class="mode-panel hidden">
-      <div class="mode-panel-icon">●</div>
-      <div class="mode-panel-copy">
-        <div class="mode-panel-title">Listening…</div>
-        <div class="mode-panel-sub">Voice capture isn't wired up yet</div>
-      </div>
-      <button class="manual-task-toggle">Mark as Task</button>
-    </div>
-
-    <div id="photoPanel" class="mode-panel hidden">
-      <div class="mode-panel-icon mode-panel-icon--photo"></div>
-      <div class="mode-panel-copy">
-        <div class="mode-panel-title">Photo attached</div>
-        <div class="mode-panel-sub">Photo capture isn't wired up yet</div>
-      </div>
-      <button class="manual-task-toggle">Mark as Task</button>
-    </div>
-
-    <section id="recognizedSection" class="hidden">
-      <div class="recognized-label">Recognized</div>
-      <div id="thoughtsList"></div>
-    </section>
-
-    <section id="recentSection" class="hidden">
-      <div class="recent-label">Just captured</div>
-      <div id="recentList"></div>
-    </section>
-  </div>
-
-  <div class="capture-footer">
-    <div class="mode-toggle">
-      <div class="mode-toggle-track">
-        <button class="mode-btn active" data-mode="type">Type</button>
-        <button class="mode-btn" data-mode="voice">Voice</button>
-        <button class="mode-btn" data-mode="photo">Photo</button>
-      </div>
-    </div>
-
-    <div class="save-row">
-      <button id="saveBtn" class="save-btn">Save to Inbox</button>
-    </div>
-
-    <div id="toast" class="toast hidden"></div>
-  </div>
+  </nav>
 
 </div>
 
-<script type="module" src="./js/app.js"></script>
+<script>
+(() => {
+  // --- Shared bootstrap: defined once, in one place. -----------------------
+  // Values copied verbatim from js/config.js / RenitaOS-Backend-Notes-Template.md.
+  const CONFIG = {
+    WORKER_URL: 'https://notion-proxy.renitacbsmith.workers.dev',
+    NOTION_VERSION: '2022-06-28',
+    DB: {
+      NOTES: '6340f2b86ac94447a8315f0ba87545e3',
+      TASKS: '33110b0375a880c18918ebac71592a35',
+    },
+  };
+
+  // --- Notion access, via the same Worker proxy pattern as Capture. --------
+  // Front end sends method + JSON body only; the Worker strips /v1, prepends
+  // https://api.notion.com/v1, and attaches the token/headers.
+  async function notionRequest(path, { method = 'GET', body } = {}) {
+    const res = await fetch(`${CONFIG.WORKER_URL}${path}`, {
+      method,
+      headers: {
+        'Content-Type': 'application/json',
+        'Notion-Version': CONFIG.NOTION_VERSION,
+      },
+      body: body ? JSON.stringify(body) : undefined,
+    });
+    if (!res.ok) {
+      const detail = await res.text().catch(() => '');
+      throw new Error(`Notion request failed (${res.status}): ${detail || res.statusText}`);
+    }
+    return res.json();
+  }
+
+  // Status is a Notion Status-type property with an emoji-prefixed display
+  // name, so both the property name AND its "Inbox" option's exact stored
+  // casing (e.g. "INBOX" vs "Inbox") are resolved from the schema itself
+  // (like js/schema.js resolves title/relation properties by type) rather
+  // than hardcoded. Memoized per database.
+  const statusPropCache = new Map();
+  async function getInboxStatusFilter(databaseId) {
+    if (!statusPropCache.has(databaseId)) {
+      statusPropCache.set(databaseId, (async () => {
+        const db = await notionRequest(`/v1/databases/${databaseId}`);
+        const entry = Object.entries(db.properties).find(([, prop]) => prop.type === 'status');
+        if (!entry) throw new Error(`No status property found on database ${databaseId}`);
+        const [name, prop] = entry;
+        const options = (prop.status && prop.status.options) || [];
+        const inboxOption = options.find((o) => o.name.toLowerCase() === 'inbox');
+        if (!inboxOption) throw new Error(`No "Inbox" option found on status property "${name}" for database ${databaseId}`);
+        return { name, value: inboxOption.name };
+      })());
+    }
+    return statusPropCache.get(databaseId);
+  }
+
+  async function countInboxRecords(databaseId) {
+    const { name, value } = await getInboxStatusFilter(databaseId);
+    const filter = { property: name, status: { equals: value } };
+    let count = 0;
+    let cursor;
+    do {
+      const body = { page_size: 100, filter };
+      if (cursor) body.start_cursor = cursor;
+      const page = await notionRequest(`/v1/databases/${databaseId}/query`, { method: 'POST', body });
+      count += page.results.length;
+      cursor = page.has_more ? page.next_cursor : undefined;
+    } while (cursor);
+    return count;
+  }
+
+  const inboxPill = document.getElementById('inboxPill');
+
+  async function refreshInboxCount() {
+    try {
+      const [notesCount, tasksCount] = await Promise.all([
+        countInboxRecords(CONFIG.DB.NOTES),
+        countInboxRecords(CONFIG.DB.TASKS),
+      ]);
+      inboxPill.textContent = `${notesCount + tasksCount} to sort`;
+    } catch (err) {
+      console.error('Failed to refresh inbox count', err);
+      inboxPill.textContent = '— to sort';
+    }
+  }
+
+  inboxPill.addEventListener('click', () => { location.hash = '#/triage'; });
+
+  // --- Views ----------------------------------------------------------------
+  // Capture isn't an in-shell route: the nav links straight to capture.html
+  // until the Capture screen is migrated in here.
+  const VIEWS = {
+    home: () => `
+      <div class="placeholder">
+        <div class="placeholder-title">Home</div>
+        <div class="placeholder-sub">Coming soon.</div>
+      </div>
+    `,
+    triage: () => `
+      <div class="placeholder">
+        <div class="placeholder-title">Triage</div>
+        <div class="placeholder-sub">Coming soon.</div>
+      </div>
+    `,
+  };
+
+  // --- Hash router ------------------------------------------------------
+  const ROUTES = Object.keys(VIEWS);
+  const content = document.getElementById('content');
+
+  function currentRoute() {
+    const hash = location.hash.replace(/^#\/?/, '');
+    return ROUTES.includes(hash) ? hash : 'home';
+  }
+
+  function render() {
+    const route = currentRoute();
+    content.innerHTML = VIEWS[route]();
+    document.querySelectorAll('.nav-btn').forEach((btn) => {
+      btn.classList.toggle('active', btn.dataset.route === route);
+    });
+    // The inbox count can change on any screen (Capture adds to it, Triage
+    // will resolve it later), so it's refreshed on every route change.
+    refreshInboxCount();
+  }
+
+  window.addEventListener('hashchange', render);
+
+  if (!location.hash) {
+    location.hash = '#/home';
+  } else {
+    render();
+  }
+})();
+</script>
 </body>
 </html>
