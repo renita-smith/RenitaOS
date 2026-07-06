@@ -146,6 +146,145 @@
     color: var(--text);
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
   }
+
+  /* ============================================================
+     Triage — read/display slice. Adapted from triage-view.html;
+     classes prefixed tg- to avoid colliding with future screens
+     sharing this shell. Reuses the shell's existing shared tokens
+     (--text, --surface-soft, --radius-*, --muted-text, --hairline)
+     rather than redefining a parallel set.
+     ============================================================ */
+  .shell-content.stretch { align-items: stretch; justify-content: flex-start; padding: 0; }
+
+  .tg-view {
+    --tg-sage-deep: #DBE2C1;
+    --tg-icon: #3A4410;
+    --tg-muted-2: oklch(0.62 0.012 75);
+    --tg-ghost: #A85C36;
+    width: 100%;
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .tg-status {
+    flex: 1; display: flex; align-items: center; justify-content: center;
+    text-align: center; padding: 40px 20px; color: var(--muted-text); font-size: 14px;
+  }
+  .tg-status--error { color: var(--tg-ghost); }
+
+  .tg-row { display: flex; align-items: center; }
+  .tg-between { justify-content: space-between; }
+  .tg-eyebrow {
+    font-size: 11px; font-weight: 700; letter-spacing: .08em;
+    text-transform: uppercase; color: var(--muted-text);
+  }
+  .tg-count-mono { font-family: 'Newsreader', serif; font-weight: 600; }
+  .tg-track-count { font-size: 12px; color: var(--tg-muted-2); }
+  .tg-icon-slot { width: 20px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .tg-link { color: var(--muted-text); font-size: 13px; cursor: pointer; display: flex; align-items: center; gap: 6px; }
+  .tg-chevleft { font-size: 17px; line-height: 1; }
+
+  .tg-ov-head { padding: 24px 0 4px; flex-shrink: 0; }
+  .tg-ov-title { font-size: 30px; line-height: 1.15; color: var(--text); }
+  .tg-ov-sub { font-size: 13px; color: var(--muted-text); margin-top: 4px; }
+
+  .tg-seg {
+    display: inline-flex; background: var(--surface-soft); border-radius: var(--radius-sm);
+    padding: 3px; gap: 2px; margin: 18px 0 0; flex-shrink: 0;
+  }
+  .tg-seg button {
+    border: none; background: transparent; cursor: pointer;
+    font-family: inherit; font-size: 13px; font-weight: 600; color: var(--muted-text);
+    padding: 8px 22px; border-radius: var(--radius-sm);
+  }
+  .tg-seg button.on { background: #fff; color: var(--text); box-shadow: 0 1px 3px rgba(0,0,0,.12); }
+
+  .tg-track { padding: 8px 0 0; flex: 1; min-height: 0; overflow-y: auto; }
+  .tg-track-head { display: flex; align-items: baseline; justify-content: space-between; padding: 14px 2px 8px; }
+
+  .tg-bin {
+    display: flex; align-items: center; gap: 12px;
+    padding: 15px 16px; border-radius: var(--radius-lg);
+    background: var(--surface-soft); cursor: pointer; margin-bottom: 8px;
+    border: 1px solid transparent;
+  }
+  .tg-bin .name { flex: 1; font-size: 15px; font-weight: 500; color: var(--text); }
+  .tg-bin .n { font-size: 15px; color: var(--text); }
+  .tg-empty-track { padding: 20px 2px; font-size: 13px; color: var(--muted-text); }
+
+  .tg-tiles { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; padding-bottom: 8px; }
+  .tg-tile {
+    display: flex; align-items: center; gap: 9px;
+    padding: 13px 14px; border-radius: var(--radius-lg); cursor: pointer;
+  }
+  .tg-tile .code { flex: 1; font-size: 13px; font-weight: 600; }
+  .tg-tile .n { font-size: 14px; }
+  .tg-tile.wide { grid-column: 1 / -1; }
+
+  .tg-bin-head { padding: 22px 0 12px; border-bottom: 1px solid var(--hairline); flex-shrink: 0; }
+  .tg-bin-title-row { display: flex; align-items: center; gap: 9px; margin-top: 12px; }
+  .tg-bin-title { font-size: 24px; color: var(--text); }
+  .tg-bin-n { font-size: 13px; color: var(--tg-muted-2); }
+
+  .tg-refresh-bar {
+    margin: 12px 0 2px; padding: 11px 14px; border-radius: var(--radius-lg);
+    background: var(--surface-soft); display: flex; align-items: center; gap: 10px; flex-shrink: 0;
+  }
+  .tg-dot-ready { width: 8px; height: 8px; border-radius: 50%; background: oklch(0.55 0.11 155); flex-shrink: 0; }
+  .tg-refresh-bar .lbl { flex: 1; font-size: 13px; font-weight: 500; color: var(--text); }
+  .tg-btn-refresh {
+    border: none; font-family: inherit;
+    font-size: 12px; font-weight: 600; padding: 7px 15px; border-radius: var(--radius-sm);
+    background: #6B7A45; color: var(--cream);
+    cursor: not-allowed; opacity: .55;
+  }
+
+  .tg-stack { flex: 1; overflow-y: auto; padding: 14px 0 24px; display: flex; flex-direction: column; gap: 12px; }
+
+  .tg-card {
+    position: relative; background: oklch(0.995 0.003 75); border-radius: var(--radius-lg);
+    box-shadow: 0 1px 2px rgba(0,0,0,.04), inset 0 0 0 1px var(--hairline);
+    border-left: 3px solid var(--text);
+    padding: 18px 18px 16px;
+  }
+  .tg-card .body {
+    font-family: 'Newsreader', serif; font-size: 18px; line-height: 1.5;
+    color: oklch(0.24 0.014 75); white-space: pre-wrap; padding-right: 22px;
+  }
+  .tg-card-inner { display: flex; gap: 12px; align-items: flex-start; }
+  .tg-card-main { flex: 1; min-width: 0; }
+  .tg-empty-body { font-style: italic; color: var(--muted-text); }
+
+  .tg-check {
+    position: absolute; top: 14px; right: 14px; width: 20px; height: 20px; border-radius: 50%;
+    background: color-mix(in oklch, oklch(0.55 0.11 155) 14%, white);
+    color: oklch(0.44 0.1 155); display: none; align-items: center; justify-content: center; font-size: 11px;
+  }
+  .tg-card.qualified .tg-check { display: flex; }
+
+  .tg-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 14px; align-items: center; }
+  .tg-chip {
+    display: flex; align-items: center; gap: 5px; padding: 4px 10px;
+    border-radius: var(--radius-sm); background: var(--surface-soft);
+    font-size: 11px; font-weight: 600; color: var(--text);
+  }
+  .tg-chip--person { padding-left: 3px; }
+  .tg-chip .avatar { width: 18px; height: 18px; border-radius: 50%; background: var(--tg-icon); color: #fff; font-size: 9px; font-weight: 700; display: flex; align-items: center; justify-content: center; }
+
+  .tg-ghost {
+    padding: 4px 11px; border-radius: var(--radius-sm);
+    font-size: 11px; font-weight: 600;
+    color: var(--tg-ghost); background: color-mix(in oklch, var(--tg-ghost) 10%, white);
+    border: 1.5px dashed var(--tg-ghost);
+  }
+
+  .tg-zero { flex: 1; display: flex; align-items: center; justify-content: center; padding: 24px 0; }
+  .tg-zero-panel { width: 100%; padding: 44px 26px; border-radius: var(--radius-lg); background: var(--surface-soft); text-align: center; }
+  .tg-zero-eyebrow { font-size: 11px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--muted-text); margin-bottom: 16px; }
+  .tg-zero-line { font-family: 'Newsreader', serif; font-style: italic; font-size: 22px; line-height: 1.45; color: var(--text); }
 </style>
 </head>
 <body>
@@ -178,7 +317,19 @@
     DB: {
       NOTES: '6340f2b86ac94447a8315f0ba87545e3',
       TASKS: '33110b0375a880c18918ebac71592a35',
+      PEOPLE: '8d6efff49ade4c188a03a5203320644d',
+      PROJECTS: '33110b0375a88054b94bfda7c3e93ddb',
+      DOMAINS: '33110b0375a88024b4f2c8e6beaca80e',
+      TAGS: '1a39ff9fd10747ad9d418577707c012f',
     },
+    // Type/Date/Status are exact non-relation property names (not emoji-
+    // prefixed), per RenitaOS-Backend-Notes-Template.md §2 — matches the
+    // convention already established in js/config.js for Capture. Relation
+    // properties (Tags/People/Projects/Domains) are never hardcoded; they're
+    // resolved structurally below (relationPropertyName), since those can be
+    // emoji-prefixed and renamed.
+    NOTES_PROP: { TYPE: 'Type' },
+    TASKS_PROP: { DUE_DATE: 'Due Date' },
   };
 
   // --- Notion access, via the same Worker proxy pattern as Capture. --------
@@ -198,6 +349,48 @@
       throw new Error(`Notion request failed (${res.status}): ${detail || res.statusText}`);
     }
     return res.json();
+  }
+
+  // Pages through every result in a database query — used by the inbox
+  // pill count and by Triage's data load.
+  async function queryAllPages(databaseId, filter) {
+    const results = [];
+    let cursor;
+    do {
+      const body = { page_size: 100 };
+      if (filter) body.filter = filter;
+      if (cursor) body.start_cursor = cursor;
+      const page = await notionRequest(`/v1/databases/${databaseId}/query`, { method: 'POST', body });
+      results.push(...page.results);
+      cursor = page.has_more ? page.next_cursor : undefined;
+    } while (cursor);
+    return results;
+  }
+
+  // Resolves properties by their actual schema (type, and for relations,
+  // their target database ID) — never by a hardcoded display name, since
+  // Notion property names can be emoji-prefixed or renamed at any time.
+  // Mirrors js/schema.js; duplicated here (not imported) to keep this file
+  // self-contained per the note above.
+  const schemaCache = new Map();
+  function getSchema(databaseId) {
+    if (!schemaCache.has(databaseId)) schemaCache.set(databaseId, notionRequest(`/v1/databases/${databaseId}`));
+    return schemaCache.get(databaseId);
+  }
+  function normalizeDbId(id) { return (id || '').replace(/-/g, '').toLowerCase(); }
+  async function titlePropertyName(databaseId) {
+    const db = await getSchema(databaseId);
+    const [name] = Object.entries(db.properties).find(([, prop]) => prop.type === 'title');
+    return name;
+  }
+  async function relationPropertyName(sourceDatabaseId, targetDatabaseId) {
+    const db = await getSchema(sourceDatabaseId);
+    const target = normalizeDbId(targetDatabaseId);
+    const entry = Object.entries(db.properties).find(
+      ([, prop]) => prop.type === 'relation' && normalizeDbId(prop.relation && prop.relation.database_id) === target
+    );
+    if (!entry) throw new Error(`No relation property on database ${sourceDatabaseId} targets ${targetDatabaseId}`);
+    return entry[0];
   }
 
   // Status is a Notion Status-type property with an emoji-prefixed display
@@ -224,20 +417,12 @@
 
   async function countInboxRecords(databaseId) {
     const { name, value } = await getInboxStatusFilter(databaseId);
-    const filter = { property: name, status: { equals: value } };
-    let count = 0;
-    let cursor;
-    do {
-      const body = { page_size: 100, filter };
-      if (cursor) body.start_cursor = cursor;
-      const page = await notionRequest(`/v1/databases/${databaseId}/query`, { method: 'POST', body });
-      count += page.results.length;
-      cursor = page.has_more ? page.next_cursor : undefined;
-    } while (cursor);
-    return count;
+    const pages = await queryAllPages(databaseId, { property: name, status: { equals: value } });
+    return pages.length;
   }
 
   const inboxPill = document.getElementById('inboxPill');
+  const content = document.getElementById('content');
 
   async function refreshInboxCount() {
     try {
@@ -254,9 +439,412 @@
 
   inboxPill.addEventListener('click', () => { location.hash = '#/triage'; });
 
+  // --- Triage — read/display slice ------------------------------------------
+  // Palette (RenitaOS-Palette.md) is canonical for all color below; it
+  // outranks the hexes in triage-view.html wherever the two might drift.
+  // Domain fill/text pairs (§ Domain colors) + each domain's page ID
+  // (RenitaOS-Backend-Notes-Template.md §4) — a fixed, never-created set of 6.
+  const DOMAIN_META = [
+    { code: 'RCBS',  pageId: '33110b0375a8800fa48dcf469ed04677', fill: '#D6DDBE', text: '#46552A' },
+    { code: 'RWS',   pageId: '33210b0375a880b79f77d0509dae6d65', fill: '#EBDFC0', text: '#6C5316' },
+    { code: 'SM',    pageId: '33210b0375a88014ac55d4c88117f218', fill: '#E8CDBE', text: '#7C4A2E' },
+    { code: 'MTS',   pageId: '33210b0375a88000b144fc1ce2cd5758', fill: '#EDD0D4', text: '#7E4351' },
+    { code: 'EPLC',  pageId: '33210b0375a88006910bc1c5e4cc7e4f', fill: '#D3D9D8', text: '#465657' },
+    { code: 'PEEPS', pageId: '38a10b0375a880e38ed6fcbb8a5f2b9b', fill: '#E0D7D3', text: '#665049' },
+  ];
+  const NO_DOMAIN_META = { fill: '#EEEEE7', text: '#6A6A61' };
+
+  // §5 controlled Type set (js/config.js TYPE_SET), in display order.
+  const TYPE_SET = [
+    'Dream', 'Thought', 'Idea', 'Convo', 'Sermon', 'Prophetic Word',
+    'Virtual', 'Teaching', 'Prayer', 'Quote', 'Study', 'Reflection', 'Download',
+  ];
+
+  // Type edges (build spec §2) — ambient only, quieter than Domain tiles.
+  // Types outside this table (Idea/Convo/Prophetic Word/Virtual/Teaching/
+  // Prayer/Quote/Download) fall back to the plain olive "Note" edge.
+  const TYPE_EDGE = {
+    Reflection: 'oklch(0.56 0.03 70)',
+    Dream: 'oklch(0.56 0.045 25)',
+    Sermon: 'oklch(0.55 0.05 45)',
+    Thought: 'oklch(0.55 0.035 110)',
+    Study: 'oklch(0.55 0.03 135)',
+  };
+  const TYPE_EDGE_DEFAULT = '#2A3408';
+
+  // Only Dream/Sermon/Reflection have a dedicated icon in the design; every
+  // other type (and the "No type" bin) uses a generic monochrome dot.
+  const TYPE_ICON = { Dream: 'moon', Sermon: 'book', Reflection: 'ripple' };
+  const TYPE_LABEL_PLURAL = { Dream: 'Dreams', Sermon: 'Sermons', Reflection: 'Reflections' };
+  function typeBinLabel(type) {
+    if (TYPE_LABEL_PLURAL[type]) return TYPE_LABEL_PLURAL[type];
+    if (/[^aeiou]y$/i.test(type)) return `${type.slice(0, -1)}ies`;
+    return `${type}s`;
+  }
+
+  const ICONS = {
+    moon:   '<svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#3A4410" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 14.5A8 8 0 1 1 9.5 4a7 7 0 0 0 10.5 10.5z"/></svg>',
+    book:   '<svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#3A4410" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 6.5C10 5 6.5 5 4 5.5v13c2.5-.5 6-.5 8 1 2-1.5 5.5-1.5 8-1v-13c-2.5-.5-6-.5-8 1z"/><path d="M12 6.5v13"/></svg>',
+    ripple: '<svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#3A4410" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9c2-2 4-2 6 0s4 2 6 0 4-2 6 0"/><path d="M3 14c2-2 4-2 6 0s4 2 6 0 4-2 6 0"/></svg>',
+    dot:    '<svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#3A4410" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="6.5"/></svg>',
+  };
+
+  // Sentinel bin key for the "No type" / "No domain" catch-all groups —
+  // distinct from `null`, which means "no bin open" (overview screen).
+  const NO_GROUP = '__none__';
+
+  function escapeHtml(str) {
+    return String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
+
+  function plainTitle(page, propName) {
+    const arr = page.properties[propName] && page.properties[propName].title;
+    if (!arr || !arr.length) return '';
+    return arr.map((t) => t.plain_text).join('');
+  }
+
+  // Note bodies aren't in the properties payload — fetch each page's block
+  // children and join any rich_text found (paragraphs, etc).
+  async function fetchPageBodyText(pageId) {
+    const lines = [];
+    let cursor;
+    do {
+      const qs = cursor ? `?page_size=100&start_cursor=${cursor}` : '?page_size=100';
+      const page = await notionRequest(`/v1/blocks/${pageId}/children${qs}`);
+      for (const block of page.results) {
+        const rich = block[block.type] && block[block.type].rich_text;
+        if (rich) lines.push(rich.map((t) => t.plain_text).join(''));
+      }
+      cursor = page.has_more ? page.next_cursor : undefined;
+    } while (cursor);
+    return lines.join('\n').trim();
+  }
+
+  // Date-only ISO string -> "Jul 5". Parsed from the string components (not
+  // `new Date(iso)`) so there's no local-timezone shift — dates stay local,
+  // per the wiring rules.
+  function formatDateShort(iso) {
+    const [, , m, d] = iso.match(/^(\d{4})-(\d{2})-(\d{2})/);
+    const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    return `${MONTHS[Number(m) - 1]} ${Number(d)}`;
+  }
+
+  function byNewest(a, b) { return new Date(b.createdTime) - new Date(a.createdTime); }
+
+  async function loadTriageData() {
+    const [notesFilter, tasksFilter] = await Promise.all([
+      getInboxStatusFilter(CONFIG.DB.NOTES),
+      getInboxStatusFilter(CONFIG.DB.TASKS),
+    ]);
+
+    const [
+      notesTagsProp, notesPeopleProp, tasksProjectsProp, tasksTitleProp, projectsDomainsProp,
+      tagTitleProp, peopleTitleProp, projectTitleProp,
+    ] = await Promise.all([
+      relationPropertyName(CONFIG.DB.NOTES, CONFIG.DB.TAGS),
+      relationPropertyName(CONFIG.DB.NOTES, CONFIG.DB.PEOPLE),
+      relationPropertyName(CONFIG.DB.TASKS, CONFIG.DB.PROJECTS),
+      titlePropertyName(CONFIG.DB.TASKS),
+      relationPropertyName(CONFIG.DB.PROJECTS, CONFIG.DB.DOMAINS),
+      titlePropertyName(CONFIG.DB.TAGS),
+      titlePropertyName(CONFIG.DB.PEOPLE),
+      titlePropertyName(CONFIG.DB.PROJECTS),
+    ]);
+
+    const [tagPages, peoplePages, projectPages, notePages, taskPages] = await Promise.all([
+      queryAllPages(CONFIG.DB.TAGS),
+      queryAllPages(CONFIG.DB.PEOPLE),
+      queryAllPages(CONFIG.DB.PROJECTS),
+      queryAllPages(CONFIG.DB.NOTES, { property: notesFilter.name, status: { equals: notesFilter.value } }),
+      queryAllPages(CONFIG.DB.TASKS, { property: tasksFilter.name, status: { equals: tasksFilter.value } }),
+    ]);
+
+    const tagNameById = new Map(tagPages.map((p) => [p.id, plainTitle(p, tagTitleProp)]));
+    const peopleNameById = new Map(peoplePages.map((p) => [p.id, plainTitle(p, peopleTitleProp)]));
+    const domainCodeByPageId = new Map(DOMAIN_META.map((d) => [d.pageId, d.code]));
+    const projectInfoById = new Map(projectPages.map((p) => {
+      const domainIds = ((p.properties[projectsDomainsProp] || {}).relation || []).map((r) => r.id);
+      const domainCode = domainIds.map((id) => domainCodeByPageId.get(id)).find(Boolean) || null;
+      return [p.id, { name: plainTitle(p, projectTitleProp), domainCode }];
+    }));
+
+    const noteBodies = await Promise.all(notePages.map((p) => fetchPageBodyText(p.id)));
+
+    const notesCards = notePages.map((page, i) => {
+      const types = ((page.properties[CONFIG.NOTES_PROP.TYPE] || {}).multi_select || []).map((o) => o.name);
+      const tagIds = ((page.properties[notesTagsProp] || {}).relation || []).map((r) => r.id);
+      const peopleIds = ((page.properties[notesPeopleProp] || {}).relation || []).map((r) => r.id);
+      return {
+        id: page.id,
+        types,
+        tags: tagIds.map((id) => tagNameById.get(id)).filter(Boolean),
+        people: peopleIds.map((id) => peopleNameById.get(id)).filter(Boolean)
+          .map((name) => ({ name, initial: (name[0] || '?').toUpperCase() })),
+        body: noteBodies[i],
+        createdTime: page.created_time,
+      };
+    });
+
+    const tasksCards = taskPages.map((page) => {
+      const projectIds = ((page.properties[tasksProjectsProp] || {}).relation || []).map((r) => r.id);
+      const projectInfo = projectIds.length ? projectInfoById.get(projectIds[0]) : null;
+      const due = (page.properties[CONFIG.TASKS_PROP.DUE_DATE] || {}).date;
+      return {
+        id: page.id,
+        body: plainTitle(page, tasksTitleProp),
+        projectName: projectInfo ? projectInfo.name : null,
+        domainCode: projectInfo ? projectInfo.domainCode : null,
+        due: due ? due.start : null,
+        status: tasksFilter.value,
+        createdTime: page.created_time,
+      };
+    });
+
+    return { notesCards, tasksCards };
+  }
+
+  // Note = Type + at least one Tag. Task = Project + Due Date. (Refines the
+  // build spec's placeholder "tasks: qualified = hasDueDate" per the real
+  // Tasks model, which also requires a Project.)
+  function noteQualified(card) { return card.types.length > 0 && card.tags.length > 0; }
+  function taskQualified(card) { return !!card.projectName && !!card.due; }
+
+  function groupNotes(cards) {
+    const byType = new Map();
+    cards.forEach((c) => {
+      const key = c.types[0] || NO_GROUP;
+      if (!byType.has(key)) byType.set(key, []);
+      byType.get(key).push(c);
+    });
+    const bins = TYPE_SET.filter((t) => byType.has(t)).map((t) => ({
+      key: t, label: typeBinLabel(t), icon: TYPE_ICON[t] || 'dot',
+      cards: byType.get(t).slice().sort(byNewest),
+    }));
+    if (byType.has(NO_GROUP)) {
+      bins.push({ key: NO_GROUP, label: 'No type', icon: 'dot', cards: byType.get(NO_GROUP).slice().sort(byNewest) });
+    }
+    return bins;
+  }
+
+  function groupTasks(cards) {
+    const byDomain = new Map();
+    cards.forEach((c) => {
+      const key = c.domainCode || NO_GROUP;
+      if (!byDomain.has(key)) byDomain.set(key, []);
+      byDomain.get(key).push(c);
+    });
+    const bins = DOMAIN_META.map((d) => ({
+      key: d.code, label: d.code, fill: d.fill, text: d.text,
+      cards: (byDomain.get(d.code) || []).slice().sort(byNewest),
+    }));
+    bins.push({
+      key: NO_GROUP, label: 'No domain', fill: NO_DOMAIN_META.fill, text: NO_DOMAIN_META.text, wide: true,
+      cards: (byDomain.get(NO_GROUP) || []).slice().sort(byNewest),
+    });
+    return bins;
+  }
+
+  function renderOverview(data) {
+    const total = data.notesCards.length + data.tasksCards.length;
+    const noteBins = groupNotes(data.notesCards);
+    const taskBins = groupTasks(data.tasksCards);
+    const { track } = triageState;
+
+    const notesBinsHtml = noteBins.length
+      ? noteBins.map((bin) => `
+        <div class="tg-bin" data-bin-track="notes" data-bin-key="${escapeHtml(bin.key)}">
+          <span class="tg-icon-slot">${ICONS[bin.icon] || ''}</span>
+          <span class="name">${escapeHtml(bin.label)}</span>
+          <span class="n tg-count-mono">${bin.cards.length}</span>
+        </div>`).join('')
+      : `<div class="tg-empty-track">Nothing waiting in Notes.</div>`;
+
+    const taskTilesHtml = taskBins.map((bin) => `
+      <div class="tg-tile${bin.wide ? ' wide' : ''}" data-bin-track="tasks" data-bin-key="${escapeHtml(bin.key)}" style="background:${bin.fill};color:${bin.text};">
+        <span class="code"${bin.wide ? ' style="font-weight:500;"' : ''}>${escapeHtml(bin.label)}</span>
+        <span class="n tg-count-mono">${bin.cards.length}</span>
+      </div>`).join('');
+
+    return `
+      <div class="tg-view">
+        <div class="tg-ov-head">
+          <div class="serif tg-ov-title">Sort the inbox</div>
+          <div class="tg-ov-sub">${total} waiting · take one bin at a time.</div>
+        </div>
+        <div class="tg-seg">
+          <button type="button" data-track="notes" class="${track === 'notes' ? 'on' : ''}">Notes</button>
+          <button type="button" data-track="tasks" class="${track === 'tasks' ? 'on' : ''}">Tasks</button>
+        </div>
+        <div class="tg-track" style="${track === 'notes' ? '' : 'display:none;'}">
+          <div class="tg-track-head">
+            <span class="tg-eyebrow">Notes · by type</span>
+            <span class="tg-track-count">${data.notesCards.length}</span>
+          </div>
+          ${notesBinsHtml}
+        </div>
+        <div class="tg-track" style="${track === 'tasks' ? '' : 'display:none;'}">
+          <div class="tg-track-head">
+            <span class="tg-eyebrow">Tasks · by domain</span>
+            <span class="tg-track-count">${data.tasksCards.length}</span>
+          </div>
+          <div class="tg-tiles">${taskTilesHtml}</div>
+        </div>
+      </div>
+    `;
+  }
+
+  function renderNoteCard(card) {
+    const qualified = noteQualified(card);
+    const edge = card.types.length ? (TYPE_EDGE[card.types[0]] || TYPE_EDGE_DEFAULT) : TYPE_EDGE_DEFAULT;
+    const typeChips = card.types.length
+      ? card.types.map((t) => `<div class="tg-chip">${escapeHtml(t)}</div>`).join('')
+      : `<div class="tg-ghost">Set Type</div>`;
+    const tagChips = card.tags.length
+      ? card.tags.map((t) => `<div class="tg-chip">#${escapeHtml(t)}</div>`).join('')
+      : `<div class="tg-ghost">+ Tag</div>`;
+    const peopleChips = card.people.map((p) => `<div class="tg-chip tg-chip--person"><span class="avatar">${escapeHtml(p.initial)}</span>${escapeHtml(p.name)}</div>`).join('');
+    const bodyHtml = card.body ? escapeHtml(card.body) : `<span class="tg-empty-body">(empty)</span>`;
+
+    return `
+      <div class="tg-card${qualified ? ' qualified' : ''}" style="border-left-color:${edge};">
+        <div class="tg-check">✓</div>
+        <div class="tg-card-inner">
+          <div class="tg-card-main">
+            <div class="body">${bodyHtml}</div>
+            <div class="tg-chips">${typeChips}${peopleChips}${tagChips}</div>
+          </div>
+        </div>
+      </div>`;
+  }
+
+  function renderTaskCard(card, domainMeta) {
+    const qualified = taskQualified(card);
+    const edge = domainMeta ? domainMeta.text : NO_DOMAIN_META.text;
+    const projectChip = card.projectName
+      ? `<div class="tg-chip">${escapeHtml(card.projectName)}</div>`
+      : `<div class="tg-ghost">Set Project</div>`;
+    const dueChip = card.due
+      ? `<div class="tg-chip">${escapeHtml(formatDateShort(card.due))}</div>`
+      : `<div class="tg-ghost">Set Due</div>`;
+    const statusChip = `<div class="tg-chip">${escapeHtml(card.status)}</div>`;
+    const bodyHtml = card.body ? escapeHtml(card.body) : `<span class="tg-empty-body">(untitled)</span>`;
+
+    return `
+      <div class="tg-card${qualified ? ' qualified' : ''}" style="border-left-color:${edge};">
+        <div class="tg-check">✓</div>
+        <div class="tg-card-inner">
+          <div class="tg-card-main">
+            <div class="body">${bodyHtml}</div>
+            <div class="tg-chips">${projectChip}${dueChip}${statusChip}</div>
+          </div>
+        </div>
+      </div>`;
+  }
+
+  function renderBinScreen(data) {
+    const { track, openBin } = triageState;
+    const bins = track === 'notes' ? groupNotes(data.notesCards) : groupTasks(data.tasksCards);
+    const bin = bins.find((b) => b.key === openBin);
+    if (!bin) { triageState.openBin = null; return renderOverview(data); }
+
+    const { cards } = bin;
+    const qualifiedFn = track === 'notes' ? noteQualified : taskQualified;
+    const qualifiedCount = cards.filter(qualifiedFn).length;
+    const domainMeta = track === 'tasks' ? DOMAIN_META.find((d) => d.code === bin.key) : null;
+
+    const cardsHtml = cards.map((c) => (track === 'notes' ? renderNoteCard(c) : renderTaskCard(c, domainMeta))).join('');
+
+    return `
+      <div class="tg-view">
+        <div class="tg-bin-head">
+          <div class="tg-row tg-between">
+            <div class="tg-link" data-back><span class="tg-chevleft">‹</span> Bins</div>
+          </div>
+          <div class="tg-bin-title-row">
+            ${track === 'notes' ? `<span class="tg-icon-slot">${ICONS[bin.icon] || ''}</span>` : ''}
+            <span class="serif tg-bin-title">${escapeHtml(bin.label)}</span>
+            <span class="tg-bin-n">· ${cards.length}</span>
+          </div>
+        </div>
+        ${cards.length ? `
+          <div class="tg-refresh-bar" style="visibility:${qualifiedCount > 0 ? 'visible' : 'hidden'};">
+            <span class="tg-dot-ready"></span>
+            <span class="lbl">${qualifiedCount} ready to clear</span>
+            <button type="button" class="tg-btn-refresh" disabled title="Coming in a later slice">Refresh</button>
+          </div>
+          <div class="tg-stack">${cardsHtml}</div>
+        ` : `
+          <div class="tg-zero">
+            <div class="tg-zero-panel">
+              <div class="tg-zero-eyebrow">${escapeHtml(bin.label)} · clear</div>
+              <div class="serif tg-zero-line">Nothing waiting here right now.</div>
+            </div>
+          </div>
+        `}
+      </div>
+    `;
+  }
+
+  const triageState = { track: 'notes', openBin: null, data: null, loading: false, error: null };
+  let triageContainer = null;
+
+  function paintTriage() {
+    if (!triageContainer) return;
+    if (triageState.loading) {
+      triageContainer.innerHTML = `<div class="tg-view"><div class="tg-status">Loading Triage…</div></div>`;
+      return;
+    }
+    if (triageState.error) {
+      triageContainer.innerHTML = `<div class="tg-view"><div class="tg-status tg-status--error">${escapeHtml(triageState.error)}<br><button type="button" class="tg-btn-refresh" data-retry style="cursor:pointer;opacity:1;margin-top:10px;">Retry</button></div></div>`;
+      return;
+    }
+    triageContainer.innerHTML = triageState.openBin === null ? renderOverview(triageState.data) : renderBinScreen(triageState.data);
+  }
+
+  async function loadAndPaintTriage() {
+    triageState.loading = true;
+    triageState.error = null;
+    paintTriage();
+    try {
+      triageState.data = await loadTriageData();
+    } catch (err) {
+      console.error('Failed to load Triage data', err);
+      triageState.error = err.message || 'Could not load Triage data — check the Worker.';
+    } finally {
+      triageState.loading = false;
+      paintTriage();
+    }
+  }
+
+  function mountTriage(container) {
+    triageContainer = container;
+    triageState.track = 'notes';
+    triageState.openBin = null;
+    loadAndPaintTriage();
+  }
+
+  // Event delegation for Triage interactions — attached once to #content.
+  content.addEventListener('click', (e) => {
+    if (currentRoute() !== 'triage') return;
+    const trackBtn = e.target.closest('[data-track]');
+    if (trackBtn) { triageState.track = trackBtn.dataset.track; paintTriage(); return; }
+    const binEl = e.target.closest('[data-bin-key]');
+    if (binEl) { triageState.track = binEl.dataset.binTrack; triageState.openBin = binEl.dataset.binKey; paintTriage(); return; }
+    const back = e.target.closest('[data-back]');
+    if (back) { triageState.openBin = null; paintTriage(); return; }
+    const retry = e.target.closest('[data-retry]');
+    if (retry) loadAndPaintTriage();
+  });
+
   // --- Views ----------------------------------------------------------------
   // Capture isn't an in-shell route: the nav links straight to capture.html
-  // until the Capture screen is migrated in here.
+  // until the Capture screen is migrated in here. Triage is a real screen
+  // now, rendered by mountTriage() (async + interactive) instead of a plain
+  // VIEWS entry.
   const VIEWS = {
     home: () => `
       <div class="placeholder">
@@ -264,17 +852,10 @@
         <div class="placeholder-sub">Coming soon.</div>
       </div>
     `,
-    triage: () => `
-      <div class="placeholder">
-        <div class="placeholder-title">Triage</div>
-        <div class="placeholder-sub">Coming soon.</div>
-      </div>
-    `,
   };
 
   // --- Hash router ------------------------------------------------------
-  const ROUTES = Object.keys(VIEWS);
-  const content = document.getElementById('content');
+  const ROUTES = ['home', 'triage'];
 
   function currentRoute() {
     const hash = location.hash.replace(/^#\/?/, '');
@@ -283,10 +864,15 @@
 
   function render() {
     const route = currentRoute();
-    content.innerHTML = VIEWS[route]();
     document.querySelectorAll('.nav-btn').forEach((btn) => {
       btn.classList.toggle('active', btn.dataset.route === route);
     });
+    content.classList.toggle('stretch', route === 'triage');
+    if (route === 'triage') {
+      mountTriage(content);
+    } else {
+      content.innerHTML = VIEWS[route]();
+    }
     // The inbox count can change on any screen (Capture adds to it, Triage
     // will resolve it later), so it's refreshed on every route change.
     refreshInboxCount();
