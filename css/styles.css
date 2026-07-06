@@ -516,3 +516,17 @@ body {
 :root {
   color-scheme: light only;
 }
+
+/* Desktop: widen the bounded center column for breathing room only — the
+   composer, cards, and footer all stay exactly as sized on mobile; only the
+   surrounding margin grows. No field or card ever stretches edge to edge. */
+@media (min-width: 768px) {
+  .capture-screen {
+    max-width: 720px;
+    padding: 0 40px;
+  }
+
+  .capture-scroll {
+    padding-top: 32px;
+  }
+}
