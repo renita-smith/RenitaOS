@@ -380,6 +380,38 @@
     padding: 12px 18px; border-radius: var(--radius-lg); box-shadow: 0 12px 28px rgba(0,0,0,.28); white-space: nowrap;
   }
   .tg-snackbar .undo { font-weight: 700; color: #fff; cursor: pointer; text-decoration: underline; text-underline-offset: 2px; }
+
+  /* ============================================================
+     Desktop layout (~768px+) — layout only, no palette/component
+     changes. Below the breakpoint this is inert: exactly one pane is
+     ever visible (data-active-pane), matching the original single-
+     screen mobile behavior (tap a bin replaces the overview; back
+     returns to it). At the breakpoint both panes show side by side —
+     the bin overview stays visible as a persistent left column while
+     the opened bin's card stack fills a wider right column. Every
+     Triage subcomponent (refresh bar, bulk bar, popovers, snackbar,
+     inbox-zero) lives inside one of the two .tg-view panes and is
+     unchanged; only which pane(s) are visible, and their width, differs.
+     ============================================================ */
+  .tg-layout { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+  .tg-pane { display: none; flex: 1; min-height: 0; flex-direction: column; }
+  .tg-layout[data-active-pane="overview"] > .tg-pane-overview { display: flex; }
+  .tg-layout[data-active-pane="bin"] > .tg-pane-bin { display: flex; }
+
+  @media (min-width: 768px) {
+    /* The shell itself is a fixed 560px mobile column everywhere else in
+       the app; widen it only while Triage is the active route (toggled
+       in render()), so Home/Capture are untouched. */
+    .shell.shell--wide { max-width: 1040px; }
+
+    .tg-layout { flex-direction: row; gap: 24px; }
+    .tg-pane-overview, .tg-pane-bin { display: flex !important; }
+    .tg-pane-overview { flex: 0 0 300px; }
+    .tg-pane-bin { flex: 1; min-width: 0; }
+    /* Bound card content to a comfortable reading width instead of
+       stretching across the whole right column. */
+    .tg-pane-bin > .tg-view { width: 100%; max-width: 640px; margin: 0 auto; }
+  }
 </style>
 </head>
 <body>
@@ -555,6 +587,7 @@
 
   const inboxPill = document.getElementById('inboxPill');
   const content = document.getElementById('content');
+  const shellEl = document.querySelector('.shell');
 
   async function refreshInboxCount() {
     try {
@@ -883,7 +916,6 @@
           </div>
           <div class="tg-tiles">${taskTilesHtml}</div>
         </div>
-        ${renderToast()}
       </div>
     `;
   }
@@ -1112,9 +1144,17 @@
     paintTriage();
   }
 
+  // Shown in the right-hand pane on desktop before any bin is opened yet
+  // (mobile never sees this — there the bin pane only renders once a bin
+  // is actually open), and as a defensive fallback if renderBinScreen is
+  // ever called with no bin open.
+  function renderBinEmptyState() {
+    return `<div class="tg-view"><div class="tg-status">Select a bin to start sorting.</div></div>`;
+  }
+
   function renderBinScreen(data) {
     const { track, openBinMeta, pinnedIds } = triageState;
-    if (!openBinMeta) { triageState.openBin = null; return renderOverview(data); }
+    if (!openBinMeta) { triageState.openBin = null; return renderBinEmptyState(); }
 
     const allCards = track === 'notes' ? data.notesCards : data.tasksCards;
     const cardsById = new Map(allCards.map((c) => [c.id, c]));
@@ -1736,11 +1776,15 @@
   // past .tg-view's edge — which clips it invisibly, since .tg-view has
   // overflow: hidden. Shift it left just enough to stay in bounds (and
   // re-clamp so that shift doesn't itself push it past the left edge).
+  // Bounds against the popover's OWN .tg-view ancestor, not just "the
+  // first one in the document" — the desktop layout can have two .tg-view
+  // panes on screen at once (overview + opened bin).
   function adjustPopoverPosition() {
     if (!triageContainer) return;
     const popEl = triageContainer.querySelector('.tg-popover');
-    const viewEl = triageContainer.querySelector('.tg-view');
-    if (!popEl || !viewEl) return;
+    if (!popEl) return;
+    const viewEl = popEl.closest('.tg-view');
+    if (!viewEl) return;
     popEl.style.left = '0px';
     const margin = 8;
     const popRect = popEl.getBoundingClientRect();
@@ -1762,6 +1806,13 @@
   // any pill snapped the list back to the top. Save + restore both
   // potentially-scrolled containers around the replace; this runs
   // synchronously before the browser paints, so there's no visible jump.
+  //
+  // Both panes (overview + opened bin) are always rendered into the DOM
+  // together, wrapped in .tg-layout: below the desktop breakpoint, CSS
+  // shows only the one named by data-active-pane (identical to the old
+  // single-screen behavior — tap a bin replaces the overview, back
+  // returns to it); at the breakpoint CSS shows both side by side. The
+  // JS/state model doesn't otherwise change with viewport width.
   function paintTriage() {
     if (!triageContainer) return;
     const prevStack = triageContainer.querySelector('.tg-stack');
@@ -1776,7 +1827,17 @@
       triageContainer.innerHTML = `<div class="tg-view"><div class="tg-status tg-status--error">${escapeHtml(triageState.error)}<br><button type="button" class="tg-btn-refresh" data-retry style="cursor:pointer;opacity:1;margin-top:10px;">Retry</button></div></div>`;
       return;
     }
-    triageContainer.innerHTML = triageState.openBin === null ? renderOverview(triageState.data) : renderBinScreen(triageState.data);
+
+    const isBinOpen = triageState.openBin !== null && !!triageState.openBinMeta;
+    const overviewHtml = renderOverview(triageState.data);
+    const binHtml = isBinOpen ? renderBinScreen(triageState.data) : renderBinEmptyState();
+
+    triageContainer.innerHTML = `
+      <div class="tg-layout" data-active-pane="${isBinOpen ? 'bin' : 'overview'}">
+        <div class="tg-pane tg-pane-overview">${overviewHtml}</div>
+        <div class="tg-pane tg-pane-bin">${binHtml}</div>
+      </div>
+    `;
 
     triageContainer.scrollTop = containerScrollTop;
     const newStack = triageContainer.querySelector('.tg-stack');
@@ -2007,6 +2068,7 @@
       btn.classList.toggle('active', btn.dataset.route === route);
     });
     content.classList.toggle('stretch', route === 'triage');
+    shellEl.classList.toggle('shell--wide', route === 'triage');
     if (route === 'triage') {
       mountTriage(content);
     } else {
