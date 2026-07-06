@@ -231,6 +231,34 @@
   .tg-bin-title { font-size: 24px; color: var(--text); }
   .tg-bin-n { font-size: 13px; color: var(--tg-muted-2); }
 
+  .tg-btn-select {
+    border: none; cursor: pointer; font-family: inherit;
+    font-size: 12px; font-weight: 600; padding: 7px 15px; border-radius: var(--radius-sm);
+    background: var(--surface-soft); color: var(--text);
+  }
+  .tg-btn-select.on { background: var(--text); color: var(--cream); }
+
+  .tg-checkbox {
+    width: 20px; height: 20px; border-radius: var(--radius-sm); flex-shrink: 0; margin-top: 2px; cursor: pointer;
+    background: #fff; box-shadow: inset 0 0 0 1.5px oklch(0.75 0.012 75);
+    color: #fff; display: flex; align-items: center; justify-content: center; font-size: 12px;
+  }
+  .tg-checkbox.checked { background: var(--text); box-shadow: inset 0 0 0 1.5px var(--text); }
+
+  .tg-bulk-bar {
+    border-top: 1px solid oklch(0.9 0.01 75); background: oklch(0.985 0.004 75);
+    padding: 14px 0 max(14px, env(safe-area-inset-bottom)); flex-shrink: 0;
+  }
+  .tg-bulk-cnt { font-size: 12px; color: var(--muted-text); margin-bottom: 10px; }
+  .tg-bulk-actions { display: flex; gap: 8px; }
+  .tg-bulk-wrap { flex: 1; position: relative; }
+  .tg-bulk-btn {
+    width: 100%; text-align: center; padding: 11px; border-radius: var(--radius-sm);
+    background: var(--surface-soft); color: var(--text); font-size: 13px; font-weight: 600;
+    border: none; font-family: inherit; cursor: pointer;
+  }
+  .tg-bulk-btn:disabled { opacity: .55; cursor: not-allowed; }
+
   .tg-refresh-bar {
     margin: 12px 0 2px; padding: 11px 14px; border-radius: var(--radius-lg);
     background: var(--surface-soft); display: flex; align-items: center; gap: 10px; flex-shrink: 0;
@@ -294,6 +322,10 @@
     box-shadow: 0 12px 30px rgba(0,0,0,.16), inset 0 0 0 1px var(--hairline);
     padding: 10px;
   }
+  /* Bulk popovers open upward — the bulk bar sits at the very bottom of
+     the screen, so the normal downward "top: 100%" would render off-screen.
+     Must come after .tg-popover in the cascade to win at equal specificity. */
+  .tg-popover--up { top: auto; bottom: calc(100% + 7px); }
   .tg-pop-label { font-size: 10px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--tg-muted-2); margin: 2px 2px 8px; }
   .tg-pop-input {
     width: 100%; border: none; outline: none; background: oklch(0.97 0.005 75);
@@ -631,9 +663,14 @@
   function byNewest(a, b) { return new Date(b.createdTime) - new Date(a.createdTime); }
 
   async function loadTriageData() {
-    const [notesFilter, tasksFilter] = await Promise.all([
+    // getStatusSchema is memoized, so grabbing the full options list here
+    // (for the bulk Status popover) piggybacks on the same fetch
+    // getInboxStatusFilter already needs — no extra request.
+    const [notesFilter, tasksFilter, notesStatusSchema, tasksStatusSchema] = await Promise.all([
       getInboxStatusFilter(CONFIG.DB.NOTES),
       getInboxStatusFilter(CONFIG.DB.TASKS),
+      getStatusSchema(CONFIG.DB.NOTES),
+      getStatusSchema(CONFIG.DB.TASKS),
     ]);
 
     const [
@@ -710,6 +747,7 @@
       schema: { notesTagsProp, tasksProjectsProp, projectsDomainsProp, tagTitleProp, projectTitleProp },
       tags: { list: tagList, byId: tagById },
       projects: { list: projectList, byId: projectById },
+      statusOptions: { notes: notesStatusSchema.options, tasks: tasksStatusSchema.options },
     };
   }
 
@@ -866,6 +904,7 @@
       <div class="tg-card${qualified ? ' qualified' : ''}" style="border-left-color:${edge};">
         <div class="tg-check">✓</div>
         <div class="tg-card-inner">
+          ${renderCheckbox(card)}
           <div class="tg-card-main">
             <div class="body">${bodyHtml}</div>
             <div class="tg-chips">${typeHtml}${peopleChips}${tagHtml}</div>
@@ -906,6 +945,7 @@
       <div class="tg-card${qualified ? ' qualified' : ''}" style="border-left-color:${edge};">
         <div class="tg-check">✓</div>
         <div class="tg-card-inner">
+          ${renderCheckbox(card)}
           <div class="tg-card-main">
             <div class="body">${bodyHtml}</div>
             <div class="tg-chips">${domainHtml}${projectHtml}${dueHtml}${statusChip}</div>
@@ -924,7 +964,11 @@
   // Create/Clear rows render directly under the input/current-tags — above
   // the scrollable suggestions list — so they're never scrolled out of view
   // behind a long list of matches.
-  function renderTagPopover(card) {
+  // The query-dependent part of a tag popover (create row + matches list) —
+  // pulled out so typing can re-render just this, in place, instead of the
+  // whole popover (see the `input` listener: replacing the <input> itself
+  // on every keystroke raced its own refocus and could drop characters).
+  function renderTagPopoverDynamic(card) {
     const q = (triageState.popoverQuery || '').trim();
     const ql = q.toLowerCase();
     const existing = new Set(card.tagIds);
@@ -934,14 +978,17 @@
     const createHtml = q && !exact
       ? `<div class="tg-pop-opt tg-pop-opt--create" data-pop-value="${escapeHtml(q)}" data-pop-create="true">+ Create "${escapeHtml(q)}"</div>`
       : '';
+    return `${createHtml}<div class="tg-pop-list">${optsHtml}</div>`;
+  }
+
+  function renderTagPopover(card) {
     const currentHtml = card.tags.length
       ? `<div class="tg-pop-current">${card.tagIds.map((id, i) => `<span class="tg-pop-pill">#${escapeHtml(card.tags[i] || '')}<span class="x" data-pop-remove-tag="${escapeHtml(id)}">×</span></span>`).join('')}</div>`
       : '';
     return `<div class="tg-popover">
       ${currentHtml}
       <input type="text" class="tg-pop-input" data-pop-filter placeholder="Filter or create a tag…" value="${escapeHtml(triageState.popoverQuery || '')}">
-      ${createHtml}
-      <div class="tg-pop-list">${optsHtml}</div>
+      <div class="tg-pop-dynamic">${renderTagPopoverDynamic(card)}</div>
     </div>`;
   }
 
@@ -956,7 +1003,7 @@
     </div>`;
   }
 
-  function renderProjectPopover(card) {
+  function renderProjectPopoverDynamic(card) {
     const q = (triageState.popoverQuery || '').trim();
     const ql = q.toLowerCase();
     const matches = triageState.data.projects.list.filter((p) => p.id !== card.projectId && p.name.toLowerCase().includes(ql));
@@ -965,12 +1012,15 @@
     const createHtml = q && !exact
       ? `<div class="tg-pop-opt tg-pop-opt--create" data-pop-value="${escapeHtml(q)}" data-pop-create="true">+ Create "${escapeHtml(q)}"</div>`
       : '';
+    return `${createHtml}<div class="tg-pop-list">${optsHtml}</div>`;
+  }
+
+  function renderProjectPopover(card) {
     const clearHtml = card.projectName ? `<div class="tg-pop-opt tg-pop-opt--clear" data-pop-value="" data-pop-clear="true">Remove project</div>` : '';
     return `<div class="tg-popover">
       ${clearHtml}
       <input type="text" class="tg-pop-input" data-pop-filter placeholder="Filter or create a project…" value="${escapeHtml(triageState.popoverQuery || '')}">
-      ${createHtml}
-      <div class="tg-pop-list">${optsHtml}</div>
+      <div class="tg-pop-dynamic">${renderProjectPopoverDynamic(card)}</div>
     </div>`;
   }
 
@@ -1009,6 +1059,9 @@
     triageState.justClearedCount = null;
     clearTimeout(snackbarTimer);
     triageState.snackbar = null;
+    triageState.selecting = false;
+    triageState.selected = new Set();
+    triageState.bulkPopover = null;
     paintTriage();
   }
 
@@ -1025,10 +1078,11 @@
     const cardsHtml = cards.map((c) => (track === 'notes' ? renderNoteCard(c) : renderTaskCard(c))).join('');
 
     return `
-      <div class="tg-view">
+      <div class="tg-view${triageState.selecting ? ' selecting' : ''}">
         <div class="tg-bin-head">
           <div class="tg-row tg-between">
             <div class="tg-link" data-back><span class="tg-chevleft">‹</span> Bins</div>
+            <button type="button" class="tg-btn-select${triageState.selecting ? ' on' : ''}" data-toggle-select>${triageState.selecting ? 'Done' : 'Select'}</button>
           </div>
           <div class="tg-bin-title-row">
             ${track === 'notes' ? `<span class="tg-icon-slot">${ICONS[openBinMeta.icon] || ''}</span>` : ''}
@@ -1052,10 +1106,92 @@
             </div>
           </div>
         `}
+        ${renderBulkBar()}
         ${renderSnackbar()}
         ${renderToast()}
       </div>
     `;
+  }
+
+  function renderCheckbox(card) {
+    if (!triageState.selecting) return '';
+    const checked = triageState.selected.has(card.id);
+    return `<div class="tg-checkbox${checked ? ' checked' : ''}" data-select-card="${card.id}">${checked ? '✓' : ''}</div>`;
+  }
+
+  function renderBulkBar() {
+    if (!triageState.selecting) return '';
+    const count = triageState.selected.size;
+    const track = triageState.track;
+    const actions = track === 'notes'
+      ? [{ key: 'tag', label: 'Tag' }, { key: 'type', label: 'Type' }, { key: 'status', label: 'Status' }]
+      : [{ key: 'project', label: 'Project' }, { key: 'due', label: 'Due' }, { key: 'status', label: 'Status' }];
+    const btnsHtml = actions.map((a) => `
+      <div class="tg-pop-wrap tg-bulk-wrap">
+        <button type="button" class="tg-bulk-btn" data-bulk-action="${a.key}"${count === 0 || triageState.busy ? ' disabled' : ''}>${a.label}</button>
+        ${triageState.bulkPopover === a.key ? renderBulkPopover(a.key) : ''}
+      </div>`).join('');
+    return `<div class="tg-bulk-bar">
+      <div class="tg-bulk-cnt">${count} selected</div>
+      <div class="tg-bulk-actions">${btnsHtml}</div>
+    </div>`;
+  }
+
+  function renderBulkTagPopoverDynamic() {
+    const q = (triageState.popoverQuery || '').trim();
+    const ql = q.toLowerCase();
+    const matches = triageState.data.tags.list.filter((t) => t.name.toLowerCase().includes(ql));
+    const optsHtml = matches.map((t) => `<div class="tg-pop-opt" data-pop-value="${escapeHtml(t.id)}">#${escapeHtml(t.name)}</div>`).join('');
+    const exact = q && triageState.data.tags.list.some((t) => t.name.toLowerCase() === ql);
+    const createHtml = q && !exact
+      ? `<div class="tg-pop-opt tg-pop-opt--create" data-pop-value="${escapeHtml(q)}" data-pop-create="true">+ Create "${escapeHtml(q)}"</div>`
+      : '';
+    return `${createHtml}<div class="tg-pop-list">${optsHtml}</div>`;
+  }
+
+  function renderBulkProjectPopoverDynamic() {
+    const q = (triageState.popoverQuery || '').trim();
+    const ql = q.toLowerCase();
+    const matches = triageState.data.projects.list.filter((p) => p.name.toLowerCase().includes(ql));
+    const optsHtml = matches.map((p) => `<div class="tg-pop-opt" data-pop-value="${escapeHtml(p.id)}">${escapeHtml(p.name)}</div>`).join('');
+    const exact = q && triageState.data.projects.list.some((p) => p.name.toLowerCase() === ql);
+    const createHtml = q && !exact
+      ? `<div class="tg-pop-opt tg-pop-opt--create" data-pop-value="${escapeHtml(q)}" data-pop-create="true">+ Create "${escapeHtml(q)}"</div>`
+      : '';
+    return `${createHtml}<div class="tg-pop-list">${optsHtml}</div>`;
+  }
+
+  function renderBulkPopover(key) {
+    if (key === 'type') {
+      const opts = TYPE_SET.map((t) => `<div class="tg-type-opt" data-pop-value="${escapeHtml(t)}">${escapeHtml(t)}</div>`).join('');
+      return `<div class="tg-popover tg-popover--up"><div class="tg-pop-label">Set Type</div><div class="tg-type-strip">${opts}</div></div>`;
+    }
+    if (key === 'tag') {
+      return `<div class="tg-popover tg-popover--up">
+        <input type="text" class="tg-pop-input" data-pop-filter placeholder="Add a tag to all selected…" value="${escapeHtml(triageState.popoverQuery || '')}">
+        <div class="tg-pop-dynamic">${renderBulkTagPopoverDynamic()}</div>
+      </div>`;
+    }
+    if (key === 'project') {
+      return `<div class="tg-popover tg-popover--up">
+        <input type="text" class="tg-pop-input" data-pop-filter placeholder="Set project for all selected…" value="${escapeHtml(triageState.popoverQuery || '')}">
+        <div class="tg-pop-dynamic">${renderBulkProjectPopoverDynamic()}</div>
+      </div>`;
+    }
+    if (key === 'due') {
+      const optsHtml = quickDueOptions().map((o) => `<div class="tg-pop-opt" data-pop-value="${o.iso}">${o.label}</div>`).join('');
+      return `<div class="tg-popover tg-popover--up">
+        <div class="tg-pop-label">Set due date</div>
+        <div class="tg-pop-list">${optsHtml}</div>
+        <input type="date" class="tg-pop-date" data-pop-date-input>
+      </div>`;
+    }
+    if (key === 'status') {
+      const options = triageState.data.statusOptions[triageState.track] || [];
+      const optsHtml = options.map((o) => `<div class="tg-pop-opt" data-pop-value="${escapeHtml(o.name)}">${escapeHtml(o.name)}</div>`).join('');
+      return `<div class="tg-popover tg-popover--up"><div class="tg-pop-label">Set status</div><div class="tg-pop-list">${optsHtml}</div></div>`;
+    }
+    return '';
   }
 
   let triageToastTimer = null;
@@ -1377,13 +1513,228 @@
     if (field === 'domain') return isClear ? applyTaskClearProject(cardId) : applyTaskSetDomain(cardId, value);
   }
 
+  // --- Select mode / bulk actions ------------------------------------------
+  // Clears the selection + closes the bulk popover after a bulk write, but
+  // (unlike per-card edits) leaves Select mode itself on, so you can queue
+  // up another bulk action on a fresh selection right away.
+  function finishBulkAction(message) {
+    triageState.selected = new Set();
+    triageState.bulkPopover = null;
+    triageState.popoverQuery = '';
+    showTriageToast(message);
+  }
+
+  function applyBulkType(type) {
+    return withBusy(async () => {
+      const ids = [...triageState.selected];
+      try {
+        for (const id of ids) {
+          // eslint-disable-next-line no-await-in-loop
+          await notionRequest(`/v1/pages/${id}`, { method: 'PATCH', body: { properties: { [CONFIG.NOTES_PROP.TYPE]: { multi_select: [{ name: type }] } } } });
+          const card = triageState.data.notesCards.find((c) => c.id === id);
+          if (card) card.types = [type];
+        }
+        finishBulkAction(`${ids.length} updated`);
+      } catch (err) {
+        console.error('Bulk Type failed', err);
+        showTriageToast(err.message || 'Could not set Type for all selected — try again.');
+      }
+    });
+  }
+
+  function applyBulkTag(tagId) {
+    return withBusy(async () => {
+      const ids = [...triageState.selected];
+      const cardsById = new Map(triageState.data.notesCards.map((c) => [c.id, c]));
+      try {
+        for (const id of ids) {
+          const card = cardsById.get(id);
+          if (!card || card.tagIds.includes(tagId)) continue;
+          const newIds = [...card.tagIds, tagId];
+          // eslint-disable-next-line no-await-in-loop
+          await notionRequest(`/v1/pages/${id}`, { method: 'PATCH', body: { properties: { [triageState.data.schema.notesTagsProp]: { relation: newIds.map((i) => ({ id: i })) } } } });
+          card.tagIds = newIds;
+          card.tags = newIds.map((i) => triageState.data.tags.byId.get(i)).filter(Boolean);
+        }
+        finishBulkAction(`${ids.length} updated`);
+      } catch (err) {
+        console.error('Bulk tag failed', err);
+        showTriageToast(err.message || 'Could not tag all selected — try again.');
+      }
+    });
+  }
+
+  function applyBulkNewTag(rawName) {
+    return withBusy(async () => {
+      const name = rawName.trim();
+      if (!name) return;
+      try {
+        const page = await notionRequest('/v1/pages', { method: 'POST', body: { parent: { database_id: CONFIG.DB.TAGS }, properties: { [triageState.data.schema.tagTitleProp]: { title: [{ text: { content: name } }] } } } });
+        triageState.data.tags.list.push({ id: page.id, name });
+        triageState.data.tags.byId.set(page.id, name);
+        const ids = [...triageState.selected];
+        const cardsById = new Map(triageState.data.notesCards.map((c) => [c.id, c]));
+        for (const id of ids) {
+          const card = cardsById.get(id);
+          if (!card) continue;
+          const newIds = [...card.tagIds, page.id];
+          // eslint-disable-next-line no-await-in-loop
+          await notionRequest(`/v1/pages/${id}`, { method: 'PATCH', body: { properties: { [triageState.data.schema.notesTagsProp]: { relation: newIds.map((i) => ({ id: i })) } } } });
+          card.tagIds = newIds;
+          card.tags = newIds.map((i) => triageState.data.tags.byId.get(i)).filter(Boolean);
+        }
+        finishBulkAction(`${ids.length} updated`);
+      } catch (err) {
+        console.error('Bulk create tag failed', err);
+        showTriageToast(err.message || 'Could not create tag — try again.');
+      }
+    });
+  }
+
+  function applyBulkProject(projectId) {
+    return withBusy(async () => {
+      const ids = [...triageState.selected];
+      const info = triageState.data.projects.byId.get(projectId);
+      try {
+        for (const id of ids) {
+          // eslint-disable-next-line no-await-in-loop
+          await notionRequest(`/v1/pages/${id}`, { method: 'PATCH', body: { properties: { [triageState.data.schema.tasksProjectsProp]: { relation: [{ id: projectId }] } } } });
+          const card = triageState.data.tasksCards.find((c) => c.id === id);
+          if (card) { card.projectId = projectId; card.projectName = info ? info.name : null; card.domainCode = info ? info.domainCode : null; }
+        }
+        finishBulkAction(`${ids.length} updated`);
+      } catch (err) {
+        console.error('Bulk Project failed', err);
+        showTriageToast(err.message || 'Could not set Project for all selected — try again.');
+      }
+    });
+  }
+
+  function applyBulkNewProject(rawName) {
+    return withBusy(async () => {
+      const name = rawName.trim();
+      if (!name) return;
+      try {
+        // Same domain-inheritance rule as the per-card create: inherits the
+        // open bin's Domain, or none from "No domain".
+        const domainCode = triageState.track === 'tasks' && triageState.openBinMeta && triageState.openBinMeta.key !== NO_GROUP
+          ? triageState.openBinMeta.key : null;
+        const properties = { [triageState.data.schema.projectTitleProp]: { title: [{ text: { content: name } }] } };
+        if (domainCode) {
+          const meta = DOMAIN_META.find((d) => d.code === domainCode);
+          properties[triageState.data.schema.projectsDomainsProp] = { relation: [{ id: meta.pageId }] };
+        }
+        const page = await notionRequest('/v1/pages', { method: 'POST', body: { parent: { database_id: CONFIG.DB.PROJECTS }, properties } });
+        const info = { id: page.id, name, domainCode };
+        triageState.data.projects.list.push(info);
+        triageState.data.projects.byId.set(page.id, info);
+        const ids = [...triageState.selected];
+        for (const id of ids) {
+          // eslint-disable-next-line no-await-in-loop
+          await notionRequest(`/v1/pages/${id}`, { method: 'PATCH', body: { properties: { [triageState.data.schema.tasksProjectsProp]: { relation: [{ id: page.id }] } } } });
+          const card = triageState.data.tasksCards.find((c) => c.id === id);
+          if (card) { card.projectId = page.id; card.projectName = name; card.domainCode = domainCode; }
+        }
+        finishBulkAction(`${ids.length} updated`);
+      } catch (err) {
+        console.error('Bulk create project failed', err);
+        showTriageToast(err.message || 'Could not create project — try again.');
+      }
+    });
+  }
+
+  function applyBulkDue(iso) {
+    return withBusy(async () => {
+      const ids = [...triageState.selected];
+      try {
+        for (const id of ids) {
+          // eslint-disable-next-line no-await-in-loop
+          await notionRequest(`/v1/pages/${id}`, { method: 'PATCH', body: { properties: { [CONFIG.TASKS_PROP.DUE_DATE]: { date: { start: iso } } } } });
+          const card = triageState.data.tasksCards.find((c) => c.id === id);
+          if (card) card.due = iso;
+        }
+        finishBulkAction(`${ids.length} updated`);
+      } catch (err) {
+        console.error('Bulk Due failed', err);
+        showTriageToast(err.message || 'Could not set Due date for all selected — try again.');
+      }
+    });
+  }
+
+  // Sets Status directly for every selected card (both tracks) — bypassing
+  // qualify + Refresh entirely. If the target isn't Inbox, those cards drop
+  // out of the live Inbox data/pinned view, same as Refresh does.
+  function applyBulkStatus(statusName) {
+    return withBusy(async () => {
+      const track = triageState.track;
+      const databaseId = track === 'notes' ? CONFIG.DB.NOTES : CONFIG.DB.TASKS;
+      const ids = [...triageState.selected];
+      try {
+        const { name: statusPropertyName, value: inboxValue } = await getInboxStatusFilter(databaseId);
+        for (const id of ids) {
+          // eslint-disable-next-line no-await-in-loop
+          await notionRequest(`/v1/pages/${id}`, { method: 'PATCH', body: { properties: { [statusPropertyName]: { status: { name: statusName } } } } });
+        }
+        if (statusName !== inboxValue) {
+          const clearedIds = new Set(ids);
+          if (track === 'notes') {
+            triageState.data.notesCards = triageState.data.notesCards.filter((c) => !clearedIds.has(c.id));
+          } else {
+            triageState.data.tasksCards = triageState.data.tasksCards.filter((c) => !clearedIds.has(c.id));
+          }
+          triageState.pinnedIds = triageState.pinnedIds.filter((id) => !clearedIds.has(id));
+        }
+        finishBulkAction(`${ids.length} updated`);
+      } catch (err) {
+        console.error('Bulk Status failed', err);
+        showTriageToast(err.message || 'Could not set Status for all selected — try again.');
+      }
+    });
+  }
+
+  function handleBulkPopoverSelect(value, isCreate) {
+    const key = triageState.bulkPopover;
+    if (!key) return;
+    if (key === 'tag') return isCreate ? applyBulkNewTag(value) : applyBulkTag(value);
+    if (key === 'type') return applyBulkType(value);
+    if (key === 'project') return isCreate ? applyBulkNewProject(value) : applyBulkProject(value);
+    if (key === 'due') return applyBulkDue(value);
+    if (key === 'status') return applyBulkStatus(value);
+  }
+
   const triageState = {
     track: 'notes', openBin: null, openBinMeta: null, pinnedIds: [],
     data: null, loading: false, error: null,
     popover: null, popoverQuery: '', toast: null, busy: false,
     snackbar: null, removedBatch: null, justClearedCount: null,
+    selecting: false, selected: new Set(), bulkPopover: null,
   };
   let triageContainer = null;
+
+  // A popover always renders at "left: 0" relative to its trigger's wrap.
+  // For a trigger sitting far enough right (the 2nd/3rd bulk button, or a
+  // right-side chip like Due/Status), the fixed-width popover can extend
+  // past .tg-view's edge — which clips it invisibly, since .tg-view has
+  // overflow: hidden. Shift it left just enough to stay in bounds (and
+  // re-clamp so that shift doesn't itself push it past the left edge).
+  function adjustPopoverPosition() {
+    if (!triageContainer) return;
+    const popEl = triageContainer.querySelector('.tg-popover');
+    const viewEl = triageContainer.querySelector('.tg-view');
+    if (!popEl || !viewEl) return;
+    popEl.style.left = '0px';
+    const margin = 8;
+    const popRect = popEl.getBoundingClientRect();
+    const viewRect = viewEl.getBoundingClientRect();
+    const naturalLeft = popRect.left;
+    const maxLeft = viewRect.right - margin - popRect.width;
+    const minLeft = viewRect.left + margin;
+    // Clamp the popover's natural (left: 0) position into [minLeft, maxLeft]
+    // in viewport coordinates, then convert that back into a CSS offset.
+    const finalLeft = Math.max(minLeft, Math.min(naturalLeft, maxLeft));
+    const shift = finalLeft - naturalLeft;
+    if (shift) popEl.style.left = `${shift}px`;
+  }
 
   function paintTriage() {
     if (!triageContainer) return;
@@ -1396,6 +1747,7 @@
       return;
     }
     triageContainer.innerHTML = triageState.openBin === null ? renderOverview(triageState.data) : renderBinScreen(triageState.data);
+    requestAnimationFrame(adjustPopoverPosition);
   }
 
   async function loadAndPaintTriage() {
@@ -1427,6 +1779,9 @@
     triageState.removedBatch = null;
     triageState.justClearedCount = null;
     clearTimeout(snackbarTimer);
+    triageState.selecting = false;
+    triageState.selected = new Set();
+    triageState.bulkPopover = null;
     loadAndPaintTriage();
   }
 
@@ -1460,12 +1815,17 @@
       return;
     }
 
-    // An option row inside an open popover.
+    // An option row inside an open popover — a bulk popover if one is
+    // open, else a per-card one (the two are mutually exclusive).
     const popOpt = e.target.closest('[data-pop-value]');
     if (popOpt) {
       e.stopPropagation();
       if (triageState.busy) return;
-      handlePopoverSelect(popOpt.dataset.popValue, popOpt.dataset.popCreate === 'true', popOpt.dataset.popClear === 'true');
+      if (triageState.bulkPopover) {
+        handleBulkPopoverSelect(popOpt.dataset.popValue, popOpt.dataset.popCreate === 'true');
+      } else {
+        handlePopoverSelect(popOpt.dataset.popValue, popOpt.dataset.popCreate === 'true', popOpt.dataset.popClear === 'true');
+      }
       return;
     }
 
@@ -1474,13 +1834,28 @@
     if (e.target.closest('.tg-popover')) { e.stopPropagation(); return; }
 
     const trackBtn = e.target.closest('[data-track]');
-    if (trackBtn) { triageState.track = trackBtn.dataset.track; triageState.popover = null; paintTriage(); return; }
+    if (trackBtn) {
+      triageState.track = trackBtn.dataset.track;
+      triageState.popover = null;
+      triageState.bulkPopover = null;
+      paintTriage();
+      return;
+    }
 
     const binEl = e.target.closest('[data-bin-key]');
     if (binEl) { triageState.track = binEl.dataset.binTrack; openBin(binEl.dataset.binKey); return; }
 
     const back = e.target.closest('[data-back]');
-    if (back) { triageState.openBin = null; triageState.openBinMeta = null; triageState.popover = null; paintTriage(); return; }
+    if (back) {
+      triageState.openBin = null;
+      triageState.openBinMeta = null;
+      triageState.popover = null;
+      triageState.selecting = false;
+      triageState.selected = new Set();
+      triageState.bulkPopover = null;
+      paintTriage();
+      return;
+    }
 
     const retry = e.target.closest('[data-retry]');
     if (retry) { loadAndPaintTriage(); return; }
@@ -1491,30 +1866,78 @@
     const undoBtn = e.target.closest('[data-undo]');
     if (undoBtn) { if (!triageState.busy) applyUndo(); return; }
 
+    const toggleSelect = e.target.closest('[data-toggle-select]');
+    if (toggleSelect) {
+      triageState.selecting = !triageState.selecting;
+      triageState.selected = new Set();
+      triageState.bulkPopover = null;
+      triageState.popover = null;
+      paintTriage();
+      return;
+    }
+
+    const selectCard = e.target.closest('[data-select-card]');
+    if (selectCard) {
+      e.stopPropagation();
+      const id = selectCard.dataset.selectCard;
+      if (triageState.selected.has(id)) triageState.selected.delete(id); else triageState.selected.add(id);
+      paintTriage();
+      return;
+    }
+
+    const bulkTrigger = e.target.closest('[data-bulk-action]');
+    if (bulkTrigger) {
+      e.stopPropagation();
+      if (triageState.busy || triageState.selected.size === 0) return;
+      const key = bulkTrigger.dataset.bulkAction;
+      triageState.bulkPopover = triageState.bulkPopover === key ? null : key;
+      triageState.popover = null;
+      triageState.popoverQuery = '';
+      paintTriage();
+      return;
+    }
+
     // Click anywhere else on the screen dismisses an open popover — the
     // "full-card backdrop" from the build spec, without a dedicated overlay
     // element since popovers already re-render fresh on every paint.
-    if (triageState.popover) { triageState.popover = null; paintTriage(); }
-  });
-
-  // Typing in a tag/project filter input — re-render the filtered list and
-  // restore focus + caret position (innerHTML replace loses both).
-  content.addEventListener('input', (e) => {
-    if (currentRoute() !== 'triage') return;
-    if (e.target.matches('[data-pop-filter]')) {
-      triageState.popoverQuery = e.target.value;
+    if (triageState.popover || triageState.bulkPopover) {
+      triageState.popover = null;
+      triageState.bulkPopover = null;
       paintTriage();
-      requestAnimationFrame(() => {
-        const input = triageContainer.querySelector('[data-pop-filter]');
-        if (input) { input.focus(); const v = input.value; input.setSelectionRange(v.length, v.length); }
-      });
     }
   });
 
-  // The native date input in the Due popover ("Pick a date…").
+  // Typing in a tag/project filter input updates only the matches/create
+  // row next to it (`.tg-pop-dynamic`), not the whole screen — a full
+  // paintTriage() here would destroy and recreate the <input> on every
+  // keystroke, and a fast typist could out-run the refocus, dropping
+  // characters. Leaving the input's own DOM node untouched means focus
+  // and caret position never move.
+  content.addEventListener('input', (e) => {
+    if (currentRoute() !== 'triage') return;
+    if (!e.target.matches('[data-pop-filter]')) return;
+    triageState.popoverQuery = e.target.value;
+    const dynamicEl = triageContainer && triageContainer.querySelector('.tg-pop-dynamic');
+    if (!dynamicEl) return;
+    if (triageState.bulkPopover === 'tag') dynamicEl.innerHTML = renderBulkTagPopoverDynamic();
+    else if (triageState.bulkPopover === 'project') dynamicEl.innerHTML = renderBulkProjectPopoverDynamic();
+    else if (triageState.popover && triageState.popover.field === 'tag') {
+      const card = triageState.data.notesCards.find((c) => c.id === triageState.popover.cardId);
+      if (card) dynamicEl.innerHTML = renderTagPopoverDynamic(card);
+    } else if (triageState.popover && triageState.popover.field === 'project') {
+      const card = triageState.data.tasksCards.find((c) => c.id === triageState.popover.cardId);
+      if (card) dynamicEl.innerHTML = renderProjectPopoverDynamic(card);
+    }
+  });
+
+  // The native date input in the Due popover ("Pick a date…") — per-card
+  // or bulk, whichever popover is currently open.
   content.addEventListener('change', (e) => {
     if (currentRoute() !== 'triage') return;
-    if (e.target.matches('[data-pop-date-input]') && e.target.value && triageState.popover) {
+    if (!e.target.matches('[data-pop-date-input]') || !e.target.value) return;
+    if (triageState.bulkPopover === 'due') {
+      applyBulkDue(e.target.value);
+    } else if (triageState.popover) {
       applyTaskDue(triageState.popover.cardId, e.target.value);
     }
   });
