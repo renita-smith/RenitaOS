@@ -465,6 +465,44 @@ body {
 .save-btn:active { background: var(--button-pressed); color: var(--cream); }
 .save-btn:disabled { opacity: .6; cursor: not-allowed; }
 
+/* Home/Capture/Triage toggle — same markup/classes as the shell's nav in
+   index.html, so this reads as one consistent control across screens. */
+.shell-nav {
+  flex-shrink: 0;
+  display: flex;
+  justify-content: center;
+  padding-top: 10px;
+}
+
+.nav-track {
+  display: flex;
+  width: 100%;
+  background: var(--surface-soft);
+  border-radius: var(--radius-sm);
+  padding: 3px;
+  gap: 2px;
+}
+
+.nav-btn {
+  flex: 1;
+  text-align: center;
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  background: transparent;
+  color: var(--muted-text);
+  font-family: inherit;
+  text-decoration: none;
+}
+.nav-btn.active {
+  background: #fff;
+  color: var(--text);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+}
+
 .recent-label {
   font-size: 10px;
   font-weight: 600;
