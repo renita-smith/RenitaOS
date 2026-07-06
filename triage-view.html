@@ -1,0 +1,763 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>RenitaOS · Triage view</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:ital,wght@0,400;0,500;0,600;1,400;1,500&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap">
+<style>
+  /* ============================================================
+     RenitaOS · Triage view — self-contained reference
+     Screen content only. No app nav bar (host shell provides it).
+     Inline CSS + vanilla JS. Placeholder content only.
+     ============================================================ */
+  :root {
+    --radius-sm: 4px;                    /* badges, chips, small controls */
+    --radius-lg: 12px;                   /* cards, panels, buttons */
+
+    --text: #2A3408;                     /* olive ink */
+    --icon: #3A4410;                     /* monochrome olive line icon */
+    --surface: oklch(0.975 0.006 75);    /* canvas — shared with Capture */
+    --sage: #E7ECD6;                     /* sage fill */
+    --sage-deep: #DBE2C1;                /* open/active bin fill */
+    --cream: #F5F2E8;
+    --button: #6B7A45;
+    --button-pressed: #2A3408;
+    --muted: oklch(0.54 0.012 75);
+    --muted-2: oklch(0.62 0.012 75);
+    --hairline: oklch(0.92 0.008 75);
+
+    /* Domain colors — the ONLY full-saturation color in the app.
+       fill / paired dark text. */
+    --rcbs-fill:#D6DDBE; --rcbs-text:#46552A;
+    --rws-fill:#EBDFC0;  --rws-text:#6C5316;
+    --sm-fill:#E8CDBE;   --sm-text:#7C4A2E;
+    --mts-fill:#EDD0D4;  --mts-text:#7E4351;
+    --eplc-fill:#D3D9D8; --eplc-text:#465657;
+    --peeps-fill:#E0D7D3;--peeps-text:#665049;
+    --nodomain-fill:#EEEEE7; --nodomain-text:#6A6A61;
+
+    /* Type edges — ambient identity only: muted, dusty, warm-leaning,
+       quieter than the Domain tiles. Appear ONLY as the left stripe. */
+    --type-reflection: oklch(0.56 0.03 70);
+    --type-dream:      oklch(0.56 0.045 25);
+    --type-sermon:     oklch(0.55 0.05 45);
+    --type-thought:    oklch(0.55 0.035 110);
+    --type-study:      oklch(0.55 0.03 135);
+    --type-note:       var(--text);
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body {
+    background: var(--surface);
+    font-family: 'IBM Plex Sans', system-ui, sans-serif;
+    color: var(--text);
+    -webkit-font-smoothing: antialiased;
+    display: flex;
+    justify-content: center;
+    padding: 24px 16px;
+  }
+
+  /* The Triage view — a single column that drops into the host shell.
+     Constrained here for preview; remove max-width when embedding. */
+  .view {
+    width: 100%;
+    max-width: 440px;
+    background: var(--surface);
+    border-radius: var(--radius-lg);
+    position: relative;
+    overflow: hidden;
+    min-height: 780px;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .screen { display: none; flex-direction: column; flex: 1; }
+  .screen.active { display: flex; }
+
+  ::placeholder { color: oklch(0.68 0.01 75); }
+  input { font-family: inherit; }
+  .serif { font-family: 'Newsreader', Georgia, serif; }
+
+  /* ---- shared bits ---- */
+  .pad { padding: 22px 20px; }
+  .row { display: flex; align-items: center; }
+  .between { justify-content: space-between; }
+  .grow { flex: 1; }
+  .eyebrow {
+    font-size: 11px; font-weight: 700; letter-spacing: .08em;
+    text-transform: uppercase; color: var(--muted);
+  }
+  .count-mono { font-family: 'Newsreader', serif; font-weight: 600; }
+  .icon-slot { width: 20px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .link { color: var(--muted); font-size: 13px; cursor: pointer; display: flex; align-items: center; gap: 6px; }
+  .chevleft { font-size: 17px; line-height: 1; }
+
+  /* ---- overview ---- */
+  .ov-head { padding: 24px 20px 4px; }
+  .ov-title { font-size: 30px; line-height: 1.15; color: var(--text); }
+  .ov-sub { font-size: 13px; color: var(--muted); margin-top: 4px; }
+
+  .seg {
+    display: inline-flex; background: var(--sage); border-radius: var(--radius-sm);
+    padding: 3px; gap: 2px; margin: 18px 20px 0;
+  }
+  .seg button {
+    border: none; background: transparent; cursor: pointer;
+    font-family: inherit; font-size: 13px; font-weight: 600; color: var(--muted);
+    padding: 8px 22px; border-radius: var(--radius-sm);
+  }
+  .seg button.on { background: #fff; color: var(--text); box-shadow: 0 1px 3px rgba(0,0,0,.12); }
+
+  .track { padding: 8px 20px 0; }
+  .track-head { display: flex; align-items: baseline; justify-content: space-between; padding: 14px 2px 8px; }
+
+  /* Notes-by-Type bins — uniform sage, olive text + one monochrome olive icon */
+  .bin {
+    display: flex; align-items: center; gap: 12px;
+    padding: 15px 16px; border-radius: var(--radius-lg);
+    background: var(--sage); cursor: pointer; margin-bottom: 8px;
+    border: 1px solid transparent;
+  }
+  .bin.open { background: var(--sage-deep); border-color: var(--text); }
+  .bin .name { flex: 1; font-size: 15px; font-weight: 500; color: var(--text); }
+  .bin .tag-open { font-size: 11px; font-weight: 600; color: var(--text); }
+  .bin .n { font-size: 15px; color: var(--text); }
+
+  /* Tasks-by-Domain tiles — the only full-saturation color */
+  .tiles { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; padding-bottom: 8px; }
+  .tile {
+    display: flex; align-items: center; gap: 9px;
+    padding: 13px 14px; border-radius: var(--radius-lg); cursor: pointer;
+  }
+  .tile .code { flex: 1; font-size: 13px; font-weight: 600; }
+  .tile .n { font-size: 14px; }
+  .tile.wide { grid-column: 1 / -1; }
+
+  /* ---- opened bin ---- */
+  .bin-head { padding: 22px 18px 12px; border-bottom: 1px solid var(--hairline); }
+  .bin-title-row { display: flex; align-items: center; gap: 9px; margin-top: 12px; }
+  .bin-title { font-family: 'Newsreader', serif; font-size: 24px; color: var(--text); }
+  .bin-n { font-size: 13px; color: var(--muted-2); }
+
+  .btn-select {
+    border: none; cursor: pointer; font-family: inherit;
+    font-size: 12px; font-weight: 600; padding: 7px 15px; border-radius: var(--radius-sm);
+    background: var(--sage); color: var(--text);
+  }
+  .btn-select.on { background: var(--text); color: var(--cream); }
+
+  /* refresh bar */
+  .refresh-bar {
+    margin: 12px 16px 2px; padding: 11px 14px; border-radius: var(--radius-lg);
+    background: var(--sage); display: flex; align-items: center; gap: 10px;
+  }
+  .dot-ready { width: 8px; height: 8px; border-radius: 50%; background: oklch(0.55 0.11 155); flex-shrink: 0; }
+  .refresh-bar .lbl { flex: 1; font-size: 13px; font-weight: 500; color: var(--text); }
+  .btn-refresh {
+    border: none; cursor: pointer; font-family: inherit;
+    font-size: 12px; font-weight: 600; padding: 7px 15px; border-radius: var(--radius-sm);
+    background: var(--button); color: var(--cream);
+  }
+
+  .stack { flex: 1; overflow-y: auto; padding: 14px 16px 24px; display: flex; flex-direction: column; gap: 12px; }
+
+  /* card */
+  .card {
+    position: relative; background: oklch(0.995 0.003 75); border-radius: var(--radius-lg);
+    box-shadow: 0 1px 2px rgba(0,0,0,.04), inset 0 0 0 1px var(--hairline);
+    border-left: 3px solid var(--type-note);   /* ambient Type stripe */
+    padding: 18px 18px 16px;
+  }
+  .card .body { font-family: 'Newsreader', serif; font-size: 18px; line-height: 1.5; color: oklch(0.24 0.014 75); text-wrap: pretty; padding-right: 22px; }
+  .card-inner { display: flex; gap: 12px; align-items: flex-start; }
+  .card-main { flex: 1; min-width: 0; }
+
+  .check {
+    position: absolute; top: 14px; right: 14px; width: 20px; height: 20px; border-radius: 50%;
+    background: color-mix(in oklch, oklch(0.55 0.11 155) 14%, white);
+    color: oklch(0.44 0.1 155); display: none; align-items: center; justify-content: center; font-size: 11px;
+  }
+  .card.qualified .check { display: flex; }
+
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 14px; align-items: center; }
+
+  /* On cards: Type / People / Tag chips stay olive-on-sage. Only Domain gets color. */
+  .chip {
+    display: flex; align-items: center; gap: 5px; padding: 4px 10px;
+    border-radius: var(--radius-sm); background: var(--sage);
+    font-size: 11px; font-weight: 600; color: var(--text); cursor: default;
+  }
+  .chip.tap { cursor: pointer; }
+  .chip.person { padding-left: 3px; }
+  .chip .avatar { width: 18px; height: 18px; border-radius: 50%; background: var(--icon); color: #fff; font-size: 9px; font-weight: 700; display: flex; align-items: center; justify-content: center; }
+  /* Domain chip — the one colored chip, used on Task cards */
+  .chip.domain { background: var(--mts-fill); color: var(--mts-text); }
+
+  /* ghost chip — names exactly what's blocking */
+  .ghost {
+    padding: 4px 11px; border-radius: var(--radius-sm); cursor: pointer;
+    font-size: 11px; font-weight: 600;
+    color: #A85C36; background: color-mix(in oklch, #A85C36 10%, white);
+    border: 1.5px dashed #A85C36;
+  }
+
+  /* popover */
+  .pop-wrap { position: relative; }
+  .popover {
+    position: absolute; top: calc(100% + 7px); left: 0; z-index: 50; width: 240px;
+    background: #fff; border-radius: var(--radius-lg);
+    box-shadow: 0 12px 30px rgba(0,0,0,.16), inset 0 0 0 1px oklch(0.9 0.01 75);
+    padding: 10px; display: none;
+  }
+  .popover.open { display: block; }
+  .pop-label { font-size: 10px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--muted-2); margin: 2px 2px 8px; }
+  .pop-input {
+    width: 100%; border: none; outline: none; background: oklch(0.97 0.005 75);
+    border-radius: var(--radius-sm); padding: 9px 11px; font-size: 13px; color: var(--text); margin-bottom: 8px;
+  }
+  .pop-list { display: flex; flex-direction: column; gap: 2px; max-height: 184px; overflow: auto; }
+  .pop-opt { display: flex; align-items: center; gap: 8px; padding: 8px 9px; border-radius: var(--radius-sm); cursor: pointer; font-size: 13px; color: var(--text); }
+  .pop-opt:hover { background: oklch(0.96 0.006 75); }
+  .pop-opt .sq { width: 7px; height: 7px; border-radius: 2px; background: var(--icon); flex-shrink: 0; }
+  .pop-opt.create { color: #A85C36; }
+  .pop-opt.create b { font-weight: 700; }
+  .type-strip { display: flex; flex-wrap: wrap; gap: 6px; }
+  .type-strip .t { padding: 6px 11px; border-radius: var(--radius-sm); font-size: 12px; font-weight: 600; cursor: pointer; background: var(--sage); color: var(--text); }
+  .type-strip .t.on { background: var(--sage-deep); box-shadow: inset 0 0 0 1px var(--text); }
+
+  /* select-mode checkbox */
+  .checkbox {
+    width: 20px; height: 20px; border-radius: var(--radius-sm); flex-shrink: 0; margin-top: 2px; cursor: pointer;
+    background: #fff; box-shadow: inset 0 0 0 1.5px oklch(0.75 0.012 75);
+    color: #fff; display: none; align-items: center; justify-content: center; font-size: 12px;
+  }
+  .selecting .checkbox { display: flex; }
+  .checkbox.checked { background: var(--text); box-shadow: inset 0 0 0 1.5px var(--text); }
+
+  /* bulk bar */
+  .bulk {
+    border-top: 1px solid oklch(0.9 0.01 75); background: oklch(0.985 0.004 75);
+    padding: 14px 18px 20px; display: none;
+  }
+  .selecting .bulk { display: block; }
+  .bulk .cnt { font-size: 12px; color: var(--muted); margin-bottom: 10px; }
+  .bulk-actions { display: flex; gap: 8px; }
+  .bulk-actions .b {
+    flex: 1; text-align: center; padding: 11px; border-radius: var(--radius-sm);
+    background: var(--sage); color: var(--text); font-size: 13px; font-weight: 600; cursor: pointer;
+  }
+
+  /* inbox-zero */
+  .zero {
+    flex: 1; display: none; align-items: center; justify-content: center; padding: 24px 16px;
+  }
+  .zero.show { display: flex; }
+  .zero-panel {
+    width: 100%; padding: 44px 26px; border-radius: var(--radius-lg);
+    background: var(--sage); text-align: center;
+  }
+  .zero-eyebrow { font-size: 11px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); margin-bottom: 16px; }
+  .zero-line { font-family: 'Newsreader', serif; font-style: italic; font-size: 22px; line-height: 1.45; color: var(--text); }
+  .zero-stat { font-size: 13px; color: var(--muted); margin-top: 18px; }
+
+  /* snackbar */
+  .snackbar {
+    position: absolute; bottom: 26px; left: 50%; transform: translateX(-50%); z-index: 60;
+    display: none; align-items: center; gap: 16px;
+    background: var(--text); color: var(--cream); font-size: 13px; font-weight: 500;
+    padding: 12px 18px; border-radius: var(--radius-lg); box-shadow: 0 12px 28px rgba(0,0,0,.28); white-space: nowrap;
+  }
+  .snackbar.show { display: flex; }
+  .snackbar .undo { font-weight: 700; color: #fff; cursor: pointer; text-decoration: underline; text-underline-offset: 2px; }
+
+  /* backdrop to dismiss popovers */
+  .backdrop { position: absolute; inset: 0; z-index: 40; display: none; }
+  .backdrop.show { display: block; }
+</style>
+</head>
+<body>
+<div class="view" id="view">
+
+  <!-- ══════════════════ SCREEN: BIN OVERVIEW ══════════════════ -->
+  <section class="screen active" id="screen-overview">
+    <div class="ov-head">
+      <div class="serif ov-title">Sort the inbox</div>
+      <div class="ov-sub">31 waiting · take one bin at a time.</div>
+    </div>
+
+    <div class="seg" id="track-seg">
+      <button data-track="notes" class="on">Notes</button>
+      <button data-track="tasks">Tasks</button>
+    </div>
+
+    <!-- NOTES track · by type -->
+    <div class="track" id="track-notes">
+      <div class="track-head">
+        <span class="eyebrow">Notes · by type</span>
+        <span style="font-size:12px;color:var(--muted-2);">9</span>
+      </div>
+      <div class="bin" data-bin="reflections">
+        <span class="icon-slot" data-ic="moon"></span>
+        <span class="name">Dreams</span>
+        <span class="n count-mono">4</span>
+      </div>
+      <div class="bin" data-bin="reflections">
+        <span class="icon-slot" data-ic="book"></span>
+        <span class="name">Sermons</span>
+        <span class="n count-mono">2</span>
+      </div>
+      <div class="bin open" data-bin="reflections">
+        <span class="icon-slot" data-ic="ripple"></span>
+        <span class="name">Reflections</span>
+        <span class="tag-open">open ›</span>
+        <span class="n count-mono">3</span>
+      </div>
+    </div>
+
+    <!-- TASKS track · by domain -->
+    <div class="track" id="track-tasks" style="display:none;">
+      <div class="track-head">
+        <span class="eyebrow">Tasks · by domain</span>
+        <span style="font-size:12px;color:var(--muted-2);">22</span>
+      </div>
+      <div class="tiles">
+        <div class="tile" data-bin="mts" style="background:var(--rcbs-fill);color:var(--rcbs-text);"><span class="code">RCBS</span><span class="n count-mono">5</span></div>
+        <div class="tile" data-bin="mts" style="background:var(--rws-fill);color:var(--rws-text);"><span class="code">RWS</span><span class="n count-mono">2</span></div>
+        <div class="tile" data-bin="mts" style="background:var(--sm-fill);color:var(--sm-text);"><span class="code">SM</span><span class="n count-mono">3</span></div>
+        <div class="tile" data-bin="mts" style="background:var(--mts-fill);color:var(--mts-text);"><span class="code">MTS</span><span class="n count-mono">4</span></div>
+        <div class="tile" data-bin="mts" style="background:var(--eplc-fill);color:var(--eplc-text);"><span class="code">EPLC</span><span class="n count-mono">1</span></div>
+        <div class="tile" data-bin="mts" style="background:var(--peeps-fill);color:var(--peeps-text);"><span class="code">PEEPS</span><span class="n count-mono">2</span></div>
+        <div class="tile wide" data-bin="mts" style="background:var(--nodomain-fill);color:var(--nodomain-text);"><span class="code" style="font-weight:500;">No domain</span><span class="n count-mono">5</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════════════════ SCREEN: OPENED BIN ══════════════════ -->
+  <section class="screen" id="screen-bin">
+    <div class="bin-head">
+      <div class="row between">
+        <div class="link" id="back-to-bins"><span class="chevleft">‹</span> Bins</div>
+        <button class="btn-select" id="btn-select">Select</button>
+      </div>
+      <div class="bin-title-row">
+        <span class="icon-slot" id="bin-icon"></span>
+        <span class="bin-title" id="bin-title">Reflections</span>
+        <span class="bin-n" id="bin-n">· 3</span>
+      </div>
+    </div>
+
+    <div class="refresh-bar" id="refresh-bar">
+      <span class="dot-ready"></span>
+      <span class="lbl" id="refresh-lbl">2 ready to clear</span>
+      <button class="btn-refresh" id="btn-refresh">Refresh</button>
+    </div>
+
+    <div class="stack" id="stack"></div>
+
+    <!-- inbox-zero -->
+    <div class="zero" id="zero">
+      <div class="zero-panel">
+        <div class="zero-eyebrow" id="zero-eyebrow">Reflections · clear</div>
+        <div class="serif zero-line">Every reflection sorted.<br>Nothing left in this bin.</div>
+        <div class="zero-stat">Saturday, July 5 · you cleared 12 notes this week — your calmest inbox since April.</div>
+      </div>
+    </div>
+
+    <!-- bulk action bar (select mode) -->
+    <div class="bulk" id="bulk">
+      <div class="cnt" id="bulk-cnt">0 selected</div>
+      <div class="bulk-actions">
+        <div class="b">Tag</div>
+        <div class="b">Status</div>
+        <div class="b">Project</div>
+      </div>
+    </div>
+
+    <div class="backdrop" id="backdrop"></div>
+
+    <div class="snackbar" id="snackbar">
+      <span id="snackbar-lbl">2 cleared · inbox lighter</span>
+      <span class="undo" id="undo">Undo</span>
+    </div>
+  </section>
+
+</div>
+
+<script>
+/* ============================================================
+   Triage view — vanilla JS. Static UI interactions only.
+   No data layer, no network. All content below is placeholder.
+   ============================================================ */
+
+// --- monochrome olive line icons (Dreams=moon, Sermons=book, Reflections=ripple) ---
+const ICONS = {
+  moon:   '<svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#3A4410" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 14.5A8 8 0 1 1 9.5 4a7 7 0 0 0 10.5 10.5z"/></svg>',
+  book:   '<svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#3A4410" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 6.5C10 5 6.5 5 4 5.5v13c2.5-.5 6-.5 8 1 2-1.5 5.5-1.5 8-1v-13c-2.5-.5-6-.5-8 1z"/><path d="M12 6.5v13"/></svg>',
+  ripple: '<svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#3A4410" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9c2-2 4-2 6 0s4 2 6 0 4-2 6 0"/><path d="M3 14c2-2 4-2 6 0s4 2 6 0 4-2 6 0"/></svg>',
+};
+
+const TYPE_EDGE = {
+  Reflection: 'var(--type-reflection)', Dream: 'var(--type-dream)', Sermon: 'var(--type-sermon)',
+  Thought: 'var(--type-thought)', Study: 'var(--type-study)', Note: 'var(--type-note)',
+};
+const TAG_OPTIONS = ['prayer','gratitude','rest','sabbath','worship','grace','trust','family','healing','study'];
+const TYPE_OPTIONS = ['Dream','Sermon','Reflection','Thought','Study','Note'];
+const DATE_OPTIONS = ['Today','Tomorrow','This weekend','Next week','Pick a date…'];
+
+// --- placeholder bins ---
+const BINS = {
+  reflections: {
+    track: 'notes', title: 'Reflections', icon: 'ripple',
+    cards: [
+      { id:'r1', type:'Reflection', tags:[], people:[{name:'Becky',initial:'B'}],
+        body:"Grace isn't earned in the striving — it's received in the resting. I keep forgetting that on Monday mornings." },
+      { id:'r2', type:'Reflection', tags:['worship'], people:[],
+        body:"Watching the whole room sing with their eyes closed. That was the sermon I couldn't write." },
+      { id:'r3', type:'Reflection', tags:['rest','sabbath'], people:[],
+        body:"The lake at six in the morning. Stillness as a discipline, not just the absence of noise." },
+    ],
+  },
+  mts: {
+    track: 'tasks', title: 'MTS · Tasks', icon: null, domain: 'mts',
+    cards: [
+      { id:'t1', type:'Task', tags:['Launch'], people:[], due:null, domain:'MTS',
+        body:"Draft the launch email sequence — three sends." },
+      { id:'t2', type:'Task', tags:[], people:[], due:'Fri', domain:'MTS',
+        body:"Confirm the venue walkthrough time with Marcus." },
+      { id:'t3', type:'Task', tags:[], people:[], due:null, domain:'MTS',
+        body:"Order the printed programs before the 12th." },
+    ],
+  },
+};
+
+// qualified rule: notes need Type + a tag; tasks need a due date.
+function qualified(card, track) {
+  if (track === 'tasks') return !!card.due;
+  return !!card.type && card.tags.length > 0;
+}
+
+// --- runtime state ---
+const state = {
+  binKey: 'reflections',
+  cards: [],
+  removed: [],
+  selecting: false,
+  selected: new Set(),
+  popover: null, // { cardId, field }
+  query: '',
+};
+
+const $ = (s, r=document) => r.querySelector(s);
+const $$ = (s, r=document) => [...r.querySelectorAll(s)];
+
+/* ---------- overview: paint icons + track toggle + open bin ---------- */
+$$('[data-ic]').forEach(el => el.innerHTML = ICONS[el.dataset.ic] || '');
+
+$('#track-seg').addEventListener('click', e => {
+  const btn = e.target.closest('button'); if (!btn) return;
+  $$('#track-seg button').forEach(b => b.classList.toggle('on', b === btn));
+  const t = btn.dataset.track;
+  $('#track-notes').style.display = t === 'notes' ? '' : 'none';
+  $('#track-tasks').style.display = t === 'tasks' ? '' : 'none';
+});
+
+$('#view').addEventListener('click', e => {
+  const bin = e.target.closest('[data-bin]');
+  if (bin && $('#screen-overview').classList.contains('active')) openBin(bin.dataset.bin);
+});
+
+$('#back-to-bins').addEventListener('click', () => showScreen('overview'));
+
+function showScreen(name) {
+  $('#screen-overview').classList.toggle('active', name === 'overview');
+  $('#screen-bin').classList.toggle('active', name === 'bin');
+}
+
+/* ---------- open a bin ---------- */
+function openBin(key) {
+  const bin = BINS[key]; if (!bin) return;
+  state.binKey = key;
+  state.cards = bin.cards.map(c => ({ ...c, tags: [...c.tags], people: [...c.people] }));
+  state.removed = [];
+  state.selecting = false;
+  state.selected.clear();
+  state.popover = null;
+
+  $('#bin-title').textContent = bin.title;
+  $('#bin-icon').innerHTML = bin.icon ? ICONS[bin.icon] : '';
+  $('#zero-eyebrow').textContent = (bin.track === 'tasks' ? bin.title : bin.title) + ' · clear';
+  showScreen('bin');
+  render();
+}
+
+/* ---------- render opened bin ---------- */
+function render() {
+  const bin = BINS[state.binKey];
+  const track = bin.track;
+  const stack = $('#stack');
+  stack.innerHTML = '';
+
+  // inbox-zero when empty
+  const empty = state.cards.length === 0;
+  $('#zero').classList.toggle('show', empty);
+  stack.style.display = empty ? 'none' : '';
+  $('#refresh-bar').style.display = empty ? 'none' : '';
+
+  // select mode chrome
+  $('#screen-bin').classList.toggle('selecting', state.selecting);
+  $('#btn-select').classList.toggle('on', state.selecting);
+  $('#btn-select').textContent = state.selecting ? 'Done' : 'Select';
+  $('#bin-n').textContent = '· ' + state.cards.length;
+
+  // refresh bar
+  const ready = state.cards.filter(c => qualified(c, track)).length;
+  $('#refresh-bar').style.visibility = ready > 0 ? 'visible' : 'hidden';
+  $('#refresh-lbl').textContent = ready + ' ready to clear';
+
+  // bulk bar count
+  $('#bulk-cnt').textContent = state.selected.size + ' selected';
+
+  state.cards.forEach(card => stack.appendChild(renderCard(card, track)));
+
+  // backdrop
+  $('#backdrop').classList.toggle('show', !!state.popover);
+}
+
+function renderCard(card, track) {
+  const isQ = qualified(card, track);
+  const el = document.createElement('div');
+  el.className = 'card' + (isQ ? ' qualified' : '');
+  el.style.borderLeftColor = track === 'tasks'
+    ? 'var(--mts-text)'                       // tasks: domain-colored stripe
+    : (TYPE_EDGE[card.type] || 'var(--type-note)'); // notes: ambient Type stripe
+
+  // quiet check (qualified only)
+  const check = document.createElement('div');
+  check.className = 'check'; check.textContent = '✓';
+  el.appendChild(check);
+
+  const inner = document.createElement('div');
+  inner.className = 'card-inner';
+
+  // select checkbox
+  const cb = document.createElement('div');
+  cb.className = 'checkbox' + (state.selected.has(card.id) ? ' checked' : '');
+  cb.textContent = state.selected.has(card.id) ? '✓' : '';
+  cb.onclick = () => { toggleSelect(card.id); };
+  inner.appendChild(cb);
+
+  const main = document.createElement('div');
+  main.className = 'card-main';
+
+  const body = document.createElement('div');
+  body.className = 'body';
+  body.textContent = card.body;
+  main.appendChild(body);
+
+  const chips = document.createElement('div');
+  chips.className = 'chips';
+
+  if (track === 'tasks') {
+    // Domain chip — the one colored chip
+    chips.appendChild(makeChip(card.domain, 'domain'));
+    // Tag chips (olive-on-sage)
+    card.tags.forEach(t => chips.appendChild(makeChip('!' + t)));
+    // Due: filled chip if set, else ghost that opens date options
+    if (card.due) {
+      chips.appendChild(makeChip(card.due));
+    } else {
+      chips.appendChild(makeGhost('Set Due', card, 'due'));
+    }
+  } else {
+    // Type chip (olive-on-sage, opens Type strip)
+    chips.appendChild(makeTypeChip(card));
+    // People chips
+    card.people.forEach(p => {
+      const c = document.createElement('div');
+      c.className = 'chip person';
+      c.innerHTML = '<span class="avatar">' + p.initial + '</span>' + p.name;
+      chips.appendChild(c);
+    });
+    // Tag chips
+    card.tags.forEach(t => chips.appendChild(makeChip('#' + t)));
+    // ghost +Tag when none
+    if (card.tags.length === 0) chips.appendChild(makeGhost('+ Tag', card, 'tag'));
+  }
+
+  main.appendChild(chips);
+  inner.appendChild(main);
+  el.appendChild(inner);
+  return el;
+}
+
+function makeChip(text, extra) {
+  const c = document.createElement('div');
+  c.className = 'chip' + (extra ? ' ' + extra : '');
+  c.textContent = text;
+  return c;
+}
+
+function makeTypeChip(card) {
+  const wrap = document.createElement('div');
+  wrap.className = 'pop-wrap';
+  const chip = document.createElement('div');
+  chip.className = 'chip tap';
+  chip.textContent = card.type || 'Set Type';
+  chip.onclick = e => { e.stopPropagation(); openPop(card.id, 'type'); };
+  wrap.appendChild(chip);
+  if (state.popover && state.popover.cardId === card.id && state.popover.field === 'type')
+    wrap.appendChild(typePopover(card));
+  return wrap;
+}
+
+function makeGhost(label, card, field) {
+  const wrap = document.createElement('div');
+  wrap.className = 'pop-wrap';
+  const g = document.createElement('div');
+  g.className = 'ghost';
+  g.textContent = label;
+  g.onclick = e => { e.stopPropagation(); openPop(card.id, field); };
+  wrap.appendChild(g);
+  if (state.popover && state.popover.cardId === card.id && state.popover.field === field) {
+    if (field === 'tag') wrap.appendChild(tagPopover(card));
+    else if (field === 'due') wrap.appendChild(datePopover(card));
+  }
+  return wrap;
+}
+
+/* ---------- popovers ---------- */
+function openPop(cardId, field) { state.popover = { cardId, field }; state.query = ''; render(); }
+function closePop() { state.popover = null; state.query = ''; render(); }
+$('#backdrop').addEventListener('click', closePop);
+
+function tagPopover(card) {
+  const p = document.createElement('div');
+  p.className = 'popover open';
+  const input = document.createElement('input');
+  input.className = 'pop-input'; input.placeholder = 'Filter or create a tag…'; input.value = state.query;
+  input.oninput = e => { state.query = e.target.value; refreshTagList(list, card); };
+  const list = document.createElement('div');
+  list.className = 'pop-list';
+  p.appendChild(input); p.appendChild(list);
+  refreshTagList(list, card);
+  // keep focus after re-render
+  setTimeout(() => input.focus(), 0);
+  return p;
+}
+function refreshTagList(list, card) {
+  const q = state.query.trim().toLowerCase();
+  list.innerHTML = '';
+  TAG_OPTIONS.filter(t => !card.tags.includes(t) && t.toLowerCase().includes(q)).forEach(t => {
+    const o = document.createElement('div');
+    o.className = 'pop-opt';
+    o.innerHTML = '<span class="sq"></span><span>#' + t + '</span>';
+    o.onclick = () => addTag(card.id, t);
+    list.appendChild(o);
+  });
+  if (q && !TAG_OPTIONS.some(t => t.toLowerCase() === q)) {
+    const o = document.createElement('div');
+    o.className = 'pop-opt create';
+    o.innerHTML = '<b>+</b><span>Create “<b>' + state.query + '</b>”</span>';
+    o.onclick = () => addTag(card.id, state.query.trim());
+    list.appendChild(o);
+  }
+}
+
+function typePopover(card) {
+  const p = document.createElement('div');
+  p.className = 'popover open';
+  p.innerHTML = '<div class="pop-label">Type</div>';
+  const strip = document.createElement('div');
+  strip.className = 'type-strip';
+  TYPE_OPTIONS.forEach(label => {
+    const t = document.createElement('div');
+    t.className = 't' + (label === card.type ? ' on' : '');
+    t.textContent = label;
+    t.onclick = () => setType(card.id, label);
+    strip.appendChild(t);
+  });
+  p.appendChild(strip);
+  return p;
+}
+
+function datePopover(card) {
+  const p = document.createElement('div');
+  p.className = 'popover open';
+  p.innerHTML = '<div class="pop-label">Due date</div>';
+  const list = document.createElement('div');
+  list.className = 'pop-list';
+  DATE_OPTIONS.forEach(d => {
+    const o = document.createElement('div');
+    o.className = 'pop-opt';
+    o.innerHTML = '<span class="sq"></span><span>' + d + '</span>';
+    o.onclick = () => setDue(card.id, d.replace('…',''));
+    list.appendChild(o);
+  });
+  p.appendChild(list);
+  return p;
+}
+
+/* ---------- mutations ---------- */
+function addTag(id, tag) {
+  const t = (tag || '').trim(); if (!t) return;
+  const c = state.cards.find(c => c.id === id);
+  if (c && !c.tags.includes(t)) c.tags.push(t);
+  closePop();
+}
+function setType(id, type) {
+  const c = state.cards.find(c => c.id === id); if (c) c.type = type;
+  closePop();
+}
+function setDue(id, due) {
+  const c = state.cards.find(c => c.id === id); if (c) c.due = due;
+  closePop();
+}
+
+/* ---------- select mode ---------- */
+$('#btn-select').addEventListener('click', () => {
+  state.selecting = !state.selecting;
+  state.selected.clear();
+  state.popover = null;
+  render();
+});
+function toggleSelect(id) {
+  if (state.selected.has(id)) state.selected.delete(id); else state.selected.add(id);
+  render();
+}
+
+/* ---------- refresh + undo ---------- */
+let snackTimer = null;
+$('#btn-refresh').addEventListener('click', () => {
+  const track = BINS[state.binKey].track;
+  const ready = state.cards.filter(c => qualified(c, track));
+  if (!ready.length) return;
+  state.removed = ready;
+  state.cards = state.cards.filter(c => !qualified(c, track));
+  state.selecting = false; state.selected.clear();
+  render();
+  showSnack(ready.length + ' cleared · inbox lighter');
+});
+$('#undo').addEventListener('click', () => {
+  if (!state.removed.length) return;
+  state.cards = state.cards.concat(state.removed);
+  state.removed = [];
+  hideSnack();
+  render();
+});
+function showSnack(msg) {
+  $('#snackbar-lbl').textContent = msg;
+  $('#snackbar').classList.add('show');
+  clearTimeout(snackTimer);
+  snackTimer = setTimeout(hideSnack, 4000);
+}
+function hideSnack() { $('#snackbar').classList.remove('show'); clearTimeout(snackTimer); }
+
+/* boot — start on the overview */
+showScreen('overview');
+</script>
+</body>
+</html>
