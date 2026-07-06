@@ -201,24 +201,30 @@
   }
 
   // Status is a Notion Status-type property with an emoji-prefixed display
-  // name, so it's resolved by type (like js/schema.js resolves title/relation
-  // properties) rather than by a hardcoded name. Memoized per database.
+  // name, so both the property name AND its "Inbox" option's exact stored
+  // casing (e.g. "INBOX" vs "Inbox") are resolved from the schema itself
+  // (like js/schema.js resolves title/relation properties by type) rather
+  // than hardcoded. Memoized per database.
   const statusPropCache = new Map();
-  async function statusPropertyName(databaseId) {
+  async function getInboxStatusFilter(databaseId) {
     if (!statusPropCache.has(databaseId)) {
       statusPropCache.set(databaseId, (async () => {
         const db = await notionRequest(`/v1/databases/${databaseId}`);
         const entry = Object.entries(db.properties).find(([, prop]) => prop.type === 'status');
         if (!entry) throw new Error(`No status property found on database ${databaseId}`);
-        return entry[0];
+        const [name, prop] = entry;
+        const options = (prop.status && prop.status.options) || [];
+        const inboxOption = options.find((o) => o.name.toLowerCase() === 'inbox');
+        if (!inboxOption) throw new Error(`No "Inbox" option found on status property "${name}" for database ${databaseId}`);
+        return { name, value: inboxOption.name };
       })());
     }
     return statusPropCache.get(databaseId);
   }
 
   async function countInboxRecords(databaseId) {
-    const statusProp = await statusPropertyName(databaseId);
-    const filter = { property: statusProp, status: { equals: 'Inbox' } };
+    const { name, value } = await getInboxStatusFilter(databaseId);
+    const filter = { property: name, status: { equals: value } };
     let count = 0;
     let cursor;
     do {
