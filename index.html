@@ -238,11 +238,11 @@
   .tg-dot-ready { width: 8px; height: 8px; border-radius: 50%; background: oklch(0.55 0.11 155); flex-shrink: 0; }
   .tg-refresh-bar .lbl { flex: 1; font-size: 13px; font-weight: 500; color: var(--text); }
   .tg-btn-refresh {
-    border: none; font-family: inherit;
+    border: none; font-family: inherit; cursor: pointer;
     font-size: 12px; font-weight: 600; padding: 7px 15px; border-radius: var(--radius-sm);
     background: #6B7A45; color: var(--cream);
-    cursor: not-allowed; opacity: .55;
   }
+  .tg-btn-refresh:disabled { cursor: not-allowed; opacity: .55; }
 
   .tg-stack { flex: 1; overflow-y: auto; padding: 14px 0 24px; display: flex; flex-direction: column; gap: 12px; }
 
@@ -338,6 +338,15 @@
   .tg-zero-panel { width: 100%; padding: 44px 26px; border-radius: var(--radius-lg); background: var(--surface-soft); text-align: center; }
   .tg-zero-eyebrow { font-size: 11px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--muted-text); margin-bottom: 16px; }
   .tg-zero-line { font-family: 'Newsreader', serif; font-style: italic; font-size: 22px; line-height: 1.45; color: var(--text); }
+  .tg-zero-stat { font-size: 13px; color: var(--muted-text); margin-top: 18px; }
+
+  .tg-snackbar {
+    position: absolute; bottom: 16px; left: 50%; transform: translateX(-50%); z-index: 60;
+    display: flex; align-items: center; gap: 16px;
+    background: var(--text); color: var(--cream); font-size: 13px; font-weight: 500;
+    padding: 12px 18px; border-radius: var(--radius-lg); box-shadow: 0 12px 28px rgba(0,0,0,.28); white-space: nowrap;
+  }
+  .tg-snackbar .undo { font-weight: 700; color: #fff; cursor: pointer; text-decoration: underline; text-underline-offset: 2px; }
 </style>
 </head>
 <body>
@@ -383,6 +392,11 @@
     // emoji-prefixed and renamed.
     NOTES_PROP: { TYPE: 'Type' },
     TASKS_PROP: { DUE_DATE: 'Due Date' },
+    // Refresh moves a qualified card out of Inbox into its next natural
+    // status (§5 controlled values) — matched case-insensitively and
+    // resolved to its exact stored casing at write time, same as Inbox.
+    NOTE_STATUS_PROCESSED: 'Active',
+    TASK_STATUS_PROCESSED: 'Not Started',
   };
 
   // --- Notion access, via the same Worker proxy pattern as Capture. --------
@@ -447,25 +461,43 @@
   }
 
   // Status is a Notion Status-type property with an emoji-prefixed display
-  // name, so both the property name AND its "Inbox" option's exact stored
-  // casing (e.g. "INBOX" vs "Inbox") are resolved from the schema itself
-  // (like js/schema.js resolves title/relation properties by type) rather
-  // than hardcoded. Memoized per database.
-  const statusPropCache = new Map();
-  async function getInboxStatusFilter(databaseId) {
-    if (!statusPropCache.has(databaseId)) {
-      statusPropCache.set(databaseId, (async () => {
+  // name, so both the property name AND any option's exact stored casing
+  // (e.g. "INBOX" vs "Inbox") are resolved from the schema itself (like
+  // js/schema.js resolves title/relation properties by type) rather than
+  // hardcoded. The full {name, options} shape is memoized per database so
+  // resolving "Inbox" and the Refresh target status share one fetch.
+  const statusSchemaCache = new Map();
+  function getStatusSchema(databaseId) {
+    if (!statusSchemaCache.has(databaseId)) {
+      statusSchemaCache.set(databaseId, (async () => {
         const db = await notionRequest(`/v1/databases/${databaseId}`);
         const entry = Object.entries(db.properties).find(([, prop]) => prop.type === 'status');
         if (!entry) throw new Error(`No status property found on database ${databaseId}`);
         const [name, prop] = entry;
         const options = (prop.status && prop.status.options) || [];
-        const inboxOption = options.find((o) => o.name.toLowerCase() === 'inbox');
-        if (!inboxOption) throw new Error(`No "Inbox" option found on status property "${name}" for database ${databaseId}`);
-        return { name, value: inboxOption.name };
+        return { name, options };
       })());
     }
-    return statusPropCache.get(databaseId);
+    return statusSchemaCache.get(databaseId);
+  }
+
+  function findStatusOption(options, targetName, databaseId) {
+    const target = targetName.toLowerCase();
+    const opt = options.find((o) => o.name.toLowerCase() === target);
+    if (!opt) throw new Error(`No "${targetName}" option found on the Status property for database ${databaseId}`);
+    return opt.name;
+  }
+
+  async function getInboxStatusFilter(databaseId) {
+    const { name, options } = await getStatusSchema(databaseId);
+    return { name, value: findStatusOption(options, 'inbox', databaseId) };
+  }
+
+  // Resolves the exact stored casing of Refresh's target ("processed")
+  // status for a database, alongside the Status property's own name.
+  async function getStatusTarget(databaseId, targetName) {
+    const { name, options } = await getStatusSchema(databaseId);
+    return { name, value: findStatusOption(options, targetName, databaseId) };
   }
 
   async function countInboxRecords(databaseId) {
@@ -587,6 +619,13 @@
     const [, , m, d] = iso.match(/^(\d{4})-(\d{2})-(\d{2})/);
     const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
     return `${MONTHS[Number(m) - 1]} ${Number(d)}`;
+  }
+
+  // Today's local date, spelled out for the inbox-zero panel: "Saturday, July 5".
+  function formatDateLong(d = new Date()) {
+    const WEEKDAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+    const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+    return `${WEEKDAYS[d.getDay()]}, ${MONTHS[d.getMonth()]} ${d.getDate()}`;
   }
 
   function byNewest(a, b) { return new Date(b.createdTime) - new Date(a.createdTime); }
@@ -946,11 +985,17 @@
     return triageState.toast ? `<div class="tg-toast">${escapeHtml(triageState.toast)}</div>` : '';
   }
 
+  function renderSnackbar() {
+    return triageState.snackbar
+      ? `<div class="tg-snackbar"><span>${escapeHtml(triageState.snackbar)}</span><span class="undo" data-undo>Undo</span></div>`
+      : '';
+  }
+
   // Opening a bin snapshots which card IDs belong to it. Edits within the
   // bin (Type/Project changes can move a card to a different bin) don't
-  // make the card vanish mid-sort — it stays until you back out and reopen
-  // (or, in a later slice, Refresh) — matching "the card does not vanish"
-  // for qualification, applied consistently to reclassification too.
+  // make the card vanish mid-sort — it stays until you back out and reopen,
+  // or Refresh clears it — matching "the card does not vanish" for
+  // qualification, applied consistently to reclassification too.
   function openBin(key) {
     const bins = triageState.track === 'notes' ? groupNotes(triageState.data.notesCards) : groupTasks(triageState.data.tasksCards);
     const bin = bins.find((b) => b.key === key);
@@ -960,6 +1005,10 @@
     triageState.pinnedIds = bin.cards.map((c) => c.id);
     triageState.popover = null;
     triageState.popoverQuery = '';
+    triageState.removedBatch = null;
+    triageState.justClearedCount = null;
+    clearTimeout(snackbarTimer);
+    triageState.snackbar = null;
     paintTriage();
   }
 
@@ -991,17 +1040,19 @@
           <div class="tg-refresh-bar" style="visibility:${qualifiedCount > 0 ? 'visible' : 'hidden'};">
             <span class="tg-dot-ready"></span>
             <span class="lbl">${qualifiedCount} ready to clear</span>
-            <button type="button" class="tg-btn-refresh" disabled title="Coming in a later slice">Refresh</button>
+            <button type="button" class="tg-btn-refresh" data-refresh${triageState.busy ? ' disabled' : ''}>${triageState.busy ? 'Clearing…' : 'Refresh'}</button>
           </div>
           <div class="tg-stack">${cardsHtml}</div>
         ` : `
           <div class="tg-zero">
             <div class="tg-zero-panel">
               <div class="tg-zero-eyebrow">${escapeHtml(openBinMeta.label)} · clear</div>
-              <div class="serif tg-zero-line">Nothing waiting here right now.</div>
+              <div class="serif tg-zero-line">All sorted.<br>Nothing left in this bin.</div>
+              <div class="tg-zero-stat">${escapeHtml(formatDateLong())}${triageState.justClearedCount ? ` · you cleared ${triageState.justClearedCount} just now.` : ''}</div>
             </div>
           </div>
         `}
+        ${renderSnackbar()}
         ${renderToast()}
       </div>
     `;
@@ -1015,6 +1066,20 @@
     triageToastTimer = setTimeout(() => { triageState.toast = null; paintTriage(); }, 3000);
   }
 
+  // Undo window stays open until the snackbar auto-dismisses — after that
+  // Refresh is final, matching a typical snackbar's single-chance undo.
+  let snackbarTimer = null;
+  function showRefreshSnackbar(message) {
+    triageState.snackbar = message;
+    paintTriage();
+    clearTimeout(snackbarTimer);
+    snackbarTimer = setTimeout(() => {
+      triageState.snackbar = null;
+      triageState.removedBatch = null;
+      paintTriage();
+    }, 6000);
+  }
+
   // Serializes writes and re-paints once done — prevents a second tap from
   // firing a write while the first is still in flight.
   async function withBusy(fn) {
@@ -1026,6 +1091,78 @@
       triageState.busy = false;
       paintTriage();
     }
+  }
+
+  // Refresh clears every currently-qualified card in the open bin at once:
+  // writes each one's Status from Inbox to its next natural status (§5),
+  // removes them from view, and leaves a single-undo snackbar. Undo reverts
+  // the Status write and restores the cards — to the same bin, if you're
+  // still looking at it.
+  function applyRefresh() {
+    return withBusy(async () => {
+      const { track, pinnedIds } = triageState;
+      const allCards = track === 'notes' ? triageState.data.notesCards : triageState.data.tasksCards;
+      const cardsById = new Map(allCards.map((c) => [c.id, c]));
+      const cards = pinnedIds.map((id) => cardsById.get(id)).filter(Boolean);
+      const qualifiedFn = track === 'notes' ? noteQualified : taskQualified;
+      const ready = cards.filter(qualifiedFn);
+      if (!ready.length) return;
+
+      const databaseId = track === 'notes' ? CONFIG.DB.NOTES : CONFIG.DB.TASKS;
+      const targetName = track === 'notes' ? CONFIG.NOTE_STATUS_PROCESSED : CONFIG.TASK_STATUS_PROCESSED;
+      try {
+        const { name: statusPropertyName, value: processedValue } = await getStatusTarget(databaseId, targetName);
+        for (const card of ready) {
+          // eslint-disable-next-line no-await-in-loop
+          await notionRequest(`/v1/pages/${card.id}`, { method: 'PATCH', body: { properties: { [statusPropertyName]: { status: { name: processedValue } } } } });
+        }
+        const clearedIds = new Set(ready.map((c) => c.id));
+        if (track === 'notes') {
+          triageState.data.notesCards = triageState.data.notesCards.filter((c) => !clearedIds.has(c.id));
+        } else {
+          triageState.data.tasksCards = triageState.data.tasksCards.filter((c) => !clearedIds.has(c.id));
+        }
+        triageState.pinnedIds = triageState.pinnedIds.filter((id) => !clearedIds.has(id));
+        triageState.removedBatch = { track, cards: ready, statusPropertyName };
+        triageState.justClearedCount = ready.length;
+        showRefreshSnackbar(`${ready.length} cleared · inbox lighter`);
+      } catch (err) {
+        console.error('Failed to refresh', err);
+        showTriageToast(err.message || 'Could not clear cards — try again.');
+      }
+    });
+  }
+
+  function applyUndo() {
+    return withBusy(async () => {
+      const batch = triageState.removedBatch;
+      if (!batch) return;
+      const databaseId = batch.track === 'notes' ? CONFIG.DB.NOTES : CONFIG.DB.TASKS;
+      try {
+        const { value: inboxValue } = await getInboxStatusFilter(databaseId);
+        for (const card of batch.cards) {
+          // eslint-disable-next-line no-await-in-loop
+          await notionRequest(`/v1/pages/${card.id}`, { method: 'PATCH', body: { properties: { [batch.statusPropertyName]: { status: { name: inboxValue } } } } });
+        }
+        if (batch.track === 'notes') {
+          triageState.data.notesCards = [...triageState.data.notesCards, ...batch.cards];
+        } else {
+          triageState.data.tasksCards = [...triageState.data.tasksCards, ...batch.cards];
+        }
+        // Only reappear in the currently open bin if you're still looking
+        // at the same track/bin the Refresh happened in.
+        if (triageState.track === batch.track && triageState.openBin !== null) {
+          triageState.pinnedIds = [...triageState.pinnedIds, ...batch.cards.map((c) => c.id)];
+        }
+        triageState.removedBatch = null;
+        triageState.justClearedCount = null;
+        clearTimeout(snackbarTimer);
+        triageState.snackbar = null;
+      } catch (err) {
+        console.error('Failed to undo', err);
+        showTriageToast(err.message || 'Could not undo — try again.');
+      }
+    });
   }
 
   function applyNoteType(cardId, newType) {
@@ -1244,6 +1381,7 @@
     track: 'notes', openBin: null, openBinMeta: null, pinnedIds: [],
     data: null, loading: false, error: null,
     popover: null, popoverQuery: '', toast: null, busy: false,
+    snackbar: null, removedBatch: null, justClearedCount: null,
   };
   let triageContainer = null;
 
@@ -1285,6 +1423,10 @@
     triageState.popoverQuery = '';
     triageState.toast = null;
     triageState.busy = false;
+    triageState.snackbar = null;
+    triageState.removedBatch = null;
+    triageState.justClearedCount = null;
+    clearTimeout(snackbarTimer);
     loadAndPaintTriage();
   }
 
@@ -1342,6 +1484,12 @@
 
     const retry = e.target.closest('[data-retry]');
     if (retry) { loadAndPaintTriage(); return; }
+
+    const refreshBtn = e.target.closest('[data-refresh]');
+    if (refreshBtn) { if (!triageState.busy) applyRefresh(); return; }
+
+    const undoBtn = e.target.closest('[data-undo]');
+    if (undoBtn) { if (!triageState.busy) applyUndo(); return; }
 
     // Click anywhere else on the screen dismisses an open popover — the
     // "full-card backdrop" from the build spec, without a dedicated overlay
