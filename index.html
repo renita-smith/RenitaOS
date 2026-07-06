@@ -335,6 +335,7 @@
   .tg-pop-list { display: flex; flex-direction: column; gap: 2px; max-height: 184px; overflow: auto; margin-top: 6px; }
   .tg-pop-opt { padding: 8px 9px; border-radius: var(--radius-sm); cursor: pointer; font-size: 13px; color: var(--text); }
   .tg-pop-opt:hover { background: oklch(0.96 0.006 75); }
+  .tg-pop-opt.on { background: var(--tg-sage-deep); font-weight: 700; }
   /* The create row sits right below the input/current-tags, above the
      scrollable suggestions list — so it's never scrolled out of view
      behind a long list of matches. */
@@ -416,13 +417,13 @@
       DOMAINS: '33110b0375a88024b4f2c8e6beaca80e',
       TAGS: '1a39ff9fd10747ad9d418577707c012f',
     },
-    // Type/Date/Status are exact non-relation property names (not emoji-
-    // prefixed), per RenitaOS-Backend-Notes-Template.md §2 — matches the
-    // convention already established in js/config.js for Capture. Relation
-    // properties (Tags/People/Projects/Domains) are never hardcoded; they're
-    // resolved structurally below (relationPropertyName), since those can be
-    // emoji-prefixed and renamed.
-    NOTES_PROP: { TYPE: 'Type' },
+    // Type/Date are the exact non-relation property NAMES (not emoji-
+    // prefixed), per RenitaOS-Backend-Notes-Template.md §2. But the Type
+    // multi_select's individual OPTION values ARE emoji-suffixed (e.g.
+    // "Dream 💤") and controlled by the database itself, so those are
+    // never hardcoded — they're fetched live via getMultiSelectOptions,
+    // same principle as relation/status resolution below.
+    NOTES_PROP: { TYPE: 'Type', DATE: 'Date' },
     TASKS_PROP: { DUE_DATE: 'Due Date' },
     // Refresh moves a qualified card out of Inbox into its next natural
     // status (§5 controlled values) — matched case-insensitively and
@@ -532,6 +533,20 @@
     return { name, value: findStatusOption(options, targetName, databaseId) };
   }
 
+  // Multi-select options (e.g. Notes' Type) are just as database-controlled
+  // as Status options, and just as easy to get wrong by hardcoding — Type's
+  // real values are emoji-suffixed ("Dream 💤", not "Dream"), so a bare
+  // guessed name would silently create a brand-new duplicate option on
+  // write instead of matching the existing one. Always fetched live.
+  async function getMultiSelectOptions(databaseId, propertyName) {
+    const db = await getSchema(databaseId);
+    const prop = db.properties[propertyName];
+    if (!prop || prop.type !== 'multi_select') {
+      throw new Error(`"${propertyName}" is not a multi_select property on database ${databaseId}`);
+    }
+    return (prop.multi_select && prop.multi_select.options) || [];
+  }
+
   async function countInboxRecords(databaseId) {
     const { name, value } = await getInboxStatusFilter(databaseId);
     const pages = await queryAllPages(databaseId, { property: name, status: { equals: value } });
@@ -574,33 +589,27 @@
   ];
   const NO_DOMAIN_META = { fill: '#EEEEE7', text: '#6A6A61' };
 
-  // §5 controlled Type set (js/config.js TYPE_SET), in display order.
-  const TYPE_SET = [
-    'Dream', 'Thought', 'Idea', 'Convo', 'Sermon', 'Prophetic Word',
-    'Virtual', 'Teaching', 'Prayer', 'Quote', 'Study', 'Reflection', 'Download',
-  ];
-
-  // Type edges (build spec §2) — ambient only, quieter than Domain tiles.
-  // Types outside this table (Idea/Convo/Prophetic Word/Virtual/Teaching/
-  // Prayer/Quote/Download) fall back to the plain olive "Note" edge.
+  // The Type multi_select's actual option list (with emoji) is fetched
+  // live from the database schema at load time (triageState.data.typeOptions)
+  // — never hardcoded — since that's the only way to guarantee a write
+  // matches an existing option instead of silently creating a duplicate.
+  // These two tables below are COSMETIC ONLY (icon + left-edge color) and
+  // keyed on the exact real option strings; a type that doesn't match any
+  // key here just falls back to a generic dot icon / plain olive edge, so
+  // a mismatch (typo, renamed option, emoji drift) only ever costs a
+  // cosmetic default, never a wrong write.
   const TYPE_EDGE = {
-    Reflection: 'oklch(0.56 0.03 70)',
-    Dream: 'oklch(0.56 0.045 25)',
-    Sermon: 'oklch(0.55 0.05 45)',
-    Thought: 'oklch(0.55 0.035 110)',
-    Study: 'oklch(0.55 0.03 135)',
+    'Reflection 🤔': 'oklch(0.56 0.03 70)',
+    'Dream 💤': 'oklch(0.56 0.045 25)',
+    'Sermon 🔮': 'oklch(0.55 0.05 45)',
+    'Thought 💭': 'oklch(0.55 0.035 110)',
+    'Bible Study 📚': 'oklch(0.55 0.03 135)',
   };
   const TYPE_EDGE_DEFAULT = '#2A3408';
 
   // Only Dream/Sermon/Reflection have a dedicated icon in the design; every
   // other type (and the "No type" bin) uses a generic monochrome dot.
-  const TYPE_ICON = { Dream: 'moon', Sermon: 'book', Reflection: 'ripple' };
-  const TYPE_LABEL_PLURAL = { Dream: 'Dreams', Sermon: 'Sermons', Reflection: 'Reflections' };
-  function typeBinLabel(type) {
-    if (TYPE_LABEL_PLURAL[type]) return TYPE_LABEL_PLURAL[type];
-    if (/[^aeiou]y$/i.test(type)) return `${type.slice(0, -1)}ies`;
-    return `${type}s`;
-  }
+  const TYPE_ICON = { 'Dream 💤': 'moon', 'Sermon 🔮': 'book', 'Reflection 🤔': 'ripple' };
 
   const ICONS = {
     moon:   '<svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#3A4410" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 14.5A8 8 0 1 1 9.5 4a7 7 0 0 0 10.5 10.5z"/></svg>',
@@ -665,12 +674,16 @@
   async function loadTriageData() {
     // getStatusSchema is memoized, so grabbing the full options list here
     // (for the bulk Status popover) piggybacks on the same fetch
-    // getInboxStatusFilter already needs — no extra request.
-    const [notesFilter, tasksFilter, notesStatusSchema, tasksStatusSchema] = await Promise.all([
+    // getInboxStatusFilter already needs — no extra request. Same for
+    // Type's options: getMultiSelectOptions -> getSchema is memoized, and
+    // getSchema(NOTES) is already about to be fetched for the Tags/People
+    // relation lookups just below, so this doesn't add a network round-trip.
+    const [notesFilter, tasksFilter, notesStatusSchema, tasksStatusSchema, notesTypeOptions] = await Promise.all([
       getInboxStatusFilter(CONFIG.DB.NOTES),
       getInboxStatusFilter(CONFIG.DB.TASKS),
       getStatusSchema(CONFIG.DB.NOTES),
       getStatusSchema(CONFIG.DB.TASKS),
+      getMultiSelectOptions(CONFIG.DB.NOTES, CONFIG.NOTES_PROP.TYPE),
     ]);
 
     const [
@@ -712,6 +725,7 @@
       const types = ((page.properties[CONFIG.NOTES_PROP.TYPE] || {}).multi_select || []).map((o) => o.name);
       const tagIds = ((page.properties[notesTagsProp] || {}).relation || []).map((r) => r.id);
       const peopleIds = ((page.properties[notesPeopleProp] || {}).relation || []).map((r) => r.id);
+      const date = (page.properties[CONFIG.NOTES_PROP.DATE] || {}).date;
       return {
         id: page.id,
         types,
@@ -720,6 +734,7 @@
         people: peopleIds.map((id) => peopleNameById.get(id)).filter(Boolean)
           .map((name) => ({ name, initial: (name[0] || '?').toUpperCase() })),
         body: noteBodies[i],
+        date: date ? date.start : null,
         createdTime: page.created_time,
       };
     });
@@ -748,6 +763,7 @@
       tags: { list: tagList, byId: tagById },
       projects: { list: projectList, byId: projectById },
       statusOptions: { notes: notesStatusSchema.options, tasks: tasksStatusSchema.options },
+      typeOptions: notesTypeOptions.map((o) => o.name),
     };
   }
 
@@ -790,8 +806,12 @@
       if (!byType.has(key)) byType.set(key, []);
       byType.get(key).push(c);
     });
-    const bins = TYPE_SET.filter((t) => byType.has(t)).map((t) => ({
-      key: t, label: typeBinLabel(t), icon: TYPE_ICON[t] || 'dot',
+    // Bin order follows the database's own Type option order (live-fetched,
+    // see typeOptions) — only types with >=1 Inbox note show a bin. The
+    // label is the exact option string (with emoji); no invented pluralization.
+    const typeOptions = (triageState.data && triageState.data.typeOptions) || [];
+    const bins = typeOptions.filter((t) => byType.has(t)).map((t) => ({
+      key: t, label: t, icon: TYPE_ICON[t] || 'dot',
       cards: byType.get(t).slice().sort(byNewest),
     }));
     if (byType.has(NO_GROUP)) {
@@ -898,6 +918,14 @@
     </div>`;
 
     const peopleChips = card.people.map((p) => `<div class="tg-chip tg-chip--person"><span class="avatar">${escapeHtml(p.initial)}</span>${escapeHtml(p.name)}</div>`).join('');
+
+    // Date always has a value (Capture auto-sets it to today), so it's a
+    // normal filled chip, not a ghost — but always editable, like Status.
+    const dateHtml = `<div class="tg-pop-wrap">
+      <div class="${card.date ? 'tg-chip' : 'tg-ghost'}" data-chip-action="date" data-card-id="${card.id}">${card.date ? escapeHtml(formatDateShort(card.date)) : 'Set Date'}</div>
+      ${popoverOpenFor(card.id, 'date') ? renderNoteDatePopover(card) : ''}
+    </div>`;
+
     const bodyHtml = card.body ? escapeHtml(card.body) : `<span class="tg-empty-body">(empty)</span>`;
 
     return `
@@ -907,7 +935,7 @@
           ${renderCheckbox(card)}
           <div class="tg-card-main">
             <div class="body">${bodyHtml}</div>
-            <div class="tg-chips">${typeHtml}${peopleChips}${tagHtml}</div>
+            <div class="tg-chips">${typeHtml}${peopleChips}${tagHtml}${dateHtml}</div>
           </div>
         </div>
       </div>`;
@@ -938,7 +966,10 @@
       ${popoverOpenFor(card.id, 'due') ? renderDuePopover(card) : ''}
     </div>`;
 
-    const statusChip = `<div class="tg-chip">${escapeHtml(card.status)}</div>`;
+    const statusHtml = `<div class="tg-pop-wrap">
+      <div class="tg-chip" data-chip-action="status" data-card-id="${card.id}">${escapeHtml(card.status)}</div>
+      ${popoverOpenFor(card.id, 'status') ? renderCardStatusPopover(card, 'tasks') : ''}
+    </div>`;
     const bodyHtml = card.body ? escapeHtml(card.body) : `<span class="tg-empty-body">(untitled)</span>`;
 
     return `
@@ -948,7 +979,7 @@
           ${renderCheckbox(card)}
           <div class="tg-card-main">
             <div class="body">${bodyHtml}</div>
-            <div class="tg-chips">${domainHtml}${projectHtml}${dueHtml}${statusChip}</div>
+            <div class="tg-chips">${domainHtml}${projectHtml}${dueHtml}${statusHtml}</div>
           </div>
         </div>
       </div>`;
@@ -956,7 +987,7 @@
 
   function renderTypePopover(card) {
     const current = card.types[0] || null;
-    const opts = TYPE_SET.map((t) => `<div class="tg-type-opt${t === current ? ' on' : ''}" data-pop-value="${escapeHtml(t)}">${escapeHtml(t)}</div>`).join('');
+    const opts = triageState.data.typeOptions.map((t) => `<div class="tg-type-opt${t === current ? ' on' : ''}" data-pop-value="${escapeHtml(t)}">${escapeHtml(t)}</div>`).join('');
     const clearHtml = current ? `<div class="tg-pop-opt tg-pop-opt--clear" data-pop-value="" data-pop-clear="true">Clear type</div>` : '';
     return `<div class="tg-popover"><div class="tg-pop-label">Type</div><div class="tg-type-strip">${opts}</div>${clearHtml}</div>`;
   }
@@ -1003,23 +1034,19 @@
     </div>`;
   }
 
+  // Existing-project matches only — Triage never creates a new Project.
   function renderProjectPopoverDynamic(card) {
-    const q = (triageState.popoverQuery || '').trim();
-    const ql = q.toLowerCase();
-    const matches = triageState.data.projects.list.filter((p) => p.id !== card.projectId && p.name.toLowerCase().includes(ql));
+    const q = (triageState.popoverQuery || '').trim().toLowerCase();
+    const matches = triageState.data.projects.list.filter((p) => p.id !== card.projectId && p.name.toLowerCase().includes(q));
     const optsHtml = matches.map((p) => `<div class="tg-pop-opt" data-pop-value="${escapeHtml(p.id)}">${escapeHtml(p.name)}</div>`).join('');
-    const exact = q && triageState.data.projects.list.some((p) => p.name.toLowerCase() === ql);
-    const createHtml = q && !exact
-      ? `<div class="tg-pop-opt tg-pop-opt--create" data-pop-value="${escapeHtml(q)}" data-pop-create="true">+ Create "${escapeHtml(q)}"</div>`
-      : '';
-    return `${createHtml}<div class="tg-pop-list">${optsHtml}</div>`;
+    return `<div class="tg-pop-list">${optsHtml}</div>`;
   }
 
   function renderProjectPopover(card) {
     const clearHtml = card.projectName ? `<div class="tg-pop-opt tg-pop-opt--clear" data-pop-value="" data-pop-clear="true">Remove project</div>` : '';
     return `<div class="tg-popover">
       ${clearHtml}
-      <input type="text" class="tg-pop-input" data-pop-filter placeholder="Filter or create a project…" value="${escapeHtml(triageState.popoverQuery || '')}">
+      <input type="text" class="tg-pop-input" data-pop-filter placeholder="Filter projects…" value="${escapeHtml(triageState.popoverQuery || '')}">
       <div class="tg-pop-dynamic">${renderProjectPopoverDynamic(card)}</div>
     </div>`;
   }
@@ -1029,6 +1056,26 @@
     const opts = DOMAIN_META.map((d) => `<div class="tg-type-opt${d.code === current ? ' on' : ''}" data-pop-value="${d.code}" style="background:${d.fill};color:${d.text};">${d.code}</div>`).join('');
     const clearHtml = current ? `<div class="tg-pop-opt tg-pop-opt--clear" data-pop-value="" data-pop-clear="true">Remove domain</div>` : '';
     return `<div class="tg-popover"><div class="tg-pop-label">Domain</div><div class="tg-type-strip">${opts}</div>${clearHtml}</div>`;
+  }
+
+  // Per-card Status editing (Tasks) — options come live from the same
+  // statusOptions the bulk Status action uses, never hardcoded.
+  function renderCardStatusPopover(card, track) {
+    const options = triageState.data.statusOptions[track] || [];
+    const optsHtml = options.map((o) => `<div class="tg-pop-opt${o.name === card.status ? ' on' : ''}" data-pop-value="${escapeHtml(o.name)}">${escapeHtml(o.name)}</div>`).join('');
+    return `<div class="tg-popover"><div class="tg-pop-label">Status</div><div class="tg-pop-list">${optsHtml}</div></div>`;
+  }
+
+  // Notes' Date is auto-set to today on capture and always adjustable —
+  // same quick options as the Task Due popover, no "clear" (it's never
+  // meant to be empty), plus a native date input for a specific day.
+  function renderNoteDatePopover(card) {
+    const optsHtml = quickDueOptions().map((o) => `<div class="tg-pop-opt" data-pop-value="${o.iso}">${o.label}</div>`).join('');
+    return `<div class="tg-popover">
+      <div class="tg-pop-label">Date</div>
+      <div class="tg-pop-list">${optsHtml}</div>
+      <input type="date" class="tg-pop-date" data-pop-date-input value="${card.date ? escapeHtml(card.date) : ''}">
+    </div>`;
   }
 
   function renderToast() {
@@ -1149,21 +1196,17 @@
     return `${createHtml}<div class="tg-pop-list">${optsHtml}</div>`;
   }
 
+  // Existing-project matches only — Triage never creates a new Project.
   function renderBulkProjectPopoverDynamic() {
-    const q = (triageState.popoverQuery || '').trim();
-    const ql = q.toLowerCase();
-    const matches = triageState.data.projects.list.filter((p) => p.name.toLowerCase().includes(ql));
+    const q = (triageState.popoverQuery || '').trim().toLowerCase();
+    const matches = triageState.data.projects.list.filter((p) => p.name.toLowerCase().includes(q));
     const optsHtml = matches.map((p) => `<div class="tg-pop-opt" data-pop-value="${escapeHtml(p.id)}">${escapeHtml(p.name)}</div>`).join('');
-    const exact = q && triageState.data.projects.list.some((p) => p.name.toLowerCase() === ql);
-    const createHtml = q && !exact
-      ? `<div class="tg-pop-opt tg-pop-opt--create" data-pop-value="${escapeHtml(q)}" data-pop-create="true">+ Create "${escapeHtml(q)}"</div>`
-      : '';
-    return `${createHtml}<div class="tg-pop-list">${optsHtml}</div>`;
+    return `<div class="tg-pop-list">${optsHtml}</div>`;
   }
 
   function renderBulkPopover(key) {
     if (key === 'type') {
-      const opts = TYPE_SET.map((t) => `<div class="tg-type-opt" data-pop-value="${escapeHtml(t)}">${escapeHtml(t)}</div>`).join('');
+      const opts = triageState.data.typeOptions.map((t) => `<div class="tg-type-opt" data-pop-value="${escapeHtml(t)}">${escapeHtml(t)}</div>`).join('');
       return `<div class="tg-popover tg-popover--up"><div class="tg-pop-label">Set Type</div><div class="tg-type-strip">${opts}</div></div>`;
     }
     if (key === 'tag') {
@@ -1455,6 +1498,42 @@
     });
   }
 
+  // Per-card Status (Tasks) — same rule as bulk/Refresh: moving off Inbox
+  // drops the card out of the live Inbox data/pinned view immediately.
+  function applyTaskStatus(cardId, statusName) {
+    return withBusy(async () => {
+      try {
+        const { name: statusPropertyName, value: inboxValue } = await getInboxStatusFilter(CONFIG.DB.TASKS);
+        await notionRequest(`/v1/pages/${cardId}`, { method: 'PATCH', body: { properties: { [statusPropertyName]: { status: { name: statusName } } } } });
+        if (statusName !== inboxValue) {
+          triageState.data.tasksCards = triageState.data.tasksCards.filter((c) => c.id !== cardId);
+          triageState.pinnedIds = triageState.pinnedIds.filter((id) => id !== cardId);
+        } else {
+          const card = triageState.data.tasksCards.find((c) => c.id === cardId);
+          if (card) card.status = statusName;
+        }
+        triageState.popover = null;
+      } catch (err) {
+        console.error('Failed to set Status', err);
+        showTriageToast(err.message || 'Could not set Status — try again.');
+      }
+    });
+  }
+
+  function applyNoteDate(cardId, iso) {
+    return withBusy(async () => {
+      try {
+        await notionRequest(`/v1/pages/${cardId}`, { method: 'PATCH', body: { properties: { [CONFIG.NOTES_PROP.DATE]: { date: { start: iso } } } } });
+        const card = triageState.data.notesCards.find((c) => c.id === cardId);
+        if (card) card.date = iso;
+        triageState.popover = null;
+      } catch (err) {
+        console.error('Failed to set Date', err);
+        showTriageToast(err.message || 'Could not set Date — try again.');
+      }
+    });
+  }
+
   function applyTaskExistingProject(cardId, projectId) {
     return withBusy(async () => {
       try {
@@ -1474,43 +1553,16 @@
     });
   }
 
-  function applyTaskNewProject(cardId, rawName) {
-    return withBusy(async () => {
-      const name = rawName.trim();
-      if (!name) return;
-      try {
-        // A project created from within an open domain bin inherits that
-        // domain; from "No domain" it's created without one.
-        const domainCode = triageState.track === 'tasks' && triageState.openBinMeta && triageState.openBinMeta.key !== NO_GROUP
-          ? triageState.openBinMeta.key : null;
-        const properties = { [triageState.data.schema.projectTitleProp]: { title: [{ text: { content: name } }] } };
-        if (domainCode) {
-          const meta = DOMAIN_META.find((d) => d.code === domainCode);
-          properties[triageState.data.schema.projectsDomainsProp] = { relation: [{ id: meta.pageId }] };
-        }
-        const page = await notionRequest('/v1/pages', { method: 'POST', body: { parent: { database_id: CONFIG.DB.PROJECTS }, properties } });
-        const info = { id: page.id, name, domainCode };
-        triageState.data.projects.list.push(info);
-        triageState.data.projects.byId.set(page.id, info);
-        await notionRequest(`/v1/pages/${cardId}`, { method: 'PATCH', body: { properties: { [triageState.data.schema.tasksProjectsProp]: { relation: [{ id: page.id }] } } } });
-        const card = triageState.data.tasksCards.find((c) => c.id === cardId);
-        if (card) { card.projectId = page.id; card.projectName = name; card.domainCode = domainCode; }
-        triageState.popover = null;
-      } catch (err) {
-        console.error('Failed to create project', err);
-        showTriageToast(err.message || 'Could not create project — try again.');
-      }
-    });
-  }
-
   function handlePopoverSelect(value, isCreate, isClear) {
     if (!triageState.popover) return;
     const { cardId, field } = triageState.popover;
     if (field === 'type') return isClear ? applyNoteClearType(cardId) : applyNoteType(cardId, value);
     if (field === 'tag') return isCreate ? applyNoteNewTag(cardId, value) : applyNoteExistingTag(cardId, value);
     if (field === 'due') return isClear ? applyTaskClearDueDate(cardId) : applyTaskDue(cardId, value);
-    if (field === 'project') return isClear ? applyTaskClearProject(cardId) : (isCreate ? applyTaskNewProject(cardId, value) : applyTaskExistingProject(cardId, value));
+    if (field === 'project') return isClear ? applyTaskClearProject(cardId) : applyTaskExistingProject(cardId, value);
     if (field === 'domain') return isClear ? applyTaskClearProject(cardId) : applyTaskSetDomain(cardId, value);
+    if (field === 'status') return applyTaskStatus(cardId, value);
+    if (field === 'date') return applyNoteDate(cardId, value);
   }
 
   // --- Select mode / bulk actions ------------------------------------------
@@ -1610,39 +1662,6 @@
     });
   }
 
-  function applyBulkNewProject(rawName) {
-    return withBusy(async () => {
-      const name = rawName.trim();
-      if (!name) return;
-      try {
-        // Same domain-inheritance rule as the per-card create: inherits the
-        // open bin's Domain, or none from "No domain".
-        const domainCode = triageState.track === 'tasks' && triageState.openBinMeta && triageState.openBinMeta.key !== NO_GROUP
-          ? triageState.openBinMeta.key : null;
-        const properties = { [triageState.data.schema.projectTitleProp]: { title: [{ text: { content: name } }] } };
-        if (domainCode) {
-          const meta = DOMAIN_META.find((d) => d.code === domainCode);
-          properties[triageState.data.schema.projectsDomainsProp] = { relation: [{ id: meta.pageId }] };
-        }
-        const page = await notionRequest('/v1/pages', { method: 'POST', body: { parent: { database_id: CONFIG.DB.PROJECTS }, properties } });
-        const info = { id: page.id, name, domainCode };
-        triageState.data.projects.list.push(info);
-        triageState.data.projects.byId.set(page.id, info);
-        const ids = [...triageState.selected];
-        for (const id of ids) {
-          // eslint-disable-next-line no-await-in-loop
-          await notionRequest(`/v1/pages/${id}`, { method: 'PATCH', body: { properties: { [triageState.data.schema.tasksProjectsProp]: { relation: [{ id: page.id }] } } } });
-          const card = triageState.data.tasksCards.find((c) => c.id === id);
-          if (card) { card.projectId = page.id; card.projectName = name; card.domainCode = domainCode; }
-        }
-        finishBulkAction(`${ids.length} updated`);
-      } catch (err) {
-        console.error('Bulk create project failed', err);
-        showTriageToast(err.message || 'Could not create project — try again.');
-      }
-    });
-  }
-
   function applyBulkDue(iso) {
     return withBusy(async () => {
       const ids = [...triageState.selected];
@@ -1697,7 +1716,7 @@
     if (!key) return;
     if (key === 'tag') return isCreate ? applyBulkNewTag(value) : applyBulkTag(value);
     if (key === 'type') return applyBulkType(value);
-    if (key === 'project') return isCreate ? applyBulkNewProject(value) : applyBulkProject(value);
+    if (key === 'project') return applyBulkProject(value);
     if (key === 'due') return applyBulkDue(value);
     if (key === 'status') return applyBulkStatus(value);
   }
@@ -1736,8 +1755,19 @@
     if (shift) popEl.style.left = `${shift}px`;
   }
 
+  // Every interaction (opening a popover, picking a value, toggling a
+  // checkbox...) re-renders by replacing #content's innerHTML wholesale,
+  // which recreates the scrollable card stack (and #content itself) as
+  // fresh DOM nodes starting at scrollTop 0 — from the user's view, tapping
+  // any pill snapped the list back to the top. Save + restore both
+  // potentially-scrolled containers around the replace; this runs
+  // synchronously before the browser paints, so there's no visible jump.
   function paintTriage() {
     if (!triageContainer) return;
+    const prevStack = triageContainer.querySelector('.tg-stack');
+    const stackScrollTop = prevStack ? prevStack.scrollTop : 0;
+    const containerScrollTop = triageContainer.scrollTop;
+
     if (triageState.loading) {
       triageContainer.innerHTML = `<div class="tg-view"><div class="tg-status">Loading Triage…</div></div>`;
       return;
@@ -1747,6 +1777,11 @@
       return;
     }
     triageContainer.innerHTML = triageState.openBin === null ? renderOverview(triageState.data) : renderBinScreen(triageState.data);
+
+    triageContainer.scrollTop = containerScrollTop;
+    const newStack = triageContainer.querySelector('.tg-stack');
+    if (newStack) newStack.scrollTop = stackScrollTop;
+
     requestAnimationFrame(adjustPopoverPosition);
   }
 
@@ -1930,13 +1965,15 @@
     }
   });
 
-  // The native date input in the Due popover ("Pick a date…") — per-card
-  // or bulk, whichever popover is currently open.
+  // The native date input in the Due/Date popover ("Pick a date…") —
+  // per-card (Due on tasks, Date on notes) or bulk, whichever is open.
   content.addEventListener('change', (e) => {
     if (currentRoute() !== 'triage') return;
     if (!e.target.matches('[data-pop-date-input]') || !e.target.value) return;
     if (triageState.bulkPopover === 'due') {
       applyBulkDue(e.target.value);
+    } else if (triageState.popover && triageState.popover.field === 'date') {
+      applyNoteDate(triageState.popover.cardId, e.target.value);
     } else if (triageState.popover) {
       applyTaskDue(triageState.popover.cardId, e.target.value);
     }
