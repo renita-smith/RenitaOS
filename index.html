@@ -195,6 +195,7 @@
   .tg-seg {
     display: inline-flex; background: var(--surface-soft); border-radius: var(--radius-sm);
     padding: 3px; gap: 2px; margin: 18px 0 0; flex-shrink: 0;
+    align-self: center;
   }
   .tg-seg button {
     border: none; background: transparent; cursor: pointer;
@@ -299,16 +300,32 @@
     border-radius: var(--radius-sm); padding: 9px 11px; font-size: 13px; color: var(--text);
     font-family: inherit; box-sizing: border-box;
   }
-  .tg-pop-input + .tg-pop-list { margin-top: 8px; }
-  .tg-pop-list { display: flex; flex-direction: column; gap: 2px; max-height: 184px; overflow: auto; }
+  .tg-pop-list { display: flex; flex-direction: column; gap: 2px; max-height: 184px; overflow: auto; margin-top: 6px; }
   .tg-pop-opt { padding: 8px 9px; border-radius: var(--radius-sm); cursor: pointer; font-size: 13px; color: var(--text); }
   .tg-pop-opt:hover { background: oklch(0.96 0.006 75); }
-  .tg-pop-opt--create { color: var(--tg-ghost); }
+  /* The create row sits right below the input/current-tags, above the
+     scrollable suggestions list — so it's never scrolled out of view
+     behind a long list of matches. */
+  .tg-pop-opt--create { color: var(--tg-ghost); margin-top: 4px; }
+  .tg-pop-opt--clear { color: oklch(0.5 0.15 25); margin-top: 4px; }
   .tg-pop-date { width: 100%; border: none; outline: none; background: oklch(0.97 0.005 75); border-radius: var(--radius-sm); padding: 9px 11px; font-size: 13px; color: var(--text); font-family: inherit; box-sizing: border-box; margin-top: 6px; }
+
+  .tg-pop-current { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
+  .tg-pop-pill {
+    display: inline-flex; align-items: center; gap: 5px; background: var(--surface-soft); color: var(--text);
+    font-size: 11px; font-weight: 600; padding: 4px 8px; border-radius: var(--radius-sm);
+  }
+  .tg-pop-pill .x { cursor: pointer; color: var(--muted-text); font-weight: 700; }
+  .tg-pop-pill .x:hover { color: oklch(0.5 0.15 25); }
 
   .tg-type-strip { display: flex; flex-wrap: wrap; gap: 6px; }
   .tg-type-opt { padding: 6px 11px; border-radius: var(--radius-sm); font-size: 12px; font-weight: 600; cursor: pointer; background: var(--surface-soft); color: var(--text); }
-  .tg-type-opt.on { background: var(--tg-sage-deep); box-shadow: inset 0 0 0 1px var(--text); }
+  .tg-type-opt.on { box-shadow: inset 0 0 0 2px var(--text); }
+  .tg-type-strip .tg-type-opt:not([style]).on { background: var(--tg-sage-deep); }
+
+  /* Persistent "add more" affordance shown alongside already-filled tags
+     (previously there was no way to add a 2nd tag once qualified). */
+  .tg-chip--add { border: 1.5px dashed oklch(0.7 0.01 75); color: var(--muted-text); background: transparent; }
 
   .tg-toast {
     position: absolute; bottom: 16px; left: 50%; transform: translateX(-50%); z-index: 60;
@@ -480,13 +497,16 @@
   // outranks the hexes in triage-view.html wherever the two might drift.
   // Domain fill/text pairs (§ Domain colors) + each domain's page ID
   // (RenitaOS-Backend-Notes-Template.md §4) — a fixed, never-created set of 6.
+  // catchAllProjectId (§4) is each Domain's "Inbox/Admin" project — assigning
+  // a Domain to a task with no specific Project links it there, mirroring
+  // how Capture routes a bare `%domain` capture with no `!project`.
   const DOMAIN_META = [
-    { code: 'RCBS',  pageId: '33110b0375a8800fa48dcf469ed04677', fill: '#D6DDBE', text: '#46552A' },
-    { code: 'RWS',   pageId: '33210b0375a880b79f77d0509dae6d65', fill: '#EBDFC0', text: '#6C5316' },
-    { code: 'SM',    pageId: '33210b0375a88014ac55d4c88117f218', fill: '#E8CDBE', text: '#7C4A2E' },
-    { code: 'MTS',   pageId: '33210b0375a88000b144fc1ce2cd5758', fill: '#EDD0D4', text: '#7E4351' },
-    { code: 'EPLC',  pageId: '33210b0375a88006910bc1c5e4cc7e4f', fill: '#D3D9D8', text: '#465657' },
-    { code: 'PEEPS', pageId: '38a10b0375a880e38ed6fcbb8a5f2b9b', fill: '#E0D7D3', text: '#665049' },
+    { code: 'RCBS',  pageId: '33110b0375a8800fa48dcf469ed04677', catchAllProjectId: '39310b0375a880a3bfafe163619679e3', fill: '#D6DDBE', text: '#46552A' },
+    { code: 'RWS',   pageId: '33210b0375a880b79f77d0509dae6d65', catchAllProjectId: '39310b0375a880008c2bc21fa471c95b', fill: '#EBDFC0', text: '#6C5316' },
+    { code: 'SM',    pageId: '33210b0375a88014ac55d4c88117f218', catchAllProjectId: '39310b0375a880e282dfc70f942b0a67', fill: '#E8CDBE', text: '#7C4A2E' },
+    { code: 'MTS',   pageId: '33210b0375a88000b144fc1ce2cd5758', catchAllProjectId: '39310b0375a880d9a10ce4d29c2015be', fill: '#EDD0D4', text: '#7E4351' },
+    { code: 'EPLC',  pageId: '33210b0375a88006910bc1c5e4cc7e4f', catchAllProjectId: '39310b0375a880f79aa6c95bbdae6913', fill: '#D3D9D8', text: '#465657' },
+    { code: 'PEEPS', pageId: '38a10b0375a880e38ed6fcbb8a5f2b9b', catchAllProjectId: '39310b0375a8804184cced41ad1395c0', fill: '#E0D7D3', text: '#665049' },
   ];
   const NO_DOMAIN_META = { fill: '#EEEEE7', text: '#6A6A61' };
 
@@ -788,15 +808,17 @@
       ${popoverOpenFor(card.id, 'type') ? renderTypePopover(card) : ''}
     </div>`;
 
-    // Tags: only the ghost (when none exist yet) is tappable — once a note
-    // has >=1 tag it's qualified, so there's no persistent add-more entry
-    // point, matching the reference.
-    const tagHtml = card.tags.length
-      ? card.tags.map((t) => `<div class="tg-chip">#${escapeHtml(t)}</div>`).join('')
-      : `<div class="tg-pop-wrap">
-          <div class="tg-ghost" data-chip-action="tag" data-card-id="${card.id}">+ Tag</div>
-          ${popoverOpenFor(card.id, 'tag') ? renderTagPopover(card) : ''}
-        </div>`;
+    // Every filled tag chip is tappable (opens the shared tag popover, which
+    // can remove it), plus a persistent "+" so you can add another tag even
+    // after the note already qualifies.
+    const tagTriggers = card.tags.length
+      ? card.tags.map((t) => `<div class="tg-chip" data-chip-action="tag" data-card-id="${card.id}">#${escapeHtml(t)}</div>`).join('')
+        + `<div class="tg-chip tg-chip--add" data-chip-action="tag" data-card-id="${card.id}">+</div>`
+      : `<div class="tg-ghost" data-chip-action="tag" data-card-id="${card.id}">+ Tag</div>`;
+    const tagHtml = `<div class="tg-pop-wrap">
+      ${tagTriggers}
+      ${popoverOpenFor(card.id, 'tag') ? renderTagPopover(card) : ''}
+    </div>`;
 
     const peopleChips = card.people.map((p) => `<div class="tg-chip tg-chip--person"><span class="avatar">${escapeHtml(p.initial)}</span>${escapeHtml(p.name)}</div>`).join('');
     const bodyHtml = card.body ? escapeHtml(card.body) : `<span class="tg-empty-body">(empty)</span>`;
@@ -813,25 +835,30 @@
       </div>`;
   }
 
-  function renderTaskCard(card, domainMeta) {
+  function renderTaskCard(card) {
     const qualified = taskQualified(card);
-    const edge = domainMeta ? domainMeta.text : NO_DOMAIN_META.text;
+    const domainMeta = DOMAIN_META.find((d) => d.code === card.domainCode) || NO_DOMAIN_META;
+    const edge = domainMeta.text;
 
-    // Project/Due: only the ghost (missing) state is tappable, mirroring
-    // the Tag rule above — once set, no persistent re-edit entry point yet.
-    const projectHtml = card.projectName
-      ? `<div class="tg-chip">${escapeHtml(card.projectName)}</div>`
-      : `<div class="tg-pop-wrap">
-          <div class="tg-ghost" data-chip-action="project" data-card-id="${card.id}">Set Project</div>
-          ${popoverOpenFor(card.id, 'project') ? renderProjectPopover(card) : ''}
-        </div>`;
+    // Domain, Project, and Due are all tappable whether set or empty —
+    // ghost styling in the empty state, a normal (colored, for Domain)
+    // chip once set. Assigning a Domain with no specific Project links
+    // the task to that Domain's catch-all project (§4), same mechanism
+    // Capture uses for a bare %domain capture.
+    const domainHtml = `<div class="tg-pop-wrap">
+      <div class="${card.domainCode ? 'tg-chip' : 'tg-ghost'}" data-chip-action="domain" data-card-id="${card.id}"${card.domainCode ? ` style="background:${domainMeta.fill};color:${domainMeta.text};"` : ''}>${card.domainCode ? escapeHtml(card.domainCode) : 'Set Domain'}</div>
+      ${popoverOpenFor(card.id, 'domain') ? renderDomainPopover(card) : ''}
+    </div>`;
 
-    const dueHtml = card.due
-      ? `<div class="tg-chip">${escapeHtml(formatDateShort(card.due))}</div>`
-      : `<div class="tg-pop-wrap">
-          <div class="tg-ghost" data-chip-action="due" data-card-id="${card.id}">Set Due</div>
-          ${popoverOpenFor(card.id, 'due') ? renderDuePopover(card) : ''}
-        </div>`;
+    const projectHtml = `<div class="tg-pop-wrap">
+      <div class="${card.projectName ? 'tg-chip' : 'tg-ghost'}" data-chip-action="project" data-card-id="${card.id}">${card.projectName ? escapeHtml(card.projectName) : 'Set Project'}</div>
+      ${popoverOpenFor(card.id, 'project') ? renderProjectPopover(card) : ''}
+    </div>`;
+
+    const dueHtml = `<div class="tg-pop-wrap">
+      <div class="${card.due ? 'tg-chip' : 'tg-ghost'}" data-chip-action="due" data-card-id="${card.id}">${card.due ? escapeHtml(formatDateShort(card.due)) : 'Set Due'}</div>
+      ${popoverOpenFor(card.id, 'due') ? renderDuePopover(card) : ''}
+    </div>`;
 
     const statusChip = `<div class="tg-chip">${escapeHtml(card.status)}</div>`;
     const bodyHtml = card.body ? escapeHtml(card.body) : `<span class="tg-empty-body">(untitled)</span>`;
@@ -842,7 +869,7 @@
         <div class="tg-card-inner">
           <div class="tg-card-main">
             <div class="body">${bodyHtml}</div>
-            <div class="tg-chips">${projectHtml}${dueHtml}${statusChip}</div>
+            <div class="tg-chips">${domainHtml}${projectHtml}${dueHtml}${statusChip}</div>
           </div>
         </div>
       </div>`;
@@ -851,9 +878,13 @@
   function renderTypePopover(card) {
     const current = card.types[0] || null;
     const opts = TYPE_SET.map((t) => `<div class="tg-type-opt${t === current ? ' on' : ''}" data-pop-value="${escapeHtml(t)}">${escapeHtml(t)}</div>`).join('');
-    return `<div class="tg-popover"><div class="tg-pop-label">Type</div><div class="tg-type-strip">${opts}</div></div>`;
+    const clearHtml = current ? `<div class="tg-pop-opt tg-pop-opt--clear" data-pop-value="" data-pop-clear="true">Clear type</div>` : '';
+    return `<div class="tg-popover"><div class="tg-pop-label">Type</div><div class="tg-type-strip">${opts}</div>${clearHtml}</div>`;
   }
 
+  // Create/Clear rows render directly under the input/current-tags — above
+  // the scrollable suggestions list — so they're never scrolled out of view
+  // behind a long list of matches.
   function renderTagPopover(card) {
     const q = (triageState.popoverQuery || '').trim();
     const ql = q.toLowerCase();
@@ -864,34 +895,51 @@
     const createHtml = q && !exact
       ? `<div class="tg-pop-opt tg-pop-opt--create" data-pop-value="${escapeHtml(q)}" data-pop-create="true">+ Create "${escapeHtml(q)}"</div>`
       : '';
+    const currentHtml = card.tags.length
+      ? `<div class="tg-pop-current">${card.tagIds.map((id, i) => `<span class="tg-pop-pill">#${escapeHtml(card.tags[i] || '')}<span class="x" data-pop-remove-tag="${escapeHtml(id)}">×</span></span>`).join('')}</div>`
+      : '';
     return `<div class="tg-popover">
+      ${currentHtml}
       <input type="text" class="tg-pop-input" data-pop-filter placeholder="Filter or create a tag…" value="${escapeHtml(triageState.popoverQuery || '')}">
-      <div class="tg-pop-list">${optsHtml}${createHtml}</div>
+      ${createHtml}
+      <div class="tg-pop-list">${optsHtml}</div>
     </div>`;
   }
 
-  function renderDuePopover() {
+  function renderDuePopover(card) {
     const optsHtml = quickDueOptions().map((o) => `<div class="tg-pop-opt" data-pop-value="${o.iso}">${o.label}</div>`).join('');
+    const clearHtml = card.due ? `<div class="tg-pop-opt tg-pop-opt--clear" data-pop-value="" data-pop-clear="true">Clear due date</div>` : '';
     return `<div class="tg-popover">
       <div class="tg-pop-label">Due date</div>
       <div class="tg-pop-list">${optsHtml}</div>
-      <input type="date" class="tg-pop-date" data-pop-date-input>
+      <input type="date" class="tg-pop-date" data-pop-date-input value="${card.due ? escapeHtml(card.due) : ''}">
+      ${clearHtml}
     </div>`;
   }
 
-  function renderProjectPopover() {
+  function renderProjectPopover(card) {
     const q = (triageState.popoverQuery || '').trim();
     const ql = q.toLowerCase();
-    const matches = triageState.data.projects.list.filter((p) => p.name.toLowerCase().includes(ql));
+    const matches = triageState.data.projects.list.filter((p) => p.id !== card.projectId && p.name.toLowerCase().includes(ql));
     const optsHtml = matches.map((p) => `<div class="tg-pop-opt" data-pop-value="${escapeHtml(p.id)}">${escapeHtml(p.name)}</div>`).join('');
     const exact = q && triageState.data.projects.list.some((p) => p.name.toLowerCase() === ql);
     const createHtml = q && !exact
       ? `<div class="tg-pop-opt tg-pop-opt--create" data-pop-value="${escapeHtml(q)}" data-pop-create="true">+ Create "${escapeHtml(q)}"</div>`
       : '';
+    const clearHtml = card.projectName ? `<div class="tg-pop-opt tg-pop-opt--clear" data-pop-value="" data-pop-clear="true">Remove project</div>` : '';
     return `<div class="tg-popover">
+      ${clearHtml}
       <input type="text" class="tg-pop-input" data-pop-filter placeholder="Filter or create a project…" value="${escapeHtml(triageState.popoverQuery || '')}">
-      <div class="tg-pop-list">${optsHtml}${createHtml}</div>
+      ${createHtml}
+      <div class="tg-pop-list">${optsHtml}</div>
     </div>`;
+  }
+
+  function renderDomainPopover(card) {
+    const current = card.domainCode;
+    const opts = DOMAIN_META.map((d) => `<div class="tg-type-opt${d.code === current ? ' on' : ''}" data-pop-value="${d.code}" style="background:${d.fill};color:${d.text};">${d.code}</div>`).join('');
+    const clearHtml = current ? `<div class="tg-pop-opt tg-pop-opt--clear" data-pop-value="" data-pop-clear="true">Remove domain</div>` : '';
+    return `<div class="tg-popover"><div class="tg-pop-label">Domain</div><div class="tg-type-strip">${opts}</div>${clearHtml}</div>`;
   }
 
   function renderToast() {
@@ -924,9 +972,8 @@
     const cards = pinnedIds.map((id) => cardsById.get(id)).filter(Boolean);
     const qualifiedFn = track === 'notes' ? noteQualified : taskQualified;
     const qualifiedCount = cards.filter(qualifiedFn).length;
-    const domainMeta = track === 'tasks' ? DOMAIN_META.find((d) => d.code === openBinMeta.key) : null;
 
-    const cardsHtml = cards.map((c) => (track === 'notes' ? renderNoteCard(c) : renderTaskCard(c, domainMeta))).join('');
+    const cardsHtml = cards.map((c) => (track === 'notes' ? renderNoteCard(c) : renderTaskCard(c))).join('');
 
     return `
       <div class="tg-view">
@@ -995,6 +1042,20 @@
     });
   }
 
+  function applyNoteClearType(cardId) {
+    return withBusy(async () => {
+      try {
+        await notionRequest(`/v1/pages/${cardId}`, { method: 'PATCH', body: { properties: { [CONFIG.NOTES_PROP.TYPE]: { multi_select: [] } } } });
+        const card = triageState.data.notesCards.find((c) => c.id === cardId);
+        if (card) card.types = [];
+        triageState.popover = null;
+      } catch (err) {
+        console.error('Failed to clear Type', err);
+        showTriageToast(err.message || 'Could not clear Type — try again.');
+      }
+    });
+  }
+
   function applyNoteExistingTag(cardId, tagId) {
     return withBusy(async () => {
       const card = triageState.data.notesCards.find((c) => c.id === cardId);
@@ -1034,6 +1095,23 @@
     });
   }
 
+  function applyNoteRemoveTag(cardId, tagId) {
+    return withBusy(async () => {
+      const card = triageState.data.notesCards.find((c) => c.id === cardId);
+      if (!card) return;
+      const newIds = card.tagIds.filter((id) => id !== tagId);
+      try {
+        await notionRequest(`/v1/pages/${cardId}`, { method: 'PATCH', body: { properties: { [triageState.data.schema.notesTagsProp]: { relation: newIds.map((id) => ({ id })) } } } });
+        card.tagIds = newIds;
+        card.tags = newIds.map((id) => triageState.data.tags.byId.get(id)).filter(Boolean);
+        triageState.popover = null;
+      } catch (err) {
+        console.error('Failed to remove tag', err);
+        showTriageToast(err.message || 'Could not remove tag — try again.');
+      }
+    });
+  }
+
   function applyTaskDue(cardId, iso) {
     return withBusy(async () => {
       try {
@@ -1044,6 +1122,62 @@
       } catch (err) {
         console.error('Failed to set Due date', err);
         showTriageToast(err.message || 'Could not set Due date — try again.');
+      }
+    });
+  }
+
+  function applyTaskClearDueDate(cardId) {
+    return withBusy(async () => {
+      try {
+        await notionRequest(`/v1/pages/${cardId}`, { method: 'PATCH', body: { properties: { [CONFIG.TASKS_PROP.DUE_DATE]: { date: null } } } });
+        const card = triageState.data.tasksCards.find((c) => c.id === cardId);
+        if (card) card.due = null;
+        triageState.popover = null;
+      } catch (err) {
+        console.error('Failed to clear Due date', err);
+        showTriageToast(err.message || 'Could not clear Due date — try again.');
+      }
+    });
+  }
+
+  // Clears the task's Project relation entirely — used both by the
+  // Project popover's "Remove project" and the Domain popover's "Remove
+  // domain" (Domain has no field of its own; it's purely derived from
+  // Project, so clearing either one is the same underlying write).
+  function applyTaskClearProject(cardId) {
+    return withBusy(async () => {
+      try {
+        await notionRequest(`/v1/pages/${cardId}`, { method: 'PATCH', body: { properties: { [triageState.data.schema.tasksProjectsProp]: { relation: [] } } } });
+        const card = triageState.data.tasksCards.find((c) => c.id === cardId);
+        if (card) { card.projectId = null; card.projectName = null; card.domainCode = null; }
+        triageState.popover = null;
+      } catch (err) {
+        console.error('Failed to clear Project', err);
+        showTriageToast(err.message || 'Could not clear Project — try again.');
+      }
+    });
+  }
+
+  // Assigns a Domain directly by linking the task to that Domain's
+  // catch-all "Inbox/Admin" project (§4) — the same mechanism Capture uses
+  // when a capture has a %domain but no specific !project.
+  function applyTaskSetDomain(cardId, domainCode) {
+    return withBusy(async () => {
+      const meta = DOMAIN_META.find((d) => d.code === domainCode);
+      if (!meta) return;
+      try {
+        await notionRequest(`/v1/pages/${cardId}`, { method: 'PATCH', body: { properties: { [triageState.data.schema.tasksProjectsProp]: { relation: [{ id: meta.catchAllProjectId }] } } } });
+        const card = triageState.data.tasksCards.find((c) => c.id === cardId);
+        const info = triageState.data.projects.byId.get(meta.catchAllProjectId);
+        if (card) {
+          card.projectId = meta.catchAllProjectId;
+          card.projectName = info ? info.name : `${domainCode} · Inbox/Admin`;
+          card.domainCode = domainCode;
+        }
+        triageState.popover = null;
+      } catch (err) {
+        console.error('Failed to set Domain', err);
+        showTriageToast(err.message || 'Could not set Domain — try again.');
       }
     });
   }
@@ -1096,13 +1230,14 @@
     });
   }
 
-  function handlePopoverSelect(value, isCreate) {
+  function handlePopoverSelect(value, isCreate, isClear) {
     if (!triageState.popover) return;
     const { cardId, field } = triageState.popover;
-    if (field === 'type') return applyNoteType(cardId, value);
+    if (field === 'type') return isClear ? applyNoteClearType(cardId) : applyNoteType(cardId, value);
     if (field === 'tag') return isCreate ? applyNoteNewTag(cardId, value) : applyNoteExistingTag(cardId, value);
-    if (field === 'due') return applyTaskDue(cardId, value);
-    if (field === 'project') return isCreate ? applyTaskNewProject(cardId, value) : applyTaskExistingProject(cardId, value);
+    if (field === 'due') return isClear ? applyTaskClearDueDate(cardId) : applyTaskDue(cardId, value);
+    if (field === 'project') return isClear ? applyTaskClearProject(cardId) : (isCreate ? applyTaskNewProject(cardId, value) : applyTaskExistingProject(cardId, value));
+    if (field === 'domain') return isClear ? applyTaskClearProject(cardId) : applyTaskSetDomain(cardId, value);
   }
 
   const triageState = {
@@ -1174,12 +1309,21 @@
       return;
     }
 
+    // The × on an individual assigned-tag pill inside the tag popover.
+    const removeTagBtn = e.target.closest('[data-pop-remove-tag]');
+    if (removeTagBtn) {
+      e.stopPropagation();
+      if (triageState.busy || !triageState.popover) return;
+      applyNoteRemoveTag(triageState.popover.cardId, removeTagBtn.dataset.popRemoveTag);
+      return;
+    }
+
     // An option row inside an open popover.
     const popOpt = e.target.closest('[data-pop-value]');
     if (popOpt) {
       e.stopPropagation();
       if (triageState.busy) return;
-      handlePopoverSelect(popOpt.dataset.popValue, popOpt.dataset.popCreate === 'true');
+      handlePopoverSelect(popOpt.dataset.popValue, popOpt.dataset.popCreate === 'true', popOpt.dataset.popClear === 'true');
       return;
     }
 
