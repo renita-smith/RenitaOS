@@ -21,17 +21,25 @@ For every database, list each property's **exact Notion name (including emoji), 
 
 Repeat this table for each: **Tasks, Projects, Domains, Notes, Tags, Collections, Resources, Sessions, Routines.**
 
-### Example — Tasks
+### NOTES DATABASE
 | Exact property name (w/ emoji) | Notion type | Options / target DB | UI display label |
 |---|---|---|---|
-| *(title property)* | title | — | Task |
-| 🚧 Projects | relation | → Projects DB | Project |
-| 🏛️ Domain | relation | → Domains DB | Domain |
-| *(status property)* | status | Inbox, Not Started, In Progress, Paused, Done | Status |
-| *(due date property)* | date | — | Due |
+| Title | title | — | Title |
+| No ID | ID | - | No. ID |
+| Status | Status | Inbox, Active, Closed | Status |
+| Date | Date | - | Date |
+| Type | Multi-select |Thought 💭,Reminder 🔔, Idea 💡, Convo 👥, Podcast 🎙, Dream 💤, Sermon 🗣, Prophetic Word 📣, Virtual 🤳🏽, Teaching 📝, One on One 👥, Prayer 🙏🏽, Quote 🔏, Study 📚, Reflection 🤔, Download 📥 | Type |
+| 👥 People |Relation | → People DB | People |
+| 🏷 Tags | Relation | → Global Tags DB | Tags |
+| Last Edited Time | Automated | - | - |
+| 🗃 Collections | Relation | → Collections DB | Collection |
+| ℹ️ Resources | Relation | → Resources DB | Resources |
+| 🏛️ Domain | Relation | → Domains DB | Domain |
+| 🚧 Projects | Relation | → Projects DB | Project |
+| Created Time | Automated | - | - |
 | … | … | … | … |
 
-> Fill the real title/status/date property names — leaving them blank is what causes the bugs. Note exact Status/Select option strings **including any emoji.**
+> Fill the real title/status/date property names — leaving them blank is what causes the bugs. Note exact Status/Select option strings **including any emoji.**  
 
 ---
 
