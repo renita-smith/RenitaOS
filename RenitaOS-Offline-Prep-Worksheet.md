@@ -46,10 +46,8 @@ Repeat this table for each: **Tasks, Projects, Domains, Notes, Tags, Collections
 | Total Notes | Rollup | → 📝 Notes DB | Total Notes |
 | 📝 Notes | Relation |  → 📝 Notes DB | Notes |
 | 👥 People | Relation | → 👥 People DB | People |
-| 🏛️ Collections |Relation |→ 🏛️ Collections DB | Collection |
+| 🗃 Collections |Relation |→ 🗃 Collections DB | Collection |
 | Last Edited Time |Automated | - | - |
-| 🏷 Tags | Relation | → Global Tags DB | Tags |
-| Last Edited Time | Automated | - | - |
 | ℹ️ Resources | Relation | → ℹ️ Resources DB | Resources |
 | … | … | … | … |
 
@@ -88,7 +86,7 @@ Repeat this table for each: **Tasks, Projects, Domains, Notes, Tags, Collections
 ### PROJECTS DATABASE
 | Exact property name (w/ emoji) | Notion type | Options / target DB | UI display label |
 |---|---|---|---|
-| Project | Title | — | Task |
+| Project | Title | — | Project |
 | 🏛 Domain | Relation | → 🏛 Domain DB | Domain |
 | Status | Status |  Not Started, In Progress, Paused, Done | Status |
 | Archived | Checkbox | - | Archived |
@@ -217,16 +215,118 @@ For each screen, decide **which fields appear**, their **role**, and their **lab
 
 Repeat for each screen. Stub:
 
-### Task view (entity)
+### TASK PROFILE
+
 | Field | Role | Label | Notes |
 |---|---|---|---|
-| title | primary | Task | |
-| status | meta | Status | |
-| due | meta | Due | |
-| project | relation | Project | drills to Project view |
-| domain | meta/relation | Domain | domain color |
-| linked notes | relation-list | Notes | |
-| description/body | primary | — | |
+| Task | Primary | Task | - |
+| Done | Checkbox | Done | Done |
+| 🚧 Projects | Relation |  Project | Drills to Corresponding Project Profile |
+| Due Date | Meta | Due Date | - |
+| Do  Date | Meta | Do Date | - |
+| Priority | Meta | Priority | Use visual display like stars |
+| Status | Meta | Status | - |
+| Created Time | Timestamp | Created | Show date only |
+| Last Edited Time | Timestamp | Last Edited | Show date and time |
+| Category | Meta | Category | - |
+| 🏛 Domain | Relation | Domain | Drills to Corresponding Project Profile |
+| Completed | Timestamp | Completed | Show Date only |
+| Done | Automated Button | - | Not sure if this is needed |
+| 👥 People | Relation List | People | Each selection drills down to corresponding people profile |
+| … | … | … | … |
+| Body | Body | Details | … |
+
+### PROJECT PROFILE
+| Field | Role | Label | Notes |
+|---|---|---|---|
+| Project | Primary | Project | - |
+| 🏛 Domain | Relation | Domain | Drills to Corresponding Domain Profile |
+| Status | Meta | Status | - |
+| Archived | Checkbox | Archived | - |
+| Target Deadline | Meta | Target Deadline | - |
+| Progress | Meta | Progress | Rollup from ✅ Tasks DB |
+| Priority | Meta | Priority | - |
+| Date Completed | Meta | Date Completed | - |
+| Last Edited Time | Timestamp | Last Edited | Show date and time |
+| Created Time | Timestamp | Created | Show date only |
+| ✅ Tasks | Relation List | Tasks |  |
+| No of Tasks | Meta | No of Tasks | Rollup from ✅ Tasks DB  |
+| Notes | Relation List | Notes | Selection should open corresponding Note Profile from 📝 Notes DB |
+| Start Date | Meta | tart Date | S- |
+| Priority? | Checkbox | Priority | - |
+| 👥 People | Relation List | People | Selection Drills to Corresponding Project Profile |
+| 🗃 Collections | Relation | Collections | Selection Drills to Corresponding Collection Profile |
+| Type | Meta | Type | - |
+| … | … | … | … |
+
+### NOTE PROFILE
+| Field | Role | Label | Notes |
+|---|---|---|---|
+| Title | Primary | — | Title |
+| No ID | Metadata | ID | - |
+| Status | Meta | Status | - |
+| Date | Meta | Date | - |
+| Type | Meta | Type | - |
+| 👥 People | Relation List | People | Selection Drills to Corresponding Project Profile |
+| 🏷 Tags | Relation List | Tags | Selection Drills to Corresponding Tag Profile |
+| Last Edited Time | Timestamp | Last Edited | - |
+| 🗃 Collections | Relation | Collections | Selection Drills to Corresponding Collection Profile |
+| ℹ️ Resources | Relation | Resources | Selection Drills to Corresponding Resource Profile |
+| 🏛 Domain | Relation | Domain | Drills to Corresponding Domain Profile |
+| 🚧 Projects | Relation |  Project | Drills to Corresponding Project Profile |
+| Created Time | Timestamp | Created | Show date only |
+| Body | Body | Details | … |
+
+### DOMAIN PROFILE
+| Field | Role | Label | Notes |
+|---|---|---|---|
+| Domain | Primary | Domain | - |
+| 🚧 Projects | Relation |  Project | Drills to Corresponding Project Profile |
+| 📝 Notes | Relation List |  Notes | Drills to Corresponding Note Profile |
+| ℹ️ Resources | Relation | Resources | Selection Drills to Corresponding Resource Profile |
+| ⏰ Sessions | Relation List | Sessions | - |
+| 🔃 Routines | Relation List | Routines | - |
+| … | … | … | … |
+
+### COLLECTIONS PROFILE
+| Field | Role | Label | Notes |
+|---|---|---|---|
+| Collection | Primary | Collection | Collection |
+| Type | Meta | Type | - |
+| 📝 Notes | Relation List |  Notes | Drills to Corresponding Note Profile |
+| 👥 People | Relation List | People | Selection Drills to Corresponding Project Profile |
+| 🏷 Tags | Relation List | Tags | Selection Drills to Corresponding Tag Profile |
+| Last Edited Time | Timestamp | Last Edited | - |
+| 🚧 Projects | Relation |  Project | Drills to Corresponding Project Profile |
+| ℹ️ Resources | Relation | Resources | Selection Drills to Corresponding Resource Profile |
+| … | … | … | … |
+
+### GLOBAL TAGS PROFILE
+| Field | Role | Label | Notes |
+|---|---|---|---|
+| Tag | Primary | Tag | - |
+| Total Notes | Meta | Total No. of Notes | Rollup from 📝 Notes DB |
+| 📝 Notes | Relation List |  Notes | Drills to Corresponding Note Profile |
+| 👥 People | Relation List | People | Selection Drills to Corresponding Project Profile |
+| 🗃 Collections | Relation | Collections | Selection Drills to Corresponding Collection Profile |
+| Last Edited Time | Timestamp | Last Edited | - |
+| ℹ️ Resources | Relation | Resources | Selection Drills to Corresponding Resource Profile |
+| … | … | … | … |
+
+### RESOURCES PROFILE
+| Field | Role | Label | Notes |
+|---|---|---|---|
+| Title | Primary | Title | - |
+| Date Added | Meta | Date Added | - |
+| Last Edited Time | Timestamp | Last Edited | - |
+| Type | Meta | Type | - |
+| 📝 Notes | Relation List |  Notes | Drills to Corresponding Note Profile |
+| Status | Meta | Status | - |
+| 🏛 Domain | Relation | Domain | Drills to Corresponding Domain Profile |
+| File Link | URL | File Link | - |
+| 🏷 Tags | Relation List | Tags | Selection Drills to Corresponding Tag Profile |
+| 🗃 Collections | Relation | Collections | Selection Drills to Corresponding Collection Profile |
+| … | … | … | … |
 
 ### Screens still to fill
 - **Today** — task title, due, project, domain color, status. (Overdue + due-today only.)
