@@ -328,6 +328,19 @@ Repeat for each screen. Stub:
 | 🗃 Collections | Relation | Collections | Selection Drills to Corresponding Collection Profile |
 | … | … | … | … |
 
+### TODAY/THIS WEEK/THIS MONTH
+| Field | Role | Label | Notes |
+|---|---|---|---|
+| Calendar | Calendar | Calendar | Filter by Appropriate Time Period |
+| Plan of Action| Tasks by Time Slot | Plan of Action | Only on Today View |
+| Upcoming Tasks | Tasks filtered by selected time period | Upcoming Tasks | Tasks filtered by selected time period |
+| Active Projects | Projects filtered by selected time period | Active Projects | Projects filtered by selected time period |
+| Notes | Notes filtered by selected time period | Notes | Notes filtered by selected time period |
+| Tags | Tags filtered by selected time period | Tags | Tags filtered by selected time period |
+| People | People filtered by selected time period | Peope | People filtered by selected time period |
+| Tasks Completed | List of Tasks Completed for selected time period | Tasks Completed | List of Tasks Completed for selected time period |
+| … | … | … | … |
+
 ### Screens still to fill
 - **Today** — task title, due, project, domain color, status. (Overdue + due-today only.)
 - **Week** — same fields, wider date window; by day or by domain.
@@ -344,11 +357,15 @@ Repeat for each screen. Stub:
 
 Decide the read logic (offline decision, no code):
 - **Today:** tasks where Due ≤ today AND status ≠ Done. Sort by ? (due time / domain / status).
-- **Week:** tasks where Due within the displayed week. Group by day or domain?
-- **Project view:** tasks where Project relation = this project. Group by status? Show Done?
-- **Domain view:** projects + tasks + notes where Domain = this. What's the ordering?
-- **Tag view:** notes + tasks where Tags contains this tag.
+- **This Week:** tasks where Due within the displayed week. Group by day or domain?
+- **This Month:** tasks where Due within the displayed week. Group by day or domain?
+- **Task profile:** notes + tasks where Tags contains this tag.
+- **Note profile:** notes + tasks where Tags contains this tag.
+- **Project profile:** tasks where Project relation = this project. Group by status? Show Done?
+- **Domain profile:** projects + tasks + notes where Domain = this. What's the ordering?
+- **Tag profile:** notes + tasks where Tags contains this tag.
 - **Collection view:** notes/resources where Collection = this.
+- **Resource view:** notes/resources where Collection = this.
 
 ---
 
