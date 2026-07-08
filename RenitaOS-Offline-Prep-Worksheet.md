@@ -24,19 +24,187 @@ Repeat this table for each: **Tasks, Projects, Domains, Notes, Tags, Collections
 ### NOTES DATABASE
 | Exact property name (w/ emoji) | Notion type | Options / target DB | UI display label |
 |---|---|---|---|
-| Title | title | — | Title |
+| Title | Title | — | Title |
 | No ID | ID | - | No. ID |
 | Status | Status | Inbox, Active, Closed | Status |
 | Date | Date | - | Date |
 | Type | Multi-select |Thought 💭,Reminder 🔔, Idea 💡, Convo 👥, Podcast 🎙, Dream 💤, Sermon 🗣, Prophetic Word 📣, Virtual 🤳🏽, Teaching 📝, One on One 👥, Prayer 🙏🏽, Quote 🔏, Study 📚, Reflection 🤔, Download 📥 | Type |
-| 👥 People |Relation | → People DB | People |
+| 👥 People |Relation | → 👥 People DB | People |
+| 🏷 Tags | Relation | → 🏷 Global Tags DB | Tags |
+| Last Edited Time | Automated | - | - |
+| 🗃 Collections | Relation | → 🗃 Collections DB | Collection |
+| ℹ️ Resources | Relation | → ℹ️ Resources DB | Resources |
+| 🏛️ Domain | Relation | → 🏛️ Domains DB | Domain |
+| 🚧 Projects | Relation | → 🚧 Projects DB | Project |
+| Created Time | Automated | - | - |
+| … | … | … | … |
+
+### GLOBAL TAGS DATABASE
+| Exact property name (w/ emoji) | Notion type | Options / target DB | UI display label |
+|---|---|---|---|
+| Tag | Title | — | Title |
+| Total Notes | Rollup | → 📝 Notes DB | Total Notes |
+| 📝 Notes | Relation |  → 📝 Notes DB | Notes |
+| 👥 People | Relation | → 👥 People DB | People |
+| 🏛️ Collections |Relation |→ 🏛️ Collections DB | Collection |
+| Last Edited Time |Automated | - | - |
 | 🏷 Tags | Relation | → Global Tags DB | Tags |
 | Last Edited Time | Automated | - | - |
-| 🗃 Collections | Relation | → Collections DB | Collection |
-| ℹ️ Resources | Relation | → Resources DB | Resources |
-| 🏛️ Domain | Relation | → Domains DB | Domain |
-| 🚧 Projects | Relation | → Projects DB | Project |
+| ℹ️ Resources | Relation | → ℹ️ Resources DB | Resources |
+| … | … | … | … |
+
+### PEOPLE DATABASE
+| Exact property name (w/ emoji) | Notion type | Options / target DB | UI display label |
+|---|---|---|---|
+| Person | Title | — | Person |
+| 📝 Notes | Relation | → 📝 Notes DB | Notes |
+| 🏷️ Tags | Relation |  → 🏷️ Tags DB | Tags |
+| 🗃 Collections | Relation | → 🗃 Collections DB | Collections |
+| Last Edited Time | Automated | - | - |
+| ✅ Tasks | Relation | → ✅ Tasks | Tasks |
+| 🚧 Projects | Relation | → 🚧 Projects DB | Projects |
+| … | … | … | … |
+
+### TASKS DATABASE
+| Exact property name (w/ emoji) | Notion type | Options / target DB | UI display label |
+|---|---|---|---|
+| Task | Title | — | Task |
+| - | Checkbox | - | Done |
+| 🚧 Projects | Relation |  → 🚧 Projects DB | Projects |
+| Due Date | Date | - | Due Date |
+| Do  Date | Date | - | Do Date |
+| Time Slot | Multi-select | Early Morning, Early Evening, Late Evening | Time Slot |
+| Priority | Select | High, Medium, Low | Priority |
+| Status | Status | Inbox, Not Started, In Progress, Paused, Done | Status |
 | Created Time | Automated | - | - |
+| Last Edited Time | Automated | - | - |
+| Category | Select | - | Category |
+| 🏛 Domain | Relation | → 🏛 Domain DB | Domain |
+| Completed | Date | - | Date Completed |
+| Done | Automated Button | - | - |
+| 👥 People | Relation | → 👥 People DB | People |
+| … | … | … | … |
+
+### PROJECTS DATABASE
+| Exact property name (w/ emoji) | Notion type | Options / target DB | UI display label |
+|---|---|---|---|
+| Project | Title | — | Task |
+| 🏛 Domain | Relation | → 🏛 Domain DB | Domain |
+| Status | Status |  Not Started, In Progress, Paused, Done | Status |
+| Archived | Checkbox | - | Archived |
+| 🎯 Goal | Relation | → 🎯 Goal | Goal |
+| Target Deadline | Date | - | Target Deadline |
+| Progress | Rollup | → ✅ Tasks DB | Progress |
+| Priority | Select | High, Medium, Low | Priority |
+| Date Completed | Date | - | Date Completed |
+| Last Edited Time | Automated | - | - |
+| Created Time | Automated | - | - |
+| ✅ Tasks | Relation | → ✅ Tasks DB | Tasks |
+| No of Tasks | Rollup | → ✅ Tasks DB | No of Tasks |
+| 📝 Notes | Relation | → 📝 Notes DB | Notes |
+| Start Date | Date | - | Start Date |
+| Priority? | Checkbox | - | Priority |
+| 👥 People | Relation | → 👥 People DB | People |
+| 🗃 Collections | Relation | → 🗃 Collections DB | Collections |
+| Type | Select | - | Type |
+| … | … | … | … |
+
+### DOMAINS DATABASE
+| Exact property name (w/ emoji) | Notion type | Options / target DB | UI display label |
+|---|---|---|---|
+| Domain | Title | — | Domain |
+| 🚧 Projects | Relation |  → 🚧 Projects DB | Projects |
+| 🎯 Goal | Relation | → 🎯 Goal | Goal |
+| 📝 Notes | Relation | → 📝 Notes DB | Notes |
+| ℹ️ Resources | Relation | → ℹ️ Resources DB | Resources |
+| ⏰ Sessions | Relation | → ⏰ Sessions DB | Sessions |
+| 🔃 Routines | Relation | → 🔃 Routines DB | Routines |
+| … | … | … | … |
+
+### RESOURCES DATABASE
+| Exact property name (w/ emoji) | Notion type | Options / target DB | UI display label |
+|---|---|---|---|
+| Title | Title | — | Title |
+| Date Added | Date | - | Date Added |
+| Last Edited Time | Automated | - | - |
+| Type | Select | YouTube Video, Article, Post | Type |
+| 📝 Notes | Relation | → 📝 Notes DB | Notes |
+| Status | Status | Not Started, In Progress, Done | Status |
+| 🏛 Domain | Relation | → 🏛 Domain DB | Domains |
+| File Link | URL | - | File Link |
+| 🏷️ Tags | Relation |  → 🏷️ Tags DB | Tags |
+| 🗃 Collections | Relation | → 🗃 Collections DB | Collections |
+| … | … | … | … |
+
+### COLLECTIONS DATABASE
+| Exact property name (w/ emoji) | Notion type | Options / target DB | UI display label |
+|---|---|---|---|
+| Collection | Title | — | Collection |
+| Type | Select | - | Type |
+| 📝 Notes | Relation | → 📝 Notes DB | Notes |
+| 👥 People | Relation | → 👥 People DB | People |
+| 🏷️ Tags | Relation |  → 🏷️ Tags DB | Tags |
+| Last Edited Time | Automated | - | - |
+| 🚧 Projects | Relation |  → 🚧 Projects DB | Projects |
+| ℹ️ Resources | Relation | → ℹ️ Resources DB | Resources |
+| … | … | … | … |
+
+### SESSIONS DATABASE
+| Exact property name (w/ emoji) | Notion type | Options / target DB | UI display label |
+|---|---|---|---|
+| Title | Title | — | Title |
+| Date | Date | - | Date |
+| Session | Select | - | Session |
+| ✅ Tasks | Relation | → ✅ Tasks DB | Tasks |
+| 🏛 Domains | Relation | → 🏛 Domain DB | Domains |
+| Outcome | Select | - | Outcome |
+| Time Slot | Select | Early Evening, Late Evening | Time Slot |
+| Session Done? | Checkbox |  - | Session Done? |
+| Tasks Done? | Checkbox |  - | Tasks Done? |
+| … | … | … | … |
+
+### WEEKLY REVIEWS DATABASE
+| Exact property name (w/ emoji) | Notion type | Options / target DB | UI display label |
+|---|---|---|---|
+| Week | Title | — | Week |
+| Week Ending | Date | - | Week Ending |
+| Reflection: What moved needle? | Text | - | Reflection: What moved needle? |
+| Reflection: What didn't work? | Text | - | Reflection: What didn't work? |
+| Reflection: What are you carrying into next week? | Text | - | Reflection: What are you carrying into next week? |
+| Reflection: How do feel about this week? | Text | - | Reflection: How do feel about this week? |
+| 1% Goal: RCBS | Text | - | 1% Goal: RCBS |
+| 1% Goal: RWS | Text | - | 1% Goal: RWS |
+| 1% Goal: SM | Text | - | 1% Goal: SM |
+| 1% Goal: EPLC | Text | - | 1% Goal: EPLC |
+| 1% Goal: MTS | Text | - | 1% Goal: MTS |
+| 1% Goal: PEEPS | Text | - | 1% Goal: PEEPS |
+| Two Week Outlook Intention | Text | - | Two Week Outlook Intention |
+| Completions | Number | - | Completions |
+| Notes Captured | Number | - | Notes Captured |
+| Sessions Count | Number | - | Sessions Count |
+| Overdue % | Number | - | Overdue % |
+| Session Success % | Number | - | Session Success % |
+| Top Tags | Text | - | Top Tags |
+| Top Types | Text | - | Top Types |
+| … | … | … | … |
+
+### ROUTINES DATABASE
+| Exact property name (w/ emoji) | Notion type | Options / target DB | UI display label |
+|---|---|---|---|
+| Routine | Title | — | Routine |
+| Cadence | Select | Monthly, Weekdays, Weekly, Daily | Cadence |
+| 🏛 Domains | Relation | → 🏛 Domain DB | Domains |
+| Active| Checkbox | - | Active |
+| 📋 Routine Log | Relation | → 📋 Routine Log DB | Routine Log |
+| … | … | … | … |
+
+### ROUTINES LOG DATABASE
+| Exact property name (w/ emoji) | Notion type | Options / target DB | UI display label |
+|---|---|---|---|
+| Log | Title | — | Log |
+| Date | Date | - | Date |
+| 🔃 Routines | Relation | → 🔃 Routines DB | Routines |
+| Done | Checkbox | - | Done |
 | … | … | … | … |
 
 > Fill the real title/status/date property names — leaving them blank is what causes the bugs. Note exact Status/Select option strings **including any emoji.**  
