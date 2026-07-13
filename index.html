@@ -341,7 +341,7 @@
     font-family: inherit; box-sizing: border-box;
   }
   .tg-pop-list { display: flex; flex-direction: column; gap: 2px; max-height: 184px; overflow: auto; margin-top: 6px; }
-  .tg-pop-opt { padding: 8px 9px; border-radius: var(--radius-sm); cursor: pointer; font-size: 13px; color: var(--text); }
+  .tg-pop-opt { display: flex; align-items: center; gap: 5px; padding: 8px 9px; border-radius: var(--radius-sm); cursor: pointer; font-size: 13px; color: var(--text); }
   .tg-pop-opt:hover { background: oklch(0.96 0.006 75); }
   .tg-pop-opt.on { background: var(--tg-sage-deep); font-weight: 700; }
   /* The create row sits right below the input/current-tags, above the
@@ -360,13 +360,30 @@
   .tg-pop-pill .x:hover { color: oklch(0.5 0.15 25); }
 
   .tg-type-strip { display: flex; flex-wrap: wrap; gap: 6px; }
-  .tg-type-opt { padding: 6px 11px; border-radius: var(--radius-sm); font-size: 12px; font-weight: 600; cursor: pointer; background: var(--surface-soft); color: var(--text); }
+  .tg-type-opt { display: inline-flex; align-items: center; gap: 5px; padding: 6px 11px; border-radius: var(--radius-sm); font-size: 12px; font-weight: 600; cursor: pointer; background: var(--surface-soft); color: var(--text); }
   .tg-type-opt.on { box-shadow: inset 0 0 0 2px var(--text); }
   .tg-type-strip .tg-type-opt:not([style]).on { background: var(--tg-sage-deep); }
 
   /* Persistent "add more" affordance shown alongside already-filled tags
      (previously there was no way to add a 2nd tag once qualified). */
   .tg-chip--add { border: 1.5px dashed oklch(0.7 0.01 75); color: var(--muted-text); background: transparent; }
+
+  /* Leading glyph on a chip — a Type option's own trailing emoji, or a
+     Tag record's Notion page icon (emoji text or a small image). */
+  .tg-chip-icon { display: inline-flex; align-items: center; justify-content: center; font-size: 12px; line-height: 1; flex-shrink: 0; }
+  .tg-chip-icon--img { width: 14px; height: 14px; border-radius: 3px; object-fit: cover; }
+
+  /* Opens the record's full Notion page in a new tab for now; the target
+     is resolved per-card at click time (data-open-record holds the card
+     id, not a raw URL) so this can swap to an in-app profile route later
+     without touching the markup. Sits left of .tg-check so the two never
+     collide whether or not the card is qualified. */
+  .tg-open-record {
+    position: absolute; top: 14px; right: 40px; width: 20px; height: 20px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    color: var(--muted-text); font-size: 13px; cursor: pointer;
+  }
+  .tg-open-record:hover { background: oklch(0.95 0.006 75); color: var(--text); }
 
   .tg-toast {
     position: absolute; bottom: 16px; left: 50%; transform: translateX(-50%); z-index: 60;
@@ -587,6 +604,58 @@
     return (prop.multi_select && prop.multi_select.options) || [];
   }
 
+  // Notes' own Domain field could be modeled as either a relation to the
+  // Domains DB or a plain select — resolve which one is actually live from
+  // the schema rather than assuming. A relation is found structurally (by
+  // target database, like every other relation in this file); a select
+  // can't be linked structurally, so it's matched by its exact name
+  // "Domain" (same precedent as NOTES_PROP.TYPE/DATE below). Returns null
+  // if the database has neither — the Domain picker then just never
+  // renders, rather than guessing.
+  const notesDomainPropCache = new Map();
+  function getNotesDomainProp(databaseId) {
+    if (!notesDomainPropCache.has(databaseId)) {
+      notesDomainPropCache.set(databaseId, (async () => {
+        const db = await getSchema(databaseId);
+        const relEntry = Object.entries(db.properties).find(
+          ([, prop]) => prop.type === 'relation' && normalizeDbId(prop.relation && prop.relation.database_id) === normalizeDbId(CONFIG.DB.DOMAINS)
+        );
+        if (relEntry) return { name: relEntry[0], type: 'relation' };
+        const selEntry = Object.entries(db.properties).find(([name, prop]) => prop.type === 'select' && name.toLowerCase() === 'domain');
+        if (selEntry) return { name: selEntry[0], type: 'select' };
+        return null;
+      })());
+    }
+    return notesDomainPropCache.get(databaseId);
+  }
+
+  // A Notion page's `icon` field is either an emoji or an uploaded/external
+  // image — normalize both into one shape the chip renderer can switch on,
+  // or null when the record has no icon set (falls back to the plain chip).
+  function extractPageIcon(icon) {
+    if (!icon) return null;
+    if (icon.type === 'emoji') return { kind: 'emoji', value: icon.emoji };
+    if (icon.type === 'file' && icon.file) return { kind: 'image', value: icon.file.url };
+    if (icon.type === 'external' && icon.external) return { kind: 'image', value: icon.external.url };
+    return null;
+  }
+
+  // Every Type option's exact string ends in its emoji (e.g. "Dream 💤",
+  // "Prayer 🙏🏽") — split on the last space to get a leading icon + plain
+  // name for display. The original full string (with emoji) is untouched
+  // everywhere else — this is display-only, never used for matching/writes.
+  function splitTrailingEmoji(fullType) {
+    const idx = fullType.lastIndexOf(' ');
+    if (idx === -1) return { icon: '', name: fullType };
+    return { name: fullType.slice(0, idx), icon: fullType.slice(idx + 1) };
+  }
+
+  function renderChipIcon(icon) {
+    if (!icon) return '';
+    if (icon.kind === 'emoji') return `<span class="tg-chip-icon">${escapeHtml(icon.value)}</span>`;
+    return `<img class="tg-chip-icon tg-chip-icon--img" src="${escapeHtml(icon.value)}" alt="">`;
+  }
+
   async function countInboxRecords(databaseId) {
     const { name, value } = await getInboxStatusFilter(databaseId);
     const pages = await queryAllPages(databaseId, { property: name, status: { equals: value } });
@@ -719,17 +788,18 @@
     // Type's options: getMultiSelectOptions -> getSchema is memoized, and
     // getSchema(NOTES) is already about to be fetched for the Tags/People
     // relation lookups just below, so this doesn't add a network round-trip.
-    const [notesFilter, tasksFilter, notesStatusSchema, tasksStatusSchema, notesTypeOptions] = await Promise.all([
+    const [notesFilter, tasksFilter, notesStatusSchema, tasksStatusSchema, notesTypeOptions, notesDomainProp] = await Promise.all([
       getInboxStatusFilter(CONFIG.DB.NOTES),
       getInboxStatusFilter(CONFIG.DB.TASKS),
       getStatusSchema(CONFIG.DB.NOTES),
       getStatusSchema(CONFIG.DB.TASKS),
       getMultiSelectOptions(CONFIG.DB.NOTES, CONFIG.NOTES_PROP.TYPE),
+      getNotesDomainProp(CONFIG.DB.NOTES),
     ]);
 
     const [
       notesTagsProp, notesPeopleProp, tasksProjectsProp, tasksTitleProp, projectsDomainsProp,
-      tagTitleProp, peopleTitleProp, projectTitleProp,
+      tagTitleProp, peopleTitleProp, projectTitleProp, domainTitleProp,
     ] = await Promise.all([
       relationPropertyName(CONFIG.DB.NOTES, CONFIG.DB.TAGS),
       relationPropertyName(CONFIG.DB.NOTES, CONFIG.DB.PEOPLE),
@@ -739,18 +809,21 @@
       titlePropertyName(CONFIG.DB.TAGS),
       titlePropertyName(CONFIG.DB.PEOPLE),
       titlePropertyName(CONFIG.DB.PROJECTS),
+      titlePropertyName(CONFIG.DB.DOMAINS),
     ]);
 
-    const [tagPages, peoplePages, projectPages, notePages, taskPages] = await Promise.all([
+    const [tagPages, peoplePages, projectPages, domainPages, notePages, taskPages] = await Promise.all([
       queryAllPages(CONFIG.DB.TAGS),
       queryAllPages(CONFIG.DB.PEOPLE),
       queryAllPages(CONFIG.DB.PROJECTS),
+      queryAllPages(CONFIG.DB.DOMAINS),
       queryAllPages(CONFIG.DB.NOTES, { property: notesFilter.name, status: { equals: notesFilter.value } }),
       queryAllPages(CONFIG.DB.TASKS, { property: tasksFilter.name, status: { equals: tasksFilter.value } }),
     ]);
 
-    const tagList = tagPages.map((p) => ({ id: p.id, name: plainTitle(p, tagTitleProp) })).filter((t) => t.name);
+    const tagList = tagPages.map((p) => ({ id: p.id, name: plainTitle(p, tagTitleProp), icon: extractPageIcon(p.icon) })).filter((t) => t.name);
     const tagById = new Map(tagList.map((t) => [t.id, t.name]));
+    const tagIconById = new Map(tagList.map((t) => [t.id, t.icon]));
     const peopleNameById = new Map(peoplePages.map((p) => [p.id, plainTitle(p, peopleTitleProp)]));
     const domainCodeByPageId = new Map(DOMAIN_META.map((d) => [d.pageId, d.code]));
     const projectList = projectPages.map((p) => {
@@ -760,6 +833,14 @@
     }).filter((p) => p.name);
     const projectById = new Map(projectList.map((p) => [p.id, p]));
 
+    // Read live so the Domain picker (note cards) stays in sync if a domain
+    // is ever added — never a hardcoded list. DOMAIN_META (fixed 6, with
+    // curated colors) is still consulted per-record for styling only; a
+    // domain with no entry there just renders in the neutral "no domain"
+    // treatment instead of failing to show at all.
+    const domainList = domainPages.map((p) => ({ id: p.id, name: plainTitle(p, domainTitleProp) })).filter((d) => d.name);
+    const domainById = new Map(domainList.map((d) => [d.id, d.name]));
+
     const noteBodies = await Promise.all(notePages.map((p) => fetchPageBodyText(p.id)));
 
     const notesCards = notePages.map((page, i) => {
@@ -767,6 +848,21 @@
       const tagIds = ((page.properties[notesTagsProp] || {}).relation || []).map((r) => r.id);
       const peopleIds = ((page.properties[notesPeopleProp] || {}).relation || []).map((r) => r.id);
       const date = (page.properties[CONFIG.NOTES_PROP.DATE] || {}).date;
+
+      let domainId = null;
+      let domainName = null;
+      if (notesDomainProp) {
+        const propVal = page.properties[notesDomainProp.name];
+        if (notesDomainProp.type === 'relation') {
+          const relIds = (propVal && propVal.relation) || [];
+          domainId = relIds[0] ? relIds[0].id : null;
+          domainName = domainId ? domainById.get(domainId) || null : null;
+        } else {
+          const sel = propVal && propVal.select;
+          domainName = sel ? sel.name : null;
+        }
+      }
+
       return {
         id: page.id,
         types,
@@ -776,6 +872,9 @@
           .map((name) => ({ name, initial: (name[0] || '?').toUpperCase() })),
         body: noteBodies[i],
         date: date ? date.start : null,
+        domainId,
+        domainName,
+        url: page.url,
         createdTime: page.created_time,
       };
     });
@@ -793,6 +892,7 @@
         domainCode: projectInfo ? projectInfo.domainCode : null,
         due: due ? due.start : null,
         status: tasksFilter.value,
+        url: page.url,
         createdTime: page.created_time,
       };
     });
@@ -801,8 +901,10 @@
       notesCards,
       tasksCards,
       schema: { notesTagsProp, tasksProjectsProp, projectsDomainsProp, tagTitleProp, projectTitleProp },
-      tags: { list: tagList, byId: tagById },
+      tags: { list: tagList, byId: tagById, iconById: tagIconById },
       projects: { list: projectList, byId: projectById },
+      domains: { list: domainList, byId: domainById },
+      notesDomainProp,
       statusOptions: { notes: notesStatusSchema.options, tasks: tasksStatusSchema.options },
       typeOptions: notesTypeOptions.map((o) => o.name),
     };
@@ -939,8 +1041,14 @@
     // Type is a Notion multi-select — a note can carry several types at
     // once — so it renders like Tags: one filled chip per assigned type,
     // plus a persistent "+" to add another, sharing one toggle popover.
+    // Every option's exact string ends in its own emoji — shown as a
+    // leading glyph, with the plain name after it (the full string with
+    // emoji is still what's written/matched, untouched by this split).
     const typeTriggers = card.types.length
-      ? card.types.map((t) => `<div class="tg-chip" data-chip-action="type" data-card-id="${card.id}">${escapeHtml(t)}</div>`).join('')
+      ? card.types.map((t) => {
+          const { icon, name } = splitTrailingEmoji(t);
+          return `<div class="tg-chip" data-chip-action="type" data-card-id="${card.id}">${renderChipIcon(icon ? { kind: 'emoji', value: icon } : null)}${escapeHtml(name)}</div>`;
+        }).join('')
         + `<div class="tg-chip tg-chip--add" data-chip-action="type" data-card-id="${card.id}">+</div>`
       : `<div class="tg-ghost" data-chip-action="type" data-card-id="${card.id}">+ Type</div>`;
     const typeHtml = `<div class="tg-pop-wrap">
@@ -950,9 +1058,11 @@
 
     // Every filled tag chip is tappable (opens the shared tag popover, which
     // can remove it), plus a persistent "+" so you can add another tag even
-    // after the note already qualifies.
+    // after the note already qualifies. Shows the Tag record's own Notion
+    // page icon (emoji or image) as a leading glyph when it has one — tags
+    // otherwise all look identical (same olive-on-sage chip).
     const tagTriggers = card.tags.length
-      ? card.tags.map((t) => `<div class="tg-chip" data-chip-action="tag" data-card-id="${card.id}">#${escapeHtml(t)}</div>`).join('')
+      ? card.tagIds.map((id, i) => `<div class="tg-chip" data-chip-action="tag" data-card-id="${card.id}">${renderChipIcon(triageState.data.tags.iconById.get(id))}#${escapeHtml(card.tags[i] || '')}</div>`).join('')
         + `<div class="tg-chip tg-chip--add" data-chip-action="tag" data-card-id="${card.id}">+</div>`
       : `<div class="tg-ghost" data-chip-action="tag" data-card-id="${card.id}">+ Tag</div>`;
     const tagHtml = `<div class="tg-pop-wrap">
@@ -969,19 +1079,44 @@
       ${popoverOpenFor(card.id, 'date') ? renderNoteDatePopover(card) : ''}
     </div>`;
 
+    // Domain is optional on notes (never part of the qualified test) and
+    // only renders at all when the live schema actually has a Domain field
+    // — either a relation to the Domains DB or a plain select; resolved
+    // once at load (triageState.data.notesDomainProp), never assumed.
+    const domainMeta = triageState.data.notesDomainProp ? noteDomainMeta(card) : null;
+    const domainHtml = triageState.data.notesDomainProp ? `<div class="tg-pop-wrap">
+      <div class="${card.domainName ? 'tg-chip' : 'tg-ghost'}" data-chip-action="notedomain" data-card-id="${card.id}"${card.domainName ? ` style="background:${domainMeta.fill};color:${domainMeta.text};"` : ''}>${card.domainName ? escapeHtml(card.domainName) : 'Set Domain'}</div>
+      ${popoverOpenFor(card.id, 'notedomain') ? renderNoteDomainPopover(card) : ''}
+    </div>` : '';
+
     const bodyHtml = card.body ? escapeHtml(card.body) : `<span class="tg-empty-body">(empty)</span>`;
 
+    // Pill order: Type first (short, fine up front), then the fixed
+    // (non-relation-growth) pills, Tags last so their growth wraps to its
+    // own row instead of pushing everything after it around.
     return `
       <div class="tg-card${qualified ? ' qualified' : ''}" style="border-left-color:${edge};">
+        <div class="tg-open-record" data-open-record="${card.id}" title="Open full record">↗</div>
         <div class="tg-check">✓</div>
         <div class="tg-card-inner">
           ${renderCheckbox(card)}
           <div class="tg-card-main">
             <div class="body">${bodyHtml}</div>
-            <div class="tg-chips">${typeHtml}${peopleChips}${tagHtml}${dateHtml}</div>
+            <div class="tg-chips">${typeHtml}${peopleChips}${dateHtml}${domainHtml}${tagHtml}</div>
           </div>
         </div>
       </div>`;
+  }
+
+  // Best-effort color for a note's Domain chip: match the live domain
+  // record against DOMAIN_META (the curated fixed-6 color table) by page
+  // id when the property is a relation, or by name when it's a select (no
+  // page id in that case). No match (e.g. a domain added after the color
+  // table was last curated) just renders in the neutral "no domain" look.
+  function noteDomainMeta(card) {
+    return (card.domainId && DOMAIN_META.find((d) => d.pageId === card.domainId))
+      || (card.domainName && DOMAIN_META.find((d) => d.code === card.domainName))
+      || NO_DOMAIN_META;
   }
 
   function renderTaskCard(card) {
@@ -1017,6 +1152,7 @@
 
     return `
       <div class="tg-card${qualified ? ' qualified' : ''}" style="border-left-color:${edge};">
+        <div class="tg-open-record" data-open-record="${card.id}" title="Open full record">↗</div>
         <div class="tg-check">✓</div>
         <div class="tg-card-inner">
           ${renderCheckbox(card)}
@@ -1034,7 +1170,10 @@
   // option is how a note ends up with zero types.
   function renderTypePopover(card) {
     const current = new Set(card.types);
-    const opts = triageState.data.typeOptions.map((t) => `<div class="tg-type-opt${current.has(t) ? ' on' : ''}" data-pop-value="${escapeHtml(t)}">${escapeHtml(t)}</div>`).join('');
+    const opts = triageState.data.typeOptions.map((t) => {
+      const { icon, name } = splitTrailingEmoji(t);
+      return `<div class="tg-type-opt${current.has(t) ? ' on' : ''}" data-pop-value="${escapeHtml(t)}">${renderChipIcon(icon ? { kind: 'emoji', value: icon } : null)}${escapeHtml(name)}</div>`;
+    }).join('');
     return `<div class="tg-popover"><div class="tg-pop-label">Type — tap to add or remove</div><div class="tg-type-strip">${opts}</div></div>`;
   }
 
@@ -1050,7 +1189,7 @@
     const ql = q.toLowerCase();
     const existing = new Set(card.tagIds);
     const matches = triageState.data.tags.list.filter((t) => !existing.has(t.id) && t.name.toLowerCase().includes(ql));
-    const optsHtml = matches.map((t) => `<div class="tg-pop-opt" data-pop-value="${escapeHtml(t.id)}">#${escapeHtml(t.name)}</div>`).join('');
+    const optsHtml = matches.map((t) => `<div class="tg-pop-opt" data-pop-value="${escapeHtml(t.id)}">${renderChipIcon(t.icon)}#${escapeHtml(t.name)}</div>`).join('');
     const exact = q && triageState.data.tags.list.some((t) => t.name.toLowerCase() === ql);
     const createHtml = q && !exact
       ? `<div class="tg-pop-opt tg-pop-opt--create" data-pop-value="${escapeHtml(q)}" data-pop-create="true">+ Create "${escapeHtml(q)}"</div>`
@@ -1060,7 +1199,7 @@
 
   function renderTagPopover(card) {
     const currentHtml = card.tags.length
-      ? `<div class="tg-pop-current">${card.tagIds.map((id, i) => `<span class="tg-pop-pill">#${escapeHtml(card.tags[i] || '')}<span class="x" data-pop-remove-tag="${escapeHtml(id)}">×</span></span>`).join('')}</div>`
+      ? `<div class="tg-pop-current">${card.tagIds.map((id, i) => `<span class="tg-pop-pill">${renderChipIcon(triageState.data.tags.iconById.get(id))}#${escapeHtml(card.tags[i] || '')}<span class="x" data-pop-remove-tag="${escapeHtml(id)}">×</span></span>`).join('')}</div>`
       : '';
     return `<div class="tg-popover">
       ${currentHtml}
@@ -1101,6 +1240,23 @@
     const current = card.domainCode;
     const opts = DOMAIN_META.map((d) => `<div class="tg-type-opt${d.code === current ? ' on' : ''}" data-pop-value="${d.code}" style="background:${d.fill};color:${d.text};">${d.code}</div>`).join('');
     const clearHtml = current ? `<div class="tg-pop-opt tg-pop-opt--clear" data-pop-value="" data-pop-clear="true">Remove domain</div>` : '';
+    return `<div class="tg-popover"><div class="tg-pop-label">Domain</div><div class="tg-type-strip">${opts}</div>${clearHtml}</div>`;
+  }
+
+  // Notes' Domain picker — existing domains only, read live from the
+  // Domains DB (triageState.data.domains), same "assign existing, never
+  // create" rule as Project assignment. data-pop-value carries the domain's
+  // page id; applyNoteSetDomain looks its name back up from that same live
+  // list, so this works whether the underlying property is a relation or a
+  // select (no plumbing here needs to know which).
+  function renderNoteDomainPopover(card) {
+    const domainList = triageState.data.domains.list;
+    const opts = domainList.map((d) => {
+      const meta = DOMAIN_META.find((m) => m.pageId === d.id) || DOMAIN_META.find((m) => m.code === d.name) || NO_DOMAIN_META;
+      const isOn = card.domainId ? d.id === card.domainId : d.name === card.domainName;
+      return `<div class="tg-type-opt${isOn ? ' on' : ''}" data-pop-value="${escapeHtml(d.id)}" style="background:${meta.fill};color:${meta.text};">${escapeHtml(d.name)}</div>`;
+    }).join('');
+    const clearHtml = card.domainName ? `<div class="tg-pop-opt tg-pop-opt--clear" data-pop-value="" data-pop-clear="true">Remove domain</div>` : '';
     return `<div class="tg-popover"><div class="tg-pop-label">Domain</div><div class="tg-type-strip">${opts}</div>${clearHtml}</div>`;
   }
 
@@ -1242,7 +1398,7 @@
     const q = (triageState.popoverQuery || '').trim();
     const ql = q.toLowerCase();
     const matches = triageState.data.tags.list.filter((t) => t.name.toLowerCase().includes(ql));
-    const optsHtml = matches.map((t) => `<div class="tg-pop-opt" data-pop-value="${escapeHtml(t.id)}">#${escapeHtml(t.name)}</div>`).join('');
+    const optsHtml = matches.map((t) => `<div class="tg-pop-opt" data-pop-value="${escapeHtml(t.id)}">${renderChipIcon(t.icon)}#${escapeHtml(t.name)}</div>`).join('');
     const exact = q && triageState.data.tags.list.some((t) => t.name.toLowerCase() === ql);
     const createHtml = q && !exact
       ? `<div class="tg-pop-opt tg-pop-opt--create" data-pop-value="${escapeHtml(q)}" data-pop-create="true">+ Create "${escapeHtml(q)}"</div>`
@@ -1582,6 +1738,53 @@
     });
   }
 
+  // Domain is optional on notes — never part of the qualified test, and
+  // Refresh is untouched by it. Writes according to whatever the schema
+  // actually resolved (triageState.data.notesDomainProp): a relation write
+  // for a relation property, a select write for a select property. Assigns
+  // from the live Domains list only — no create-new affordance here, same
+  // as Project assignment.
+  function applyNoteSetDomain(cardId, domainId) {
+    return withBusy(async () => {
+      const card = triageState.data.notesCards.find((c) => c.id === cardId);
+      const prop = triageState.data.notesDomainProp;
+      if (!card || !prop) return;
+      const domainName = triageState.data.domains.byId.get(domainId) || null;
+      const body = prop.type === 'relation'
+        ? { properties: { [prop.name]: { relation: [{ id: domainId }] } } }
+        : { properties: { [prop.name]: { select: { name: domainName } } } };
+      try {
+        await notionRequest(`/v1/pages/${cardId}`, { method: 'PATCH', body });
+        card.domainId = prop.type === 'relation' ? domainId : null;
+        card.domainName = domainName;
+        triageState.popover = null;
+      } catch (err) {
+        console.error('Failed to set Domain', err);
+        showTriageToast(err.message || 'Could not set Domain — try again.');
+      }
+    });
+  }
+
+  function applyNoteClearDomain(cardId) {
+    return withBusy(async () => {
+      const card = triageState.data.notesCards.find((c) => c.id === cardId);
+      const prop = triageState.data.notesDomainProp;
+      if (!card || !prop) return;
+      const body = prop.type === 'relation'
+        ? { properties: { [prop.name]: { relation: [] } } }
+        : { properties: { [prop.name]: { select: null } } };
+      try {
+        await notionRequest(`/v1/pages/${cardId}`, { method: 'PATCH', body });
+        card.domainId = null;
+        card.domainName = null;
+        triageState.popover = null;
+      } catch (err) {
+        console.error('Failed to clear Domain', err);
+        showTriageToast(err.message || 'Could not clear Domain — try again.');
+      }
+    });
+  }
+
   function applyTaskExistingProject(cardId, projectId) {
     return withBusy(async () => {
       try {
@@ -1611,6 +1814,7 @@
     if (field === 'domain') return isClear ? applyTaskClearProject(cardId) : applyTaskSetDomain(cardId, value);
     if (field === 'status') return applyTaskStatus(cardId, value);
     if (field === 'date') return applyNoteDate(cardId, value);
+    if (field === 'notedomain') return isClear ? applyNoteClearDomain(cardId) : applyNoteSetDomain(cardId, value);
   }
 
   // --- Select mode / bulk actions ------------------------------------------
@@ -1923,6 +2127,21 @@
         triageState.popoverQuery = '';
       }
       paintTriage();
+      return;
+    }
+
+    // Opens the record's full Notion URL (already on the card from the page
+    // object, no extra fetch) in a new tab. Resolved by card id at click
+    // time rather than embedding the URL in the DOM, so this can swap to an
+    // in-app profile route later (e.g. `location.hash = '#/notes/'+id`)
+    // without touching the markup that triggers it.
+    const openRecordBtn = e.target.closest('[data-open-record]');
+    if (openRecordBtn) {
+      e.stopPropagation();
+      const cardId = openRecordBtn.dataset.openRecord;
+      const allCards = triageState.track === 'notes' ? triageState.data.notesCards : triageState.data.tasksCards;
+      const card = allCards.find((c) => c.id === cardId);
+      if (card && card.url) window.open(card.url, '_blank', 'noopener');
       return;
     }
 
