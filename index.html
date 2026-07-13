@@ -34,6 +34,14 @@
   html, body {
     height: 100%;
     margin: 0;
+    /* .shell-content (and Triage's own .tg-stack/.tg-track inside it) is the
+       only intended scroll container in the app. Without this, a shell that
+       renders even slightly taller than the visual viewport (common on
+       mobile Safari, where the dynamic toolbar shifts 100dvh) lets the
+       document itself become scrollable too — a second, untracked scroll
+       position our own scroll-preservation code never resets, which reads
+       as "tapping a pill scrolls the page to the top" after any re-render. */
+    overflow: hidden;
   }
 
   body {
@@ -634,15 +642,15 @@
   const TYPE_EDGE = {
     'Reflection 🤔': 'oklch(0.56 0.03 70)',
     'Dream 💤': 'oklch(0.56 0.045 25)',
-    'Sermon 🔮': 'oklch(0.55 0.05 45)',
+    'Sermon 🗣': 'oklch(0.55 0.05 45)',
     'Thought 💭': 'oklch(0.55 0.035 110)',
-    'Bible Study 📚': 'oklch(0.55 0.03 135)',
+    'Study 📚': 'oklch(0.55 0.03 135)',
   };
   const TYPE_EDGE_DEFAULT = '#2A3408';
 
   // Only Dream/Sermon/Reflection have a dedicated icon in the design; every
   // other type (and the "No type" bin) uses a generic monochrome dot.
-  const TYPE_ICON = { 'Dream 💤': 'moon', 'Sermon 🔮': 'book', 'Reflection 🤔': 'ripple' };
+  const TYPE_ICON = { 'Dream 💤': 'moon', 'Sermon 🗣': 'book', 'Reflection 🤔': 'ripple' };
 
   const ICONS = {
     moon:   '<svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#3A4410" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 14.5A8 8 0 1 1 9.5 4a7 7 0 0 0 10.5 10.5z"/></svg>',
@@ -928,12 +936,15 @@
     const qualified = noteQualified(card);
     const edge = card.types.length ? (TYPE_EDGE[card.types[0]] || TYPE_EDGE_DEFAULT) : TYPE_EDGE_DEFAULT;
 
-    // Type is always tappable (opens the single-select strip); it's the
-    // primary sorting axis, matching triage-view.html's makeTypeChip.
-    const typeLabel = card.types.length ? card.types.join(' · ') : 'Set Type';
-    const typeChipClass = card.types.length ? 'tg-chip' : 'tg-ghost';
+    // Type is a Notion multi-select — a note can carry several types at
+    // once — so it renders like Tags: one filled chip per assigned type,
+    // plus a persistent "+" to add another, sharing one toggle popover.
+    const typeTriggers = card.types.length
+      ? card.types.map((t) => `<div class="tg-chip" data-chip-action="type" data-card-id="${card.id}">${escapeHtml(t)}</div>`).join('')
+        + `<div class="tg-chip tg-chip--add" data-chip-action="type" data-card-id="${card.id}">+</div>`
+      : `<div class="tg-ghost" data-chip-action="type" data-card-id="${card.id}">+ Type</div>`;
     const typeHtml = `<div class="tg-pop-wrap">
-      <div class="${typeChipClass}" data-chip-action="type" data-card-id="${card.id}">${escapeHtml(typeLabel)}</div>
+      ${typeTriggers}
       ${popoverOpenFor(card.id, 'type') ? renderTypePopover(card) : ''}
     </div>`;
 
@@ -1017,11 +1028,14 @@
       </div>`;
   }
 
+  // Multi-select toggle strip — every option in the live schema list is
+  // always shown; tapping one adds it if absent or removes it if present
+  // (marked "on"). No separate "clear" row: toggling off the last "on"
+  // option is how a note ends up with zero types.
   function renderTypePopover(card) {
-    const current = card.types[0] || null;
-    const opts = triageState.data.typeOptions.map((t) => `<div class="tg-type-opt${t === current ? ' on' : ''}" data-pop-value="${escapeHtml(t)}">${escapeHtml(t)}</div>`).join('');
-    const clearHtml = current ? `<div class="tg-pop-opt tg-pop-opt--clear" data-pop-value="" data-pop-clear="true">Clear type</div>` : '';
-    return `<div class="tg-popover"><div class="tg-pop-label">Type</div><div class="tg-type-strip">${opts}</div>${clearHtml}</div>`;
+    const current = new Set(card.types);
+    const opts = triageState.data.typeOptions.map((t) => `<div class="tg-type-opt${current.has(t) ? ' on' : ''}" data-pop-value="${escapeHtml(t)}">${escapeHtml(t)}</div>`).join('');
+    return `<div class="tg-popover"><div class="tg-pop-label">Type — tap to add or remove</div><div class="tg-type-strip">${opts}</div></div>`;
   }
 
   // Create/Clear rows render directly under the input/current-tags — above
@@ -1384,30 +1398,24 @@
     });
   }
 
-  function applyNoteType(cardId, newType) {
+  // Type is a multi_select — toggling one option adds it if the note
+  // doesn't already carry it, or removes it if it does, and writes the
+  // FULL resulting array (Notion's multi_select PATCH always replaces the
+  // whole set, so a partial write would silently drop every other type).
+  // `type` is always one of triageState.data.typeOptions' exact strings
+  // (fetched live from the schema), never a hardcoded/bare name.
+  function applyNoteToggleType(cardId, type) {
     return withBusy(async () => {
+      const card = triageState.data.notesCards.find((c) => c.id === cardId);
+      if (!card) return;
+      const newTypes = card.types.includes(type) ? card.types.filter((t) => t !== type) : [...card.types, type];
       try {
-        await notionRequest(`/v1/pages/${cardId}`, { method: 'PATCH', body: { properties: { [CONFIG.NOTES_PROP.TYPE]: { multi_select: [{ name: newType }] } } } });
-        const card = triageState.data.notesCards.find((c) => c.id === cardId);
-        if (card) card.types = [newType];
+        await notionRequest(`/v1/pages/${cardId}`, { method: 'PATCH', body: { properties: { [CONFIG.NOTES_PROP.TYPE]: { multi_select: newTypes.map((name) => ({ name })) } } } });
+        card.types = newTypes;
         triageState.popover = null;
       } catch (err) {
-        console.error('Failed to set Type', err);
-        showTriageToast(err.message || 'Could not set Type — try again.');
-      }
-    });
-  }
-
-  function applyNoteClearType(cardId) {
-    return withBusy(async () => {
-      try {
-        await notionRequest(`/v1/pages/${cardId}`, { method: 'PATCH', body: { properties: { [CONFIG.NOTES_PROP.TYPE]: { multi_select: [] } } } });
-        const card = triageState.data.notesCards.find((c) => c.id === cardId);
-        if (card) card.types = [];
-        triageState.popover = null;
-      } catch (err) {
-        console.error('Failed to clear Type', err);
-        showTriageToast(err.message || 'Could not clear Type — try again.');
+        console.error('Failed to update Type', err);
+        showTriageToast(err.message || 'Could not update Type — try again.');
       }
     });
   }
@@ -1596,7 +1604,7 @@
   function handlePopoverSelect(value, isCreate, isClear) {
     if (!triageState.popover) return;
     const { cardId, field } = triageState.popover;
-    if (field === 'type') return isClear ? applyNoteClearType(cardId) : applyNoteType(cardId, value);
+    if (field === 'type') return applyNoteToggleType(cardId, value);
     if (field === 'tag') return isCreate ? applyNoteNewTag(cardId, value) : applyNoteExistingTag(cardId, value);
     if (field === 'due') return isClear ? applyTaskClearDueDate(cardId) : applyTaskDue(cardId, value);
     if (field === 'project') return isClear ? applyTaskClearProject(cardId) : applyTaskExistingProject(cardId, value);
@@ -1616,15 +1624,22 @@
     showTriageToast(message);
   }
 
+  // Adds `type` to each selected note's existing types (skipping cards that
+  // already carry it) — same "never overwrite the multi_select" rule as the
+  // per-card toggle. Bulk has no natural way to also let you remove a type
+  // across a mixed selection, so it's add-only, mirroring applyBulkTag.
   function applyBulkType(type) {
     return withBusy(async () => {
       const ids = [...triageState.selected];
+      const cardsById = new Map(triageState.data.notesCards.map((c) => [c.id, c]));
       try {
         for (const id of ids) {
+          const card = cardsById.get(id);
+          if (!card || card.types.includes(type)) continue;
+          const newTypes = [...card.types, type];
           // eslint-disable-next-line no-await-in-loop
-          await notionRequest(`/v1/pages/${id}`, { method: 'PATCH', body: { properties: { [CONFIG.NOTES_PROP.TYPE]: { multi_select: [{ name: type }] } } } });
-          const card = triageState.data.notesCards.find((c) => c.id === id);
-          if (card) card.types = [type];
+          await notionRequest(`/v1/pages/${id}`, { method: 'PATCH', body: { properties: { [CONFIG.NOTES_PROP.TYPE]: { multi_select: newTypes.map((name) => ({ name })) } } } });
+          card.types = newTypes;
         }
         finishBulkAction(`${ids.length} updated`);
       } catch (err) {
@@ -1843,7 +1858,16 @@
     const newStack = triageContainer.querySelector('.tg-stack');
     if (newStack) newStack.scrollTop = stackScrollTop;
 
-    requestAnimationFrame(adjustPopoverPosition);
+    // Re-assert both scroll positions one frame later too — on touch devices
+    // a tap can leave native momentum/rubber-band scrolling still in flight,
+    // which can override the synchronous set above before the next paint.
+    // Cheap and a no-op when nothing was still in motion.
+    requestAnimationFrame(() => {
+      triageContainer.scrollTop = containerScrollTop;
+      const stackNow = triageContainer.querySelector('.tg-stack');
+      if (stackNow) stackNow.scrollTop = stackScrollTop;
+      adjustPopoverPosition();
+    });
   }
 
   async function loadAndPaintTriage() {
