@@ -2335,6 +2335,65 @@
   content.addEventListener('pointerup', endSwipeDrag);
   content.addEventListener('pointercancel', endSwipeDrag);
 
+  // A trackpad two-finger horizontal swipe never fires pointerdown/move/up
+  // at all — it's a `wheel` event stream (deltaX/deltaY), so the drag
+  // logic above never engages for it no matter how correct it is. Wheel
+  // gestures also have no explicit "end" event the way a pointer drag has
+  // pointerup: a swipe is just a burst of wheel events that stops, so the
+  // end of the gesture is detected by a short pause with no further
+  // horizontal delta, via a debounce timer.
+  const WHEEL_GESTURE_END_MS = 150;
+  let wheelSwipe = null;
+
+  function endWheelSwipe() {
+    if (!wheelSwipe) return;
+    const { cardEl, cardId, dx } = wheelSwipe;
+    cardEl.classList.remove('dragging');
+    const base = triageState.swipedCardId === cardId ? -SWIPE_OPEN_PX : 0;
+    const finalTranslate = Math.max(-SWIPE_OPEN_PX, Math.min(0, base + dx));
+    cardEl.style.transform = '';
+    triageState.swipedCardId = finalTranslate < -SWIPE_OPEN_PX / 2 ? cardId : null;
+    paintTriage();
+    wheelSwipe = null;
+  }
+
+  content.addEventListener('wheel', (e) => {
+    if (currentRoute() !== 'triage') return;
+    if (triageState.selecting) return;
+    const wrapEl = e.target.closest('.tg-swipe-wrap');
+    const cardId = wrapEl ? wrapEl.dataset.swipeCard : null;
+    if (!wheelSwipe && !cardId) return;
+
+    // Not yet tracking a gesture on this element: only take over once the
+    // scroll is clearly horizontal-dominant, so ordinary vertical list
+    // scrolling over a card (the common case) passes through untouched.
+    if (!wheelSwipe) {
+      if (Math.abs(e.deltaX) <= Math.abs(e.deltaY)) return;
+      const cardEl = wrapEl.querySelector('.tg-card-swipeable');
+      if (!cardEl) return;
+      if (triageState.swipedCardId && triageState.swipedCardId !== cardId) {
+        const openWrapEl = content.querySelector(`.tg-swipe-wrap[data-swipe-card="${CSS.escape(triageState.swipedCardId)}"]`);
+        const openCardEl = openWrapEl && openWrapEl.querySelector('.tg-card-swipeable');
+        if (openCardEl) openCardEl.classList.remove('swiped');
+        triageState.swipedCardId = null;
+      }
+      cardEl.classList.add('dragging');
+      wheelSwipe = { cardId, cardEl, dx: 0, timer: null };
+    }
+
+    e.preventDefault();
+    clearTimeout(wheelSwipe.timer);
+    // Natural (default) trackpad scrolling reports a positive deltaX when
+    // fingers move left, matching the deltaX-increases-scrollLeft
+    // convention — so a leftward swipe (deltaX > 0) should push the card
+    // further toward its open (negative translateX) position.
+    wheelSwipe.dx -= e.deltaX;
+    const base = triageState.swipedCardId === wheelSwipe.cardId ? -SWIPE_OPEN_PX : 0;
+    const translate = Math.max(-SWIPE_OPEN_PX, Math.min(0, base + wheelSwipe.dx));
+    wheelSwipe.cardEl.style.transform = `translateX(${translate}px)`;
+    wheelSwipe.timer = setTimeout(endWheelSwipe, WHEEL_GESTURE_END_MS);
+  }, { passive: false });
+
   // Event delegation for Triage interactions — attached once to #content.
   content.addEventListener('click', (e) => {
     if (currentRoute() !== 'triage') return;
