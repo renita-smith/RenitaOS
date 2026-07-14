@@ -321,7 +321,9 @@
     position: relative; background: oklch(0.995 0.003 75); border-radius: var(--radius-lg);
     box-shadow: 0 1px 2px rgba(0,0,0,.04), inset 0 0 0 1px var(--hairline);
     border-left: 3px solid var(--text);
-    padding: 18px 18px 16px;
+    /* Extra bottom padding reserves room for .tg-open-record, which now
+       sits in this corner instead of overlapping the chip row above it. */
+    padding: 18px 18px 44px;
   }
   .tg-card .body {
     font-family: 'Newsreader', serif; font-size: 18px; line-height: 1.5;
@@ -412,12 +414,14 @@
   /* Opens the record's full Notion page in a new tab for now; the target
      is resolved per-card at click time (data-open-record holds the card
      id, not a raw URL) so this can swap to an in-app profile route later
-     without touching the markup. Sits left of .tg-check so the two never
-     collide whether or not the card is qualified. */
+     without touching the markup. Anchored to the card's own bottom-right
+     corner (within the padding reserved on .tg-card), well clear of the
+     chip row above it and of the undo snackbar / other bottom bars, which
+     float over the view rather than living inside the card. */
   .tg-open-record {
-    position: absolute; top: 14px; right: 40px; width: 20px; height: 20px; border-radius: 50%;
+    position: absolute; bottom: 14px; right: 14px; width: 20px; height: 20px; border-radius: 50%;
     display: flex; align-items: center; justify-content: center;
-    color: var(--muted-text); font-size: 13px; cursor: pointer;
+    color: var(--muted-text); font-size: 11px; cursor: pointer;
   }
   .tg-open-record:hover { background: oklch(0.95 0.006 75); color: var(--text); }
 
@@ -1048,12 +1052,16 @@
     const { track } = triageState;
 
     const notesBinsHtml = noteBins.length
-      ? noteBins.map((bin) => `
+      ? noteBins.map((bin) => {
+          // "No type" is a synthetic catch-all label, not a real Type
+          // option string, so there's no trailing emoji to parse out of it.
+          const { name, icon } = bin.key === NO_GROUP ? { name: bin.label, icon: '' } : splitTrailingEmoji(bin.label);
+          return `
         <div class="tg-bin" data-bin-track="notes" data-bin-key="${escapeHtml(bin.key)}">
-          <span class="tg-icon-slot">${ICONS[bin.icon] || ''}</span>
-          <span class="name">${escapeHtml(bin.label)}</span>
+          <span class="name">${icon ? `${escapeHtml(icon)} ` : ''}${escapeHtml(name)}</span>
           <span class="n tg-count-mono">${bin.cards.length}</span>
-        </div>`).join('')
+        </div>`;
+        }).join('')
       : `<div class="tg-empty-track">Nothing waiting in Notes.</div>`;
 
     const taskTilesHtml = taskBins.map((bin) => `
@@ -1175,7 +1183,7 @@
           <span>Delete</span>
         </div>
         <div class="tg-card tg-card-swipeable${qualified ? ' qualified' : ''}${isSwipedOpen ? ' swiped' : ''}" style="border-left-color:${edge};">
-          <div class="tg-open-record" data-open-record="${card.id}" title="Open full record">↗</div>
+          <div class="tg-open-record" data-open-record="${card.id}" title="Open full record">▶</div>
           <div class="tg-check">✓</div>
           <div class="tg-card-inner">
             ${renderCheckbox(card)}
@@ -1234,7 +1242,7 @@
 
     return `
       <div class="tg-card${qualified ? ' qualified' : ''}" style="border-left-color:${edge};">
-        <div class="tg-open-record" data-open-record="${card.id}" title="Open full record">↗</div>
+        <div class="tg-open-record" data-open-record="${card.id}" title="Open full record">▶</div>
         <div class="tg-check">✓</div>
         <div class="tg-card-inner">
           ${renderCheckbox(card)}
