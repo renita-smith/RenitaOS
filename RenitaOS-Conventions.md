@@ -57,6 +57,25 @@ Type color is **ambient, not wayfinding** — it identifies far less than the Do
 
 ---
 
+## Typography & casing conventions
+
+House style is **sentence case** everywhere by default (headings, labels, buttons,
+messages) — e.g. "One bin at a time."
+
+Intentional exceptions — do NOT "correct" these on consistency passes:
+- The **"INBOX"** screen heading (top-left, Triage) is an intentional all-caps label.
+- The **"No Type"** bin label uses Title Case — it's a proper bin name, not a typo.
+- The **"Sort"** pill (top-right, Triage) uses Title Case intentionally.
+
+Serif vs. sans split:
+- **Serif** is the app's "voice" — reflective/human messaging (subtitles, inbox-zero and
+  bin-clear messages).
+- **Sans-serif** is for UI data you scan rather than read — ALL numeric counts (per-bin
+  counts, total counts, the nav inbox pill number, the "· N" beside an open bin header).
+- Rule of thumb: prose is serif, data is sans.
+
+---
+
 ## Adoption status (per screen)
 
 - **Triage** — built to this palette from the start.
