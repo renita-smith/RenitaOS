@@ -480,11 +480,40 @@
   .tg-layout[data-active-pane="bin"] > .tg-pane-bin { display: flex; }
 
   @media (min-width: 768px) {
-    /* The shell itself is a fixed 560px mobile column everywhere else in
-       the app; widen it only while Triage is the active route (toggled
-       in render()), so Home/Capture are untouched. */
-    .shell.shell--wide { max-width: 1040px; }
+    /* App shell — persistent left-nav rail. The mobile shell is a single
+       stacked column (topbar / content / bottom nav); on desktop it becomes
+       a two-column grid instead — the nav spans the full height on the
+       left, topbar+content keep stacking normally on the right. Grid areas
+       place this purely by name, so the nav's markup position (last child,
+       after #content) doesn't need to change. Every route gets this frame;
+       only the route's own content inside .shell-content differs. */
+    .shell {
+      max-width: 1040px;
+      display: grid;
+      grid-template-columns: 200px minmax(0, 1fr);
+      grid-template-rows: auto 1fr;
+      grid-template-areas:
+        "nav topbar"
+        "nav content";
+      column-gap: 32px;
+    }
+    .shell-topbar { grid-area: topbar; }
+    .shell-content { grid-area: content; }
 
+    .shell-nav {
+      grid-area: nav;
+      justify-content: flex-start;
+      padding: 20px 0;
+    }
+    .nav-track { flex-direction: column; width: 100%; }
+    .nav-btn { flex: 0 0 auto; text-align: left; padding: 10px 14px; }
+
+    /* Content stays a comfortable bounded width on desktop — except
+       Triage's own stretch layout, which manages its two-pane width itself
+       (see .tg-pane-bin below), so it opts out of this general bound. */
+    .shell-content:not(.stretch) { max-width: 640px; margin: 0 auto; width: 100%; }
+
+    /* Triage — desktop two-pane layout (existing). */
     .tg-layout { flex-direction: row; gap: 24px; }
     .tg-pane-overview, .tg-pane-bin { display: flex !important; }
     .tg-pane-overview { flex: 0 0 300px; }
@@ -732,7 +761,6 @@
 
   const inboxPill = document.getElementById('inboxPill');
   const content = document.getElementById('content');
-  const shellEl = document.querySelector('.shell');
 
   async function refreshInboxCount() {
     try {
@@ -2623,7 +2651,6 @@
       btn.classList.toggle('active', btn.dataset.route === route);
     });
     content.classList.toggle('stretch', route === 'triage');
-    shellEl.classList.toggle('shell--wide', route === 'triage');
     if (route === 'triage') {
       mountTriage(content);
     } else {
