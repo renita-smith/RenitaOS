@@ -303,11 +303,15 @@
   .tg-swipe-trash {
     position: absolute; top: 0; right: 0; bottom: 0; width: 84px;
     display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
-    background: color-mix(in oklch, oklch(0.55 0.15 25) 85%, black); color: #fff;
+    background: #B05541; color: #F4F1E8;
     font-size: 11px; font-weight: 600; cursor: pointer;
     border-radius: var(--radius-lg);
   }
-  .tg-swipe-trash-icon { font-size: 18px; }
+  /* An emoji glyph (the old 🗑) renders in the system emoji font's own
+     fixed colors, ignoring CSS `color` entirely — an inline stroke icon
+     with currentColor is what actually lets it pick up the cream color
+     above instead of staying dark-on-dark. */
+  .tg-swipe-trash-icon svg { width: 18px; height: 18px; display: block; }
   /* touch-action only governs touch/pen input; on a mouse, dragging across
      the card's own text would otherwise start a native text selection
      that fights the swipe transform (this is what broke mouse-drag on
@@ -445,6 +449,16 @@
     padding: 12px 18px; border-radius: var(--radius-lg); box-shadow: 0 12px 28px rgba(0,0,0,.28); white-space: nowrap;
   }
   .tg-snackbar .undo { font-weight: 700; color: #fff; cursor: pointer; text-decoration: underline; text-underline-offset: 2px; }
+
+  /* Bulk delete (Select mode) can leave the undo snackbar and the
+     bulk-action bar on screen at once — unlike single delete, which only
+     ever fires outside Select mode. The bar is a real flex item sitting at
+     .tg-view's bottom edge, so the snackbar/toast's own bottom:16px (also
+     measured from .tg-view) would otherwise land underneath it. */
+  .tg-view.selecting .tg-snackbar,
+  .tg-view.selecting .tg-toast {
+    bottom: 96px;
+  }
 
   /* ============================================================
      Desktop layout (~768px+) — layout only, no palette/component
@@ -779,6 +793,10 @@
     ripple: '<svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#3A4410" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9c2-2 4-2 6 0s4 2 6 0 4-2 6 0"/><path d="M3 14c2-2 4-2 6 0s4 2 6 0 4-2 6 0"/></svg>',
     dot:    '<svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#3A4410" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="6.5"/></svg>',
   };
+
+  // stroke="currentColor" so this picks up .tg-swipe-trash's cream color —
+  // unlike the emoji it replaces, which renders in fixed system-font colors.
+  const TRASH_SVG = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16"/><path d="M9 7V4.5A1.5 1.5 0 0 1 10.5 3h3A1.5 1.5 0 0 1 15 4.5V7"/><path d="M6 7l1 13a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-13"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>';
 
   // Sentinel bin key for the "No type" / "No domain" catch-all groups —
   // distinct from `null`, which means "no bin open" (overview screen).
@@ -1179,7 +1197,7 @@
     return `
       <div class="tg-swipe-wrap" data-swipe-card="${card.id}">
         <div class="tg-swipe-trash" data-delete-card="${card.id}">
-          <span class="tg-swipe-trash-icon">🗑</span>
+          <span class="tg-swipe-trash-icon">${TRASH_SVG}</span>
           <span>Delete</span>
         </div>
         <div class="tg-card tg-card-swipeable${qualified ? ' qualified' : ''}${isSwipedOpen ? ' swiped' : ''}" style="border-left-color:${edge};">
@@ -1474,8 +1492,8 @@
     const count = triageState.selected.size;
     const track = triageState.track;
     const actions = track === 'notes'
-      ? [{ key: 'tag', label: 'Tag' }, { key: 'type', label: 'Type' }, { key: 'status', label: 'Status' }]
-      : [{ key: 'project', label: 'Project' }, { key: 'due', label: 'Due' }, { key: 'status', label: 'Status' }];
+      ? [{ key: 'tag', label: 'Tag' }, { key: 'status', label: 'Status' }, { key: 'delete', label: 'Delete' }]
+      : [{ key: 'status', label: 'Status' }, { key: 'project', label: 'Project' }, { key: 'delete', label: 'Delete' }];
     const btnsHtml = actions.map((a) => `
       <div class="tg-pop-wrap tg-bulk-wrap">
         <button type="button" class="tg-bulk-btn" data-bulk-action="${a.key}"${count === 0 || triageState.busy ? ' disabled' : ''}>${a.label}</button>
@@ -1508,10 +1526,6 @@
   }
 
   function renderBulkPopover(key) {
-    if (key === 'type') {
-      const opts = triageState.data.typeOptions.map((t) => `<div class="tg-type-opt" data-pop-value="${escapeHtml(t)}">${escapeHtml(t)}</div>`).join('');
-      return `<div class="tg-popover tg-popover--up"><div class="tg-pop-label">Set Type</div><div class="tg-type-strip">${opts}</div></div>`;
-    }
     if (key === 'tag') {
       return `<div class="tg-popover tg-popover--up">
         <input type="text" class="tg-pop-input" data-pop-filter placeholder="Add a tag to all selected…" value="${escapeHtml(triageState.popoverQuery || '')}">
@@ -1522,14 +1536,6 @@
       return `<div class="tg-popover tg-popover--up">
         <input type="text" class="tg-pop-input" data-pop-filter placeholder="Set project for all selected…" value="${escapeHtml(triageState.popoverQuery || '')}">
         <div class="tg-pop-dynamic">${renderBulkProjectPopoverDynamic()}</div>
-      </div>`;
-    }
-    if (key === 'due') {
-      const optsHtml = quickDueOptions().map((o) => `<div class="tg-pop-opt" data-pop-value="${o.iso}">${o.label}</div>`).join('');
-      return `<div class="tg-popover tg-popover--up">
-        <div class="tg-pop-label">Set due date</div>
-        <div class="tg-pop-list">${optsHtml}</div>
-        <input type="date" class="tg-pop-date" data-pop-date-input>
       </div>`;
     }
     if (key === 'status') {
@@ -1958,31 +1964,6 @@
     showTriageToast(message);
   }
 
-  // Adds `type` to each selected note's existing types (skipping cards that
-  // already carry it) — same "never overwrite the multi_select" rule as the
-  // per-card toggle. Bulk has no natural way to also let you remove a type
-  // across a mixed selection, so it's add-only, mirroring applyBulkTag.
-  function applyBulkType(type) {
-    return withBusy(async () => {
-      const ids = [...triageState.selected];
-      const cardsById = new Map(triageState.data.notesCards.map((c) => [c.id, c]));
-      try {
-        for (const id of ids) {
-          const card = cardsById.get(id);
-          if (!card || card.types.includes(type)) continue;
-          const newTypes = [...card.types, type];
-          // eslint-disable-next-line no-await-in-loop
-          await notionRequest(`/v1/pages/${id}`, { method: 'PATCH', body: { properties: { [CONFIG.NOTES_PROP.TYPE]: { multi_select: newTypes.map((name) => ({ name })) } } } });
-          card.types = newTypes;
-        }
-        finishBulkAction(`${ids.length} updated`);
-      } catch (err) {
-        console.error('Bulk Type failed', err);
-        showTriageToast(err.message || 'Could not set Type for all selected — try again.');
-      }
-    });
-  }
-
   function applyBulkTag(tagId) {
     return withBusy(async () => {
       const ids = [...triageState.selected];
@@ -2051,24 +2032,6 @@
     });
   }
 
-  function applyBulkDue(iso) {
-    return withBusy(async () => {
-      const ids = [...triageState.selected];
-      try {
-        for (const id of ids) {
-          // eslint-disable-next-line no-await-in-loop
-          await notionRequest(`/v1/pages/${id}`, { method: 'PATCH', body: { properties: { [CONFIG.TASKS_PROP.DUE_DATE]: { date: { start: iso } } } } });
-          const card = triageState.data.tasksCards.find((c) => c.id === id);
-          if (card) card.due = iso;
-        }
-        finishBulkAction(`${ids.length} updated`);
-      } catch (err) {
-        console.error('Bulk Due failed', err);
-        showTriageToast(err.message || 'Could not set Due date for all selected — try again.');
-      }
-    });
-  }
-
   // Sets Status directly for every selected card (both tracks) — bypassing
   // qualify + Refresh entirely. If the target isn't Inbox, those cards drop
   // out of the live Inbox data/pinned view, same as Refresh does.
@@ -2100,13 +2063,54 @@
     });
   }
 
+  // Archives every selected card in the current track — same reversible
+  // archive (`archived: true`) as the single swipe-delete, batched. Prior
+  // state for each card is captured before the writes go out so undo can
+  // restore the whole batch; the removedBatch/applyUndo plumbing is the
+  // exact same one Refresh and single delete already share, just with more
+  // than one card in it. Sequential writes (not Promise.all), matching
+  // every other bulk action here, to respect Notion's rate limit. Unlike
+  // the other bulk actions, Delete has no options to pick — it has no
+  // popover and fires directly off the button tap.
+  function applyBulkDelete() {
+    return withBusy(async () => {
+      const track = triageState.track;
+      const ids = [...triageState.selected];
+      if (!ids.length) return;
+      const allCards = track === 'notes' ? triageState.data.notesCards : triageState.data.tasksCards;
+      const cardsById = new Map(allCards.map((c) => [c.id, c]));
+      const cards = ids.map((id) => cardsById.get(id)).filter(Boolean);
+      if (!cards.length) return;
+      try {
+        for (const card of cards) {
+          // eslint-disable-next-line no-await-in-loop
+          await notionRequest(`/v1/pages/${card.id}`, { method: 'PATCH', body: { archived: true } });
+        }
+        const deletedIds = new Set(cards.map((c) => c.id));
+        if (track === 'notes') {
+          triageState.data.notesCards = triageState.data.notesCards.filter((c) => !deletedIds.has(c.id));
+        } else {
+          triageState.data.tasksCards = triageState.data.tasksCards.filter((c) => !deletedIds.has(c.id));
+        }
+        triageState.pinnedIds = triageState.pinnedIds.filter((id) => !deletedIds.has(id));
+        triageState.removedBatch = { kind: 'delete', track, cards };
+        triageState.selected = new Set();
+        triageState.bulkPopover = null;
+        triageState.popoverQuery = '';
+        showUndoSnackbar(`${cards.length} deleted`);
+        refreshInboxCount();
+      } catch (err) {
+        console.error('Bulk delete failed', err);
+        showTriageToast(err.message || 'Could not delete all selected — try again.');
+      }
+    });
+  }
+
   function handleBulkPopoverSelect(value, isCreate) {
     const key = triageState.bulkPopover;
     if (!key) return;
     if (key === 'tag') return isCreate ? applyBulkNewTag(value) : applyBulkTag(value);
-    if (key === 'type') return applyBulkType(value);
     if (key === 'project') return applyBulkProject(value);
-    if (key === 'due') return applyBulkDue(value);
     if (key === 'status') return applyBulkStatus(value);
   }
 
@@ -2533,6 +2537,10 @@
       e.stopPropagation();
       if (triageState.busy || triageState.selected.size === 0) return;
       const key = bulkTrigger.dataset.bulkAction;
+      // Delete has no options to choose — it has no popover, unlike every
+      // other bulk action, and fires directly off the tap (relying on the
+      // undo snackbar as its safety net, same as Refresh and single delete).
+      if (key === 'delete') { applyBulkDelete(); return; }
       triageState.bulkPopover = triageState.bulkPopover === key ? null : key;
       triageState.popover = null;
       triageState.popoverQuery = '';
@@ -2574,13 +2582,11 @@
   });
 
   // The native date input in the Due/Date popover ("Pick a date…") —
-  // per-card (Due on tasks, Date on notes) or bulk, whichever is open.
+  // per-card only (Due on tasks, Date on notes); bulk has no date action.
   content.addEventListener('change', (e) => {
     if (currentRoute() !== 'triage') return;
     if (!e.target.matches('[data-pop-date-input]') || !e.target.value) return;
-    if (triageState.bulkPopover === 'due') {
-      applyBulkDue(e.target.value);
-    } else if (triageState.popover && triageState.popover.field === 'date') {
+    if (triageState.popover && triageState.popover.field === 'date') {
       applyNoteDate(triageState.popover.cardId, e.target.value);
     } else if (triageState.popover) {
       applyTaskDue(triageState.popover.cardId, e.target.value);
