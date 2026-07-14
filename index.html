@@ -282,21 +282,30 @@
 
   .tg-stack { flex: 1; overflow-y: auto; padding: 14px 0 24px; display: flex; flex-direction: column; gap: 12px; }
 
-  /* Swipe-to-delete (notes only). The wrap clips the trash affordance,
-     which sits pinned to the right edge underneath the card; dragging the
-     card left (pointer listeners) reveals it.
-     flex-shrink:0 matters here, not just cosmetically: a flex item with
-     non-visible overflow gets an automatic minimum size of 0 (vs. its
-     content size for overflow:visible items), so without this the wrap
-     — and the full card inside it — gets crushed down to a sliver
-     whenever the note stack's total content exceeds .tg-stack's height,
-     instead of .tg-stack's own overflow-y:auto scrolling normally. */
-  .tg-swipe-wrap { position: relative; overflow: hidden; border-radius: var(--radius-lg); flex-shrink: 0; }
+  /* Swipe-to-delete (notes only). The trash sits pinned to the wrap's
+     right edge, UNDER the card; the card comes after it in the markup, so
+     with neither element given a z-index, normal stacking already paints
+     the (opaque) card on top at rest — no overflow:hidden needed to hide
+     the trash. That matters because a card's own popovers (position:
+     absolute, opening well below the chip row) can be taller than the
+     card itself; clipping the wrap would clip them too, which is exactly
+     what happened here — an overflow:hidden version of this hid every
+     pill's dropdown along with the trash. Dragging the card left
+     (pointer listeners) exposes the trash purely by no longer covering
+     that column; its own border-radius keeps the revealed edge visually
+     seamless with the card's rounded corners.
+     flex-shrink:0 still matters even without overflow:hidden: as a flex
+     child of .tg-stack, this wrap would otherwise be allowed to shrink
+     below its content's natural height whenever the note stack's total
+     content exceeds .tg-stack's own height, instead of .tg-stack's own
+     overflow-y:auto scrolling normally. */
+  .tg-swipe-wrap { position: relative; flex-shrink: 0; }
   .tg-swipe-trash {
     position: absolute; top: 0; right: 0; bottom: 0; width: 84px;
     display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
     background: color-mix(in oklch, oklch(0.55 0.15 25) 85%, black); color: #fff;
     font-size: 11px; font-weight: 600; cursor: pointer;
+    border-radius: var(--radius-lg);
   }
   .tg-swipe-trash-icon { font-size: 18px; }
   /* touch-action only governs touch/pen input; on a mouse, dragging across
@@ -394,7 +403,11 @@
   /* Leading glyph on a chip — a Type option's own trailing emoji, or a
      Tag record's Notion page icon (emoji text or a small image). */
   .tg-chip-icon { display: inline-flex; align-items: center; justify-content: center; font-size: 12px; line-height: 1; flex-shrink: 0; }
-  .tg-chip-icon--img { width: 14px; height: 14px; border-radius: 3px; object-fit: cover; }
+  /* -webkit-user-drag stops the browser's native "drag this image" ghost
+     preview, which (like text selection) can hijack a mouse drag that
+     starts on a chip icon before the swipe-to-delete listeners get a
+     chance to treat it as a swipe. */
+  .tg-chip-icon--img { width: 14px; height: 14px; border-radius: 3px; object-fit: cover; -webkit-user-drag: none; user-drag: none; }
 
   /* Opens the record's full Notion page in a new tab for now; the target
      is resolved per-card at click time (data-open-record holds the card
@@ -676,7 +689,7 @@
   function renderChipIcon(icon) {
     if (!icon) return '';
     if (icon.kind === 'emoji') return `<span class="tg-chip-icon">${escapeHtml(icon.value)}</span>`;
-    return `<img class="tg-chip-icon tg-chip-icon--img" src="${escapeHtml(icon.value)}" alt="">`;
+    return `<img class="tg-chip-icon tg-chip-icon--img" src="${escapeHtml(icon.value)}" alt="" draggable="false">`;
   }
 
   // A database's own `icon` (set on the DATABASE object, not any individual
@@ -2278,6 +2291,14 @@
       if (Math.abs(dy) > Math.abs(dx)) { swipeDrag = null; return; } // vertical scroll, not a swipe
       swipeDrag.dragging = true;
       swipeDrag.cardEl.classList.add('dragging');
+      // Once this is confirmed as a real drag (not a tap), capture the
+      // pointer to the card so every subsequent move/up for it is routed
+      // straight to this element regardless of what's visually underneath
+      // the cursor. Without this, a drag starting over the card's own text
+      // could end up with its pointerup silently lost/misrouted, leaving
+      // the card stuck mid-drag — capture is the standard fix for exactly
+      // that class of unreliability in custom pointer-driven gestures.
+      swipeDrag.cardEl.setPointerCapture(e.pointerId);
     }
     // Once this is confirmed as a horizontal drag, stop the browser's own
     // default handling of the move (e.g. a mouse drag starting a native
