@@ -282,6 +282,27 @@
 
   .tg-stack { flex: 1; overflow-y: auto; padding: 14px 0 24px; display: flex; flex-direction: column; gap: 12px; }
 
+  /* Swipe-to-delete (notes only). The wrap clips the trash affordance,
+     which sits pinned to the right edge underneath the card; dragging the
+     card left (pointer listeners) reveals it.
+     flex-shrink:0 matters here, not just cosmetically: a flex item with
+     non-visible overflow gets an automatic minimum size of 0 (vs. its
+     content size for overflow:visible items), so without this the wrap
+     — and the full card inside it — gets crushed down to a sliver
+     whenever the note stack's total content exceeds .tg-stack's height,
+     instead of .tg-stack's own overflow-y:auto scrolling normally. */
+  .tg-swipe-wrap { position: relative; overflow: hidden; border-radius: var(--radius-lg); flex-shrink: 0; }
+  .tg-swipe-trash {
+    position: absolute; top: 0; right: 0; bottom: 0; width: 84px;
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
+    background: color-mix(in oklch, oklch(0.55 0.15 25) 85%, black); color: #fff;
+    font-size: 11px; font-weight: 600; cursor: pointer;
+  }
+  .tg-swipe-trash-icon { font-size: 18px; }
+  .tg-card-swipeable { touch-action: pan-y; transition: transform .18s ease; }
+  .tg-card-swipeable.dragging { transition: none; }
+  .tg-card-swipeable.swiped { transform: translateX(-84px); }
+
   .tg-card {
     position: relative; background: oklch(0.995 0.003 75); border-radius: var(--radius-lg);
     box-shadow: 0 1px 2px rgba(0,0,0,.04), inset 0 0 0 1px var(--hairline);
@@ -309,9 +330,6 @@
     border-radius: var(--radius-sm); background: var(--surface-soft);
     font-size: 11px; font-weight: 600; color: var(--text);
   }
-  .tg-chip--person { padding-left: 3px; }
-  .tg-chip .avatar { width: 18px; height: 18px; border-radius: 50%; background: var(--tg-icon); color: #fff; font-size: 9px; font-weight: 700; display: flex; align-items: center; justify-content: center; }
-
   .tg-ghost {
     padding: 4px 11px; border-radius: var(--radius-sm);
     font-size: 11px; font-weight: 600;
@@ -656,6 +674,18 @@
     return `<img class="tg-chip-icon tg-chip-icon--img" src="${escapeHtml(icon.value)}" alt="">`;
   }
 
+  // A database's own `icon` (set on the DATABASE object, not any individual
+  // record in it) — the "category marker" every pill of that relation type
+  // shares (e.g. every Domain pill uses the Domains database's icon), as
+  // opposed to Type's per-option emoji. Resolved by database ID, never a
+  // hardcoded name. getSchema is memoized, so this never costs an extra
+  // request beyond whatever already fetches that database's schema
+  // elsewhere in loadTriageData.
+  async function getDatabaseIcon(databaseId) {
+    const db = await getSchema(databaseId);
+    return extractPageIcon(db.icon);
+  }
+
   async function countInboxRecords(databaseId) {
     const { name, value } = await getInboxStatusFilter(databaseId);
     const pages = await queryAllPages(databaseId, { property: name, status: { equals: value } });
@@ -800,6 +830,7 @@
     const [
       notesTagsProp, notesPeopleProp, tasksProjectsProp, tasksTitleProp, projectsDomainsProp,
       tagTitleProp, peopleTitleProp, projectTitleProp, domainTitleProp,
+      tagsDbIcon, peopleDbIcon, projectsDbIcon, domainsDbIcon,
     ] = await Promise.all([
       relationPropertyName(CONFIG.DB.NOTES, CONFIG.DB.TAGS),
       relationPropertyName(CONFIG.DB.NOTES, CONFIG.DB.PEOPLE),
@@ -810,6 +841,15 @@
       titlePropertyName(CONFIG.DB.PEOPLE),
       titlePropertyName(CONFIG.DB.PROJECTS),
       titlePropertyName(CONFIG.DB.DOMAINS),
+      // Each relation pill category shares one icon — the DATABASE's own
+      // icon, not any individual record's — fetched once and stamped on
+      // every pill of that type. getSchema is memoized, so these piggyback
+      // on the same fetches the title/relation lookups above already make;
+      // no extra requests.
+      getDatabaseIcon(CONFIG.DB.TAGS),
+      getDatabaseIcon(CONFIG.DB.PEOPLE),
+      getDatabaseIcon(CONFIG.DB.PROJECTS),
+      getDatabaseIcon(CONFIG.DB.DOMAINS),
     ]);
 
     const [tagPages, peoplePages, projectPages, domainPages, notePages, taskPages] = await Promise.all([
@@ -821,9 +861,8 @@
       queryAllPages(CONFIG.DB.TASKS, { property: tasksFilter.name, status: { equals: tasksFilter.value } }),
     ]);
 
-    const tagList = tagPages.map((p) => ({ id: p.id, name: plainTitle(p, tagTitleProp), icon: extractPageIcon(p.icon) })).filter((t) => t.name);
+    const tagList = tagPages.map((p) => ({ id: p.id, name: plainTitle(p, tagTitleProp) })).filter((t) => t.name);
     const tagById = new Map(tagList.map((t) => [t.id, t.name]));
-    const tagIconById = new Map(tagList.map((t) => [t.id, t.icon]));
     const peopleNameById = new Map(peoplePages.map((p) => [p.id, plainTitle(p, peopleTitleProp)]));
     const domainCodeByPageId = new Map(DOMAIN_META.map((d) => [d.pageId, d.code]));
     const projectList = projectPages.map((p) => {
@@ -868,8 +907,7 @@
         types,
         tagIds,
         tags: tagIds.map((id) => tagById.get(id)).filter(Boolean),
-        people: peopleIds.map((id) => peopleNameById.get(id)).filter(Boolean)
-          .map((name) => ({ name, initial: (name[0] || '?').toUpperCase() })),
+        people: peopleIds.map((id) => peopleNameById.get(id)).filter(Boolean).map((name) => ({ name })),
         body: noteBodies[i],
         date: date ? date.start : null,
         domainId,
@@ -901,10 +939,14 @@
       notesCards,
       tasksCards,
       schema: { notesTagsProp, tasksProjectsProp, projectsDomainsProp, tagTitleProp, projectTitleProp },
-      tags: { list: tagList, byId: tagById, iconById: tagIconById },
+      tags: { list: tagList, byId: tagById },
       projects: { list: projectList, byId: projectById },
       domains: { list: domainList, byId: domainById },
       notesDomainProp,
+      // One shared icon per relation-pill category (the database's own
+      // icon) — see getDatabaseIcon above. Type isn't here: its icon comes
+      // from the option string itself, not a database.
+      icons: { tags: tagsDbIcon, people: peopleDbIcon, projects: projectsDbIcon, domains: domainsDbIcon },
       statusOptions: { notes: notesStatusSchema.options, tasks: tasksStatusSchema.options },
       typeOptions: notesTypeOptions.map((o) => o.name),
     };
@@ -1058,24 +1100,30 @@
 
     // Every filled tag chip is tappable (opens the shared tag popover, which
     // can remove it), plus a persistent "+" so you can add another tag even
-    // after the note already qualifies. Shows the Tag record's own Notion
-    // page icon (emoji or image) as a leading glyph when it has one — tags
-    // otherwise all look identical (same olive-on-sage chip).
+    // after the note already qualifies. Every Tag chip carries the Tags
+    // database's own icon as a leading glyph — a category marker shared
+    // by all tags, not a per-tag distinguisher.
+    const tagIconHtml = renderChipIcon(triageState.data.icons.tags);
     const tagTriggers = card.tags.length
-      ? card.tagIds.map((id, i) => `<div class="tg-chip" data-chip-action="tag" data-card-id="${card.id}">${renderChipIcon(triageState.data.tags.iconById.get(id))}#${escapeHtml(card.tags[i] || '')}</div>`).join('')
+      ? card.tagIds.map((id, i) => `<div class="tg-chip" data-chip-action="tag" data-card-id="${card.id}">${tagIconHtml}#${escapeHtml(card.tags[i] || '')}</div>`).join('')
         + `<div class="tg-chip tg-chip--add" data-chip-action="tag" data-card-id="${card.id}">+</div>`
-      : `<div class="tg-ghost" data-chip-action="tag" data-card-id="${card.id}">+ Tag</div>`;
+      : `<div class="tg-ghost" data-chip-action="tag" data-card-id="${card.id}">${tagIconHtml}+ Tag</div>`;
     const tagHtml = `<div class="tg-pop-wrap">
       ${tagTriggers}
       ${popoverOpenFor(card.id, 'tag') ? renderTagPopover(card) : ''}
     </div>`;
 
-    const peopleChips = card.people.map((p) => `<div class="tg-chip tg-chip--person"><span class="avatar">${escapeHtml(p.initial)}</span>${escapeHtml(p.name)}</div>`).join('');
+    // People pills carry the People database's icon, same category-marker
+    // treatment as every other relation pill.
+    const peopleIconHtml = renderChipIcon(triageState.data.icons.people);
+    const peopleChips = card.people.map((p) => `<div class="tg-chip">${peopleIconHtml}${escapeHtml(p.name)}</div>`).join('');
 
-    // Date always has a value (Capture auto-sets it to today), so it's a
-    // normal filled chip, not a ghost — but always editable, like Status.
+    // Date has no backing database, so it gets a fixed glyph (🗓) instead
+    // of a resolved icon. Always has a value (Capture auto-sets it to
+    // today), so it's a normal filled chip, not a ghost — but always
+    // editable, like Status.
     const dateHtml = `<div class="tg-pop-wrap">
-      <div class="${card.date ? 'tg-chip' : 'tg-ghost'}" data-chip-action="date" data-card-id="${card.id}">${card.date ? escapeHtml(formatDateShort(card.date)) : 'Set Date'}</div>
+      <div class="${card.date ? 'tg-chip' : 'tg-ghost'}" data-chip-action="date" data-card-id="${card.id}"><span class="tg-chip-icon">🗓</span>${card.date ? escapeHtml(formatDateShort(card.date)) : 'Set Date'}</div>
       ${popoverOpenFor(card.id, 'date') ? renderNoteDatePopover(card) : ''}
     </div>`;
 
@@ -1084,8 +1132,9 @@
     // — either a relation to the Domains DB or a plain select; resolved
     // once at load (triageState.data.notesDomainProp), never assumed.
     const domainMeta = triageState.data.notesDomainProp ? noteDomainMeta(card) : null;
+    const domainIconHtml = renderChipIcon(triageState.data.icons.domains);
     const domainHtml = triageState.data.notesDomainProp ? `<div class="tg-pop-wrap">
-      <div class="${card.domainName ? 'tg-chip' : 'tg-ghost'}" data-chip-action="notedomain" data-card-id="${card.id}"${card.domainName ? ` style="background:${domainMeta.fill};color:${domainMeta.text};"` : ''}>${card.domainName ? escapeHtml(card.domainName) : 'Set Domain'}</div>
+      <div class="${card.domainName ? 'tg-chip' : 'tg-ghost'}" data-chip-action="notedomain" data-card-id="${card.id}"${card.domainName ? ` style="background:${domainMeta.fill};color:${domainMeta.text};"` : ''}>${domainIconHtml}${card.domainName ? escapeHtml(card.domainName) : 'Set Domain'}</div>
       ${popoverOpenFor(card.id, 'notedomain') ? renderNoteDomainPopover(card) : ''}
     </div>` : '';
 
@@ -1094,15 +1143,28 @@
     // Pill order: Type first (short, fine up front), then the fixed
     // (non-relation-growth) pills, Tags last so their growth wraps to its
     // own row instead of pushing everything after it around.
+    //
+    // Swipe-to-delete: the card sits inside a clipping wrap alongside a
+    // trash affordance pinned to the wrap's right edge, underneath it.
+    // Dragging the card left (handled by the pointer listeners below)
+    // reveals the trash; a tap on it deletes. Note-only — tasks don't get
+    // this wrap.
+    const isSwipedOpen = triageState.swipedCardId === card.id;
     return `
-      <div class="tg-card${qualified ? ' qualified' : ''}" style="border-left-color:${edge};">
-        <div class="tg-open-record" data-open-record="${card.id}" title="Open full record">↗</div>
-        <div class="tg-check">✓</div>
-        <div class="tg-card-inner">
-          ${renderCheckbox(card)}
-          <div class="tg-card-main">
-            <div class="body">${bodyHtml}</div>
-            <div class="tg-chips">${typeHtml}${peopleChips}${dateHtml}${domainHtml}${tagHtml}</div>
+      <div class="tg-swipe-wrap" data-swipe-card="${card.id}">
+        <div class="tg-swipe-trash" data-delete-card="${card.id}">
+          <span class="tg-swipe-trash-icon">🗑</span>
+          <span>Delete</span>
+        </div>
+        <div class="tg-card tg-card-swipeable${qualified ? ' qualified' : ''}${isSwipedOpen ? ' swiped' : ''}" style="border-left-color:${edge};">
+          <div class="tg-open-record" data-open-record="${card.id}" title="Open full record">↗</div>
+          <div class="tg-check">✓</div>
+          <div class="tg-card-inner">
+            ${renderCheckbox(card)}
+            <div class="tg-card-main">
+              <div class="body">${bodyHtml}</div>
+              <div class="tg-chips">${typeHtml}${peopleChips}${dateHtml}${domainHtml}${tagHtml}</div>
+            </div>
           </div>
         </div>
       </div>`;
@@ -1128,19 +1190,21 @@
     // ghost styling in the empty state, a normal (colored, for Domain)
     // chip once set. Assigning a Domain with no specific Project links
     // the task to that Domain's catch-all project (§4), same mechanism
-    // Capture uses for a bare %domain capture.
+    // Capture uses for a bare %domain capture. Domain/Project each carry
+    // their database's icon as a leading glyph (category marker); Due gets
+    // the fixed 🗓 glyph since dates have no backing database.
     const domainHtml = `<div class="tg-pop-wrap">
-      <div class="${card.domainCode ? 'tg-chip' : 'tg-ghost'}" data-chip-action="domain" data-card-id="${card.id}"${card.domainCode ? ` style="background:${domainMeta.fill};color:${domainMeta.text};"` : ''}>${card.domainCode ? escapeHtml(card.domainCode) : 'Set Domain'}</div>
+      <div class="${card.domainCode ? 'tg-chip' : 'tg-ghost'}" data-chip-action="domain" data-card-id="${card.id}"${card.domainCode ? ` style="background:${domainMeta.fill};color:${domainMeta.text};"` : ''}>${renderChipIcon(triageState.data.icons.domains)}${card.domainCode ? escapeHtml(card.domainCode) : 'Set Domain'}</div>
       ${popoverOpenFor(card.id, 'domain') ? renderDomainPopover(card) : ''}
     </div>`;
 
     const projectHtml = `<div class="tg-pop-wrap">
-      <div class="${card.projectName ? 'tg-chip' : 'tg-ghost'}" data-chip-action="project" data-card-id="${card.id}">${card.projectName ? escapeHtml(card.projectName) : 'Set Project'}</div>
+      <div class="${card.projectName ? 'tg-chip' : 'tg-ghost'}" data-chip-action="project" data-card-id="${card.id}">${renderChipIcon(triageState.data.icons.projects)}${card.projectName ? escapeHtml(card.projectName) : 'Set Project'}</div>
       ${popoverOpenFor(card.id, 'project') ? renderProjectPopover(card) : ''}
     </div>`;
 
     const dueHtml = `<div class="tg-pop-wrap">
-      <div class="${card.due ? 'tg-chip' : 'tg-ghost'}" data-chip-action="due" data-card-id="${card.id}">${card.due ? escapeHtml(formatDateShort(card.due)) : 'Set Due'}</div>
+      <div class="${card.due ? 'tg-chip' : 'tg-ghost'}" data-chip-action="due" data-card-id="${card.id}"><span class="tg-chip-icon">🗓</span>${card.due ? escapeHtml(formatDateShort(card.due)) : 'Set Due'}</div>
       ${popoverOpenFor(card.id, 'due') ? renderDuePopover(card) : ''}
     </div>`;
 
@@ -1189,7 +1253,8 @@
     const ql = q.toLowerCase();
     const existing = new Set(card.tagIds);
     const matches = triageState.data.tags.list.filter((t) => !existing.has(t.id) && t.name.toLowerCase().includes(ql));
-    const optsHtml = matches.map((t) => `<div class="tg-pop-opt" data-pop-value="${escapeHtml(t.id)}">${renderChipIcon(t.icon)}#${escapeHtml(t.name)}</div>`).join('');
+    const tagIconHtml = renderChipIcon(triageState.data.icons.tags);
+    const optsHtml = matches.map((t) => `<div class="tg-pop-opt" data-pop-value="${escapeHtml(t.id)}">${tagIconHtml}#${escapeHtml(t.name)}</div>`).join('');
     const exact = q && triageState.data.tags.list.some((t) => t.name.toLowerCase() === ql);
     const createHtml = q && !exact
       ? `<div class="tg-pop-opt tg-pop-opt--create" data-pop-value="${escapeHtml(q)}" data-pop-create="true">+ Create "${escapeHtml(q)}"</div>`
@@ -1198,8 +1263,9 @@
   }
 
   function renderTagPopover(card) {
+    const tagIconHtml = renderChipIcon(triageState.data.icons.tags);
     const currentHtml = card.tags.length
-      ? `<div class="tg-pop-current">${card.tagIds.map((id, i) => `<span class="tg-pop-pill">${renderChipIcon(triageState.data.tags.iconById.get(id))}#${escapeHtml(card.tags[i] || '')}<span class="x" data-pop-remove-tag="${escapeHtml(id)}">×</span></span>`).join('')}</div>`
+      ? `<div class="tg-pop-current">${card.tagIds.map((id, i) => `<span class="tg-pop-pill">${tagIconHtml}#${escapeHtml(card.tags[i] || '')}<span class="x" data-pop-remove-tag="${escapeHtml(id)}">×</span></span>`).join('')}</div>`
       : '';
     return `<div class="tg-popover">
       ${currentHtml}
@@ -1311,6 +1377,7 @@
     triageState.selecting = false;
     triageState.selected = new Set();
     triageState.bulkPopover = null;
+    triageState.swipedCardId = null;
     paintTriage();
   }
 
@@ -1398,7 +1465,7 @@
     const q = (triageState.popoverQuery || '').trim();
     const ql = q.toLowerCase();
     const matches = triageState.data.tags.list.filter((t) => t.name.toLowerCase().includes(ql));
-    const optsHtml = matches.map((t) => `<div class="tg-pop-opt" data-pop-value="${escapeHtml(t.id)}">${renderChipIcon(t.icon)}#${escapeHtml(t.name)}</div>`).join('');
+    const optsHtml = matches.map((t) => `<div class="tg-pop-opt" data-pop-value="${escapeHtml(t.id)}">${renderChipIcon(triageState.data.icons.tags)}#${escapeHtml(t.name)}</div>`).join('');
     const exact = q && triageState.data.tags.list.some((t) => t.name.toLowerCase() === ql);
     const createHtml = q && !exact
       ? `<div class="tg-pop-opt tg-pop-opt--create" data-pop-value="${escapeHtml(q)}" data-pop-create="true">+ Create "${escapeHtml(q)}"</div>`
@@ -1456,9 +1523,11 @@
   }
 
   // Undo window stays open until the snackbar auto-dismisses — after that
-  // Refresh is final, matching a typical snackbar's single-chance undo.
+  // the removal is final, matching a typical snackbar's single-chance
+  // undo. Shared by Refresh and single-note delete — both just leave a
+  // triageState.removedBatch for applyUndo to act on.
   let snackbarTimer = null;
-  function showRefreshSnackbar(message) {
+  function showUndoSnackbar(message) {
     triageState.snackbar = message;
     paintTriage();
     clearTimeout(snackbarTimer);
@@ -1512,12 +1581,39 @@
           triageState.data.tasksCards = triageState.data.tasksCards.filter((c) => !clearedIds.has(c.id));
         }
         triageState.pinnedIds = triageState.pinnedIds.filter((id) => !clearedIds.has(id));
-        triageState.removedBatch = { track, cards: ready, statusPropertyName };
+        triageState.removedBatch = { kind: 'refresh', track, cards: ready, statusPropertyName };
         triageState.justClearedCount = ready.length;
-        showRefreshSnackbar(`${ready.length} cleared · inbox lighter`);
+        showUndoSnackbar(`${ready.length} cleared · inbox lighter`);
       } catch (err) {
         console.error('Failed to refresh', err);
         showTriageToast(err.message || 'Could not clear cards — try again.');
+      }
+    });
+  }
+
+  // Deletes a single note. Destructive, so this ARCHIVES the page
+  // (Notion's own soft-delete: `archived: true` moves it to Trash) rather
+  // than a hard delete — the exact same PATCH is reversible with
+  // `archived: false`, so undo restores it precisely, reusing the same
+  // removedBatch/snackbar plumbing Refresh uses (kind: 'delete' instead of
+  // 'refresh' is all applyUndo needs to know which write to reverse).
+  // Bulk delete is out of scope — this is reached only via the
+  // swipe-revealed trash affordance on one card at a time.
+  function applyNoteDelete(cardId) {
+    return withBusy(async () => {
+      const card = triageState.data.notesCards.find((c) => c.id === cardId);
+      if (!card) return;
+      try {
+        await notionRequest(`/v1/pages/${cardId}`, { method: 'PATCH', body: { archived: true } });
+        triageState.data.notesCards = triageState.data.notesCards.filter((c) => c.id !== cardId);
+        triageState.pinnedIds = triageState.pinnedIds.filter((id) => id !== cardId);
+        triageState.swipedCardId = null;
+        triageState.removedBatch = { kind: 'delete', track: 'notes', cards: [card] };
+        showUndoSnackbar('Note deleted');
+        refreshInboxCount();
+      } catch (err) {
+        console.error('Failed to delete note', err);
+        showTriageToast(err.message || 'Could not delete — try again.');
       }
     });
   }
@@ -1526,12 +1622,19 @@
     return withBusy(async () => {
       const batch = triageState.removedBatch;
       if (!batch) return;
-      const databaseId = batch.track === 'notes' ? CONFIG.DB.NOTES : CONFIG.DB.TASKS;
       try {
-        const { value: inboxValue } = await getInboxStatusFilter(databaseId);
-        for (const card of batch.cards) {
-          // eslint-disable-next-line no-await-in-loop
-          await notionRequest(`/v1/pages/${card.id}`, { method: 'PATCH', body: { properties: { [batch.statusPropertyName]: { status: { name: inboxValue } } } } });
+        if (batch.kind === 'delete') {
+          for (const card of batch.cards) {
+            // eslint-disable-next-line no-await-in-loop
+            await notionRequest(`/v1/pages/${card.id}`, { method: 'PATCH', body: { archived: false } });
+          }
+        } else {
+          const databaseId = batch.track === 'notes' ? CONFIG.DB.NOTES : CONFIG.DB.TASKS;
+          const { value: inboxValue } = await getInboxStatusFilter(databaseId);
+          for (const card of batch.cards) {
+            // eslint-disable-next-line no-await-in-loop
+            await notionRequest(`/v1/pages/${card.id}`, { method: 'PATCH', body: { properties: { [batch.statusPropertyName]: { status: { name: inboxValue } } } } });
+          }
         }
         if (batch.track === 'notes') {
           triageState.data.notesCards = [...triageState.data.notesCards, ...batch.cards];
@@ -1539,7 +1642,7 @@
           triageState.data.tasksCards = [...triageState.data.tasksCards, ...batch.cards];
         }
         // Only reappear in the currently open bin if you're still looking
-        // at the same track/bin the Refresh happened in.
+        // at the same track/bin the removal happened in.
         if (triageState.track === batch.track && triageState.openBin !== null) {
           triageState.pinnedIds = [...triageState.pinnedIds, ...batch.cards.map((c) => c.id)];
         }
@@ -1547,6 +1650,7 @@
         triageState.justClearedCount = null;
         clearTimeout(snackbarTimer);
         triageState.snackbar = null;
+        if (batch.kind === 'delete') refreshInboxCount();
       } catch (err) {
         console.error('Failed to undo', err);
         showTriageToast(err.message || 'Could not undo — try again.');
@@ -1986,6 +2090,7 @@
     popover: null, popoverQuery: '', toast: null, busy: false,
     snackbar: null, removedBatch: null, justClearedCount: null,
     selecting: false, selected: new Set(), bulkPopover: null,
+    swipedCardId: null,
   };
   let triageContainer = null;
 
@@ -2109,6 +2214,88 @@
     loadAndPaintTriage();
   }
 
+  // --- Swipe-to-delete (notes) ------------------------------------------
+  // A drag on `.tg-card-swipeable` translates the card directly via an
+  // inline style for a smooth 1:1 follow — no re-render mid-drag. Only the
+  // FINAL open/closed outcome is committed to state
+  // (triageState.swipedCardId) and painted once, which is what lets the
+  // revealed state survive an unrelated repaint elsewhere (editing a
+  // different card, a toast timing out, ...) without extra bookkeeping.
+  // Pointer events (not separate touch/mouse handling) so this works the
+  // same via touch or mouse-drag.
+  const SWIPE_OPEN_PX = 84;
+  let swipeDrag = null;
+
+  content.addEventListener('pointerdown', (e) => {
+    if (currentRoute() !== 'triage') return;
+    // Select mode has its own tap-to-check interaction (and its own future
+    // bulk delete) — swipe-to-delete is only for the normal sorting flow.
+    if (triageState.selecting) return;
+    // Resolved at the WRAP level (covers both the card and its trash
+    // button) so a press on the now-revealed trash button of the
+    // currently-open card counts as "still this card," not "elsewhere" —
+    // otherwise this would close the swipe out from under the trash
+    // button before its own click ever gets a chance to land.
+    const rawWrapEl = e.target.closest('.tg-swipe-wrap');
+    const targetCardId = rawWrapEl ? rawWrapEl.dataset.swipeCard : null;
+    const pressedCard = e.target.closest('.tg-card-swipeable');
+
+    // Starting a press anywhere other than the currently-open card closes
+    // it first — via a direct class removal, NOT paintTriage(). A full
+    // repaint here would replace #content wholesale, including whatever
+    // element was just pressed (e.g. the Back button); Chromium silently
+    // drops the click that would otherwise follow pointerup when its own
+    // mousedown target got removed from the document first. Closing this
+    // way touches only the previously-open card, so nothing else's click
+    // ever gets suppressed.
+    if (triageState.swipedCardId && triageState.swipedCardId !== targetCardId) {
+      const openWrapEl = content.querySelector(`.tg-swipe-wrap[data-swipe-card="${CSS.escape(triageState.swipedCardId)}"]`);
+      const openCardEl = openWrapEl && openWrapEl.querySelector('.tg-card-swipeable');
+      if (openCardEl) openCardEl.classList.remove('swiped');
+      triageState.swipedCardId = null;
+    }
+
+    // Only actually start a drag when the press landed on the card itself
+    // (not the trash button, not empty space).
+    if (!targetCardId || !pressedCard) { swipeDrag = null; return; }
+    const wrapEl = content.querySelector(`.tg-swipe-wrap[data-swipe-card="${CSS.escape(targetCardId)}"]`);
+    const cardEl = wrapEl && wrapEl.querySelector('.tg-card-swipeable');
+    if (!cardEl) { swipeDrag = null; return; }
+    swipeDrag = { cardId: targetCardId, cardEl, startX: e.clientX, startY: e.clientY, dx: 0, dragging: false };
+  });
+
+  content.addEventListener('pointermove', (e) => {
+    if (!swipeDrag) return;
+    const dx = e.clientX - swipeDrag.startX;
+    const dy = e.clientY - swipeDrag.startY;
+    if (!swipeDrag.dragging) {
+      if (Math.abs(dx) < 8 && Math.abs(dy) < 8) return;
+      if (Math.abs(dy) > Math.abs(dx)) { swipeDrag = null; return; } // vertical scroll, not a swipe
+      swipeDrag.dragging = true;
+      swipeDrag.cardEl.classList.add('dragging');
+    }
+    swipeDrag.dx = dx;
+    const base = triageState.swipedCardId === swipeDrag.cardId ? -SWIPE_OPEN_PX : 0;
+    const translate = Math.max(-SWIPE_OPEN_PX, Math.min(0, base + dx));
+    swipeDrag.cardEl.style.transform = `translateX(${translate}px)`;
+  });
+
+  function endSwipeDrag() {
+    if (!swipeDrag) return;
+    const { cardEl, cardId, dragging, dx } = swipeDrag;
+    cardEl.classList.remove('dragging');
+    if (dragging) {
+      const base = triageState.swipedCardId === cardId ? -SWIPE_OPEN_PX : 0;
+      const finalTranslate = Math.max(-SWIPE_OPEN_PX, Math.min(0, base + dx));
+      cardEl.style.transform = '';
+      triageState.swipedCardId = finalTranslate < -SWIPE_OPEN_PX / 2 ? cardId : null;
+      paintTriage();
+    }
+    swipeDrag = null;
+  }
+  content.addEventListener('pointerup', endSwipeDrag);
+  content.addEventListener('pointercancel', endSwipeDrag);
+
   // Event delegation for Triage interactions — attached once to #content.
   content.addEventListener('click', (e) => {
     if (currentRoute() !== 'triage') return;
@@ -2142,6 +2329,15 @@
       const allCards = triageState.track === 'notes' ? triageState.data.notesCards : triageState.data.tasksCards;
       const card = allCards.find((c) => c.id === cardId);
       if (card && card.url) window.open(card.url, '_blank', 'noopener');
+      return;
+    }
+
+    // The trash affordance revealed by swiping a note card left.
+    const deleteBtn = e.target.closest('[data-delete-card]');
+    if (deleteBtn) {
+      e.stopPropagation();
+      if (triageState.busy) return;
+      applyNoteDelete(deleteBtn.dataset.deleteCard);
       return;
     }
 
@@ -2192,6 +2388,7 @@
       triageState.selecting = false;
       triageState.selected = new Set();
       triageState.bulkPopover = null;
+      triageState.swipedCardId = null;
       paintTriage();
       return;
     }
@@ -2211,6 +2408,7 @@
       triageState.selected = new Set();
       triageState.bulkPopover = null;
       triageState.popover = null;
+      triageState.swipedCardId = null;
       paintTriage();
       return;
     }
