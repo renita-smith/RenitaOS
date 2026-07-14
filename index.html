@@ -190,7 +190,9 @@
     font-size: 11px; font-weight: 700; letter-spacing: .08em;
     text-transform: uppercase; color: var(--muted-text);
   }
-  .tg-count-mono { font-family: 'Newsreader', serif; font-weight: 600; }
+  /* Prose/titles get the serif; every numeric count stays sans (this is
+     the one count that was still on the serif family). */
+  .tg-count-mono { font-family: 'IBM Plex Sans', sans-serif; font-weight: 600; }
   .tg-track-count { font-size: 12px; color: var(--tg-muted-2); }
   .tg-icon-slot { width: 20px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
   .tg-link { color: var(--muted-text); font-size: 13px; cursor: pointer; display: flex; align-items: center; gap: 6px; }
@@ -498,7 +500,7 @@
 
   <header class="shell-topbar">
     <div class="shell-title">RenitaOS</div>
-    <button id="inboxPill" class="inbox-pill" type="button">… to sort</button>
+    <button id="inboxPill" class="inbox-pill" type="button">… to Sort</button>
   </header>
 
   <main id="content" class="shell-content"></main>
@@ -738,10 +740,10 @@
         countInboxRecords(CONFIG.DB.NOTES),
         countInboxRecords(CONFIG.DB.TASKS),
       ]);
-      inboxPill.textContent = `${notesCount + tasksCount} to sort`;
+      inboxPill.textContent = `${notesCount + tasksCount} to Sort`;
     } catch (err) {
       console.error('Failed to refresh inbox count', err);
-      inboxPill.textContent = '— to sort';
+      inboxPill.textContent = '— to Sort';
     }
   }
 
@@ -1040,7 +1042,7 @@
       cards: byType.get(t).slice().sort(byNewest),
     }));
     if (byType.has(NO_GROUP)) {
-      bins.push({ key: NO_GROUP, label: 'No type', icon: 'dot', cards: byType.get(NO_GROUP).slice().sort(byNewest) });
+      bins.push({ key: NO_GROUP, label: 'No Type', icon: 'dot', cards: byType.get(NO_GROUP).slice().sort(byNewest) });
     }
     return bins;
   }
@@ -1091,8 +1093,8 @@
     return `
       <div class="tg-view">
         <div class="tg-ov-head">
-          <div class="serif tg-ov-title">Sort the inbox</div>
-          <div class="tg-ov-sub">${total} waiting · take one bin at a time.</div>
+          <div class="serif tg-ov-title">INBOX</div>
+          <div class="tg-ov-sub">${total} waiting · One bin at a time.</div>
         </div>
         <div class="tg-seg">
           <button type="button" data-track="notes" class="${track === 'notes' ? 'on' : ''}">Notes</button>
