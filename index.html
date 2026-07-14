@@ -299,7 +299,12 @@
     font-size: 11px; font-weight: 600; cursor: pointer;
   }
   .tg-swipe-trash-icon { font-size: 18px; }
-  .tg-card-swipeable { touch-action: pan-y; transition: transform .18s ease; }
+  /* touch-action only governs touch/pen input; on a mouse, dragging across
+     the card's own text would otherwise start a native text selection
+     that fights the swipe transform (this is what broke mouse-drag on
+     desktop — touch-action alone doesn't stop it). user-select:none stops
+     that regardless of input type. */
+  .tg-card-swipeable { touch-action: pan-y; user-select: none; transition: transform .18s ease; }
   .tg-card-swipeable.dragging { transition: none; }
   .tg-card-swipeable.swiped { transform: translateX(-84px); }
 
@@ -2274,6 +2279,11 @@
       swipeDrag.dragging = true;
       swipeDrag.cardEl.classList.add('dragging');
     }
+    // Once this is confirmed as a horizontal drag, stop the browser's own
+    // default handling of the move (e.g. a mouse drag starting a native
+    // text selection over the card's body text) from fighting the
+    // transform below.
+    e.preventDefault();
     swipeDrag.dx = dx;
     const base = triageState.swipedCardId === swipeDrag.cardId ? -SWIPE_OPEN_PX : 0;
     const translate = Math.max(-SWIPE_OPEN_PX, Math.min(0, base + dx));
