@@ -155,6 +155,13 @@
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
   }
 
+  /* Today/Domains/Search (RenitaOS-Conventions.md's full rail list) aren't
+     routable yet — shown as inert placeholders so the rail's eventual shape
+     is visible without pretending they work. Hidden on the mobile bottom
+     nav (unchanged, 3 items); shown greyed-out once the rail appears at
+     the desktop breakpoint. */
+  .nav-btn--soon { display: none; opacity: .45; cursor: default; }
+
   /* ============================================================
      Triage — read/display slice. Adapted from triage-view.html;
      classes prefixed tg- to avoid colliding with future screens
@@ -507,6 +514,7 @@
     }
     .nav-track { flex-direction: column; width: 100%; }
     .nav-btn { flex: 0 0 auto; text-align: left; padding: 10px 14px; }
+    .nav-btn--soon { display: block; }
 
     /* Content stays a comfortable bounded width on desktop — except
        Triage's own stretch layout, which manages its two-pane width itself
@@ -539,6 +547,9 @@
       <a href="#/home" class="nav-btn" data-route="home">Home</a>
       <a href="./capture.html" class="nav-btn">Capture</a>
       <a href="#/triage" class="nav-btn" data-route="triage">Triage</a>
+      <span class="nav-btn nav-btn--soon" aria-disabled="true" title="Coming soon">Today</span>
+      <span class="nav-btn nav-btn--soon" aria-disabled="true" title="Coming soon">Domains</span>
+      <span class="nav-btn nav-btn--soon" aria-disabled="true" title="Coming soon">Search</span>
     </div>
   </nav>
 
