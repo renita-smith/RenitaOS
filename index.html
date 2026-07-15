@@ -34,7 +34,7 @@
   html, body {
     height: 100%;
     margin: 0;
-    /* .shell-content (and Triage's own .tg-stack/.tg-track inside it) is the
+    /* .shell-content (and Triage's own .tg-stack inside it) is the
        only intended scroll container in the app. Without this, a shell that
        renders even slightly taller than the visual viewport (common on
        mobile Safari, where the dynamic toolbar shifts 100dvh) lets the
@@ -221,27 +221,28 @@
   }
   .tg-seg button.on { background: #fff; color: var(--text); box-shadow: 0 1px 3px rgba(0,0,0,.12); }
 
-  .tg-track { padding: 8px 0 0; flex: 1; min-height: 0; overflow-y: auto; }
   .tg-track-head { display: flex; align-items: baseline; justify-content: space-between; padding: 14px 2px 8px; }
 
-  .tg-bin {
-    display: flex; align-items: center; gap: 12px;
-    padding: 15px 16px; border-radius: var(--radius-lg);
-    background: var(--surface-soft); cursor: pointer; margin-bottom: 8px;
-    border: 1px solid transparent;
+  /* Bins as a horizontal, wrapping chip row — shared shape for both
+     Note-type and Task/domain bins (the row sits outside the bin's own
+     scrolling card stack below, so it stays pinned in place while cards
+     scroll). flex-wrap does the mobile/desktop split for free: narrower
+     viewports just wrap to more rows, no breakpoint override needed. */
+  .tg-chiprow { display: flex; flex-wrap: wrap; gap: 8px; padding-bottom: 8px; flex-shrink: 0; }
+  .tg-bin-chip {
+    display: flex; align-items: center; gap: 8px;
+    padding: 10px 16px; border-radius: var(--radius-lg);
+    background: var(--surface-soft); color: var(--text); cursor: pointer;
   }
-  .tg-bin .name { flex: 1; font-size: 15px; font-weight: 500; color: var(--text); }
-  .tg-bin .n { font-size: 15px; color: var(--text); }
+  .tg-bin-chip .name { font-size: 14px; font-weight: 500; }
+  .tg-bin-chip .n { font-size: 13px; }
+  /* Selection ring only — a Task/domain chip's own inline background/color
+     (its Domain identity) wins over this rule's background by cascade
+     order (inline beats class), so the ring composes with a domain color
+     instead of replacing it; a plain Note-type chip has no inline style,
+     so it picks up the deeper-sage fill too. */
+  .tg-bin-chip.active { background: var(--tg-sage-deep); box-shadow: inset 0 0 0 1px #3A4410; font-weight: 700; }
   .tg-empty-track { padding: 20px 2px; font-size: 13px; color: var(--muted-text); }
-
-  .tg-tiles { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; padding-bottom: 8px; }
-  .tg-tile {
-    display: flex; align-items: center; gap: 9px;
-    padding: 13px 14px; border-radius: var(--radius-lg); cursor: pointer;
-  }
-  .tg-tile .code { flex: 1; font-size: 13px; font-weight: 600; }
-  .tg-tile .n { font-size: 14px; }
-  .tg-tile.wide { grid-column: 1 / -1; }
 
   .tg-bin-head { padding: 22px 0 12px; border-bottom: 1px solid var(--hairline); flex-shrink: 0; }
   .tg-bin-title-row { display: flex; align-items: center; gap: 9px; margin-top: 12px; }
@@ -469,23 +470,6 @@
     bottom: 96px;
   }
 
-  /* ============================================================
-     Desktop layout (~768px+) — layout only, no palette/component
-     changes. Below the breakpoint this is inert: exactly one pane is
-     ever visible (data-active-pane), matching the original single-
-     screen mobile behavior (tap a bin replaces the overview; back
-     returns to it). At the breakpoint both panes show side by side —
-     the bin overview stays visible as a persistent left column while
-     the opened bin's card stack fills a wider right column. Every
-     Triage subcomponent (refresh bar, bulk bar, popovers, snackbar,
-     inbox-zero) lives inside one of the two .tg-view panes and is
-     unchanged; only which pane(s) are visible, and their width, differs.
-     ============================================================ */
-  .tg-layout { flex: 1; min-height: 0; display: flex; flex-direction: column; }
-  .tg-pane { display: none; flex: 1; min-height: 0; flex-direction: column; }
-  .tg-layout[data-active-pane="overview"] > .tg-pane-overview { display: flex; }
-  .tg-layout[data-active-pane="bin"] > .tg-pane-bin { display: flex; }
-
   @media (min-width: 768px) {
     /* App shell — persistent left-nav rail. The mobile shell is a single
        stacked column (topbar / content / bottom nav); on desktop it becomes
@@ -511,24 +495,24 @@
       grid-area: nav;
       justify-content: flex-start;
       padding: 20px 0;
+      background: transparent;
     }
-    .nav-track { flex-direction: column; width: 100%; }
-    .nav-btn { flex: 0 0 auto; text-align: left; padding: 10px 14px; }
+    /* The rail sits directly on the cream canvas — no filled sage slab
+       housing it (that treatment stays on the mobile bottom bar, which is
+       a different, unrelated segmented-control pattern). Nav items are
+       plain olive text; only the active one gets the standard active-state
+       treatment (deeper sage + olive keyline), same language as Triage's
+       bin chips below. */
+    .nav-track { flex-direction: column; width: 100%; background: transparent; padding: 0; gap: 4px; }
+    .nav-btn { flex: 0 0 auto; text-align: left; padding: 10px 14px; color: var(--text); }
+    .nav-btn.active { background: #DBE2C1; box-shadow: inset 0 0 0 1px #3A4410; }
     .nav-btn--soon { display: block; }
 
     /* Content stays a comfortable bounded width on desktop — except
-       Triage's own stretch layout, which manages its two-pane width itself
-       (see .tg-pane-bin below), so it opts out of this general bound. */
+       Triage's own stretch layout, which now spans the full content width
+       (its bin chips + cards; no more separate sidebar pane), so it opts
+       out of this general bound. */
     .shell-content:not(.stretch) { max-width: 640px; margin: 0 auto; width: 100%; }
-
-    /* Triage — desktop two-pane layout (existing). */
-    .tg-layout { flex-direction: row; gap: 24px; }
-    .tg-pane-overview, .tg-pane-bin { display: flex !important; }
-    .tg-pane-overview { flex: 0 0 300px; }
-    .tg-pane-bin { flex: 1; min-width: 0; }
-    /* Bound card content to a comfortable reading width instead of
-       stretching across the whole right column. */
-    .tg-pane-bin > .tg-view { width: 100%; max-width: 640px; margin: 0 auto; }
   }
 </style>
 </head>
@@ -1104,56 +1088,51 @@
     return bins;
   }
 
+  // Bins render as a single horizontal, wrapping chip row (shared by both
+  // Note-type and Task/domain bins) instead of the old vertical list +
+  // separate tile grid — one chip vocabulary, laid out by plain flex-wrap,
+  // which is why no per-breakpoint override is needed: the same rule wraps
+  // to few wide rows on desktop or many narrow ones on mobile.
   function renderOverview(data) {
     const total = data.notesCards.length + data.tasksCards.length;
-    const noteBins = groupNotes(data.notesCards);
-    const taskBins = groupTasks(data.tasksCards);
-    const { track } = triageState;
+    const { track, openBin } = triageState;
+    const bins = track === 'notes' ? groupNotes(data.notesCards) : groupTasks(data.tasksCards);
+    const trackCount = track === 'notes' ? data.notesCards.length : data.tasksCards.length;
 
-    const notesBinsHtml = noteBins.length
-      ? noteBins.map((bin) => {
-          // "No type" is a synthetic catch-all label, not a real Type
-          // option string, so there's no trailing emoji to parse out of it.
-          const { name, icon } = bin.key === NO_GROUP ? { name: bin.label, icon: '' } : splitTrailingEmoji(bin.label);
+    const chipsHtml = bins.length
+      ? bins.map((bin) => {
+          // "No type"/"No domain" are synthetic catch-all labels, not real
+          // Type option strings, so there's no trailing emoji to parse out.
+          const { name, icon } = (track === 'notes' && bin.key !== NO_GROUP) ? splitTrailingEmoji(bin.label) : { name: bin.label, icon: '' };
+          const active = openBin === bin.key;
+          // Task/domain chips carry their own Domain-color inline style
+          // (untouched — Domain color is the app's one wayfinding system);
+          // note-type chips have none, so the plain sage/olive CSS default
+          // applies. The active keyline (border, not background) applies
+          // to both without overriding a domain chip's own color.
+          const styleAttr = track === 'tasks' ? ` style="background:${bin.fill};color:${bin.text};"` : '';
           return `
-        <div class="tg-bin" data-bin-track="notes" data-bin-key="${escapeHtml(bin.key)}">
+        <div class="tg-bin-chip${active ? ' active' : ''}" data-bin-track="${track}" data-bin-key="${escapeHtml(bin.key)}"${styleAttr}>
           <span class="name">${icon ? `${escapeHtml(icon)} ` : ''}${escapeHtml(name)}</span>
           <span class="n tg-count-mono">${bin.cards.length}</span>
         </div>`;
         }).join('')
-      : `<div class="tg-empty-track">Nothing waiting in Notes.</div>`;
-
-    const taskTilesHtml = taskBins.map((bin) => `
-      <div class="tg-tile${bin.wide ? ' wide' : ''}" data-bin-track="tasks" data-bin-key="${escapeHtml(bin.key)}" style="background:${bin.fill};color:${bin.text};">
-        <span class="code"${bin.wide ? ' style="font-weight:500;"' : ''}>${escapeHtml(bin.label)}</span>
-        <span class="n tg-count-mono">${bin.cards.length}</span>
-      </div>`).join('');
+      : `<div class="tg-empty-track">Nothing waiting in ${track === 'notes' ? 'Notes' : 'Tasks'}.</div>`;
 
     return `
-      <div class="tg-view">
-        <div class="tg-ov-head">
-          <div class="serif tg-ov-title">INBOX</div>
-          <div class="tg-ov-sub">${total} waiting · One bin at a time.</div>
-        </div>
-        <div class="tg-seg">
-          <button type="button" data-track="notes" class="${track === 'notes' ? 'on' : ''}">Notes</button>
-          <button type="button" data-track="tasks" class="${track === 'tasks' ? 'on' : ''}">Tasks</button>
-        </div>
-        <div class="tg-track" style="${track === 'notes' ? '' : 'display:none;'}">
-          <div class="tg-track-head">
-            <span class="tg-eyebrow">Notes · by type</span>
-            <span class="tg-track-count">${data.notesCards.length}</span>
-          </div>
-          ${notesBinsHtml}
-        </div>
-        <div class="tg-track" style="${track === 'tasks' ? '' : 'display:none;'}">
-          <div class="tg-track-head">
-            <span class="tg-eyebrow">Tasks · by domain</span>
-            <span class="tg-track-count">${data.tasksCards.length}</span>
-          </div>
-          <div class="tg-tiles">${taskTilesHtml}</div>
-        </div>
+      <div class="tg-ov-head">
+        <div class="serif tg-ov-title">INBOX</div>
+        <div class="tg-ov-sub">${total} waiting · One bin at a time.</div>
       </div>
+      <div class="tg-seg">
+        <button type="button" data-track="notes" class="${track === 'notes' ? 'on' : ''}">Notes</button>
+        <button type="button" data-track="tasks" class="${track === 'tasks' ? 'on' : ''}">Tasks</button>
+      </div>
+      <div class="tg-track-head">
+        <span class="tg-eyebrow">${track === 'notes' ? 'Notes · by type' : 'Tasks · by domain'}</span>
+        <span class="tg-track-count">${trackCount}</span>
+      </div>
+      <div class="tg-chiprow">${chipsHtml}</div>
     `;
   }
 
@@ -1466,10 +1445,9 @@
     paintTriage();
   }
 
-  // Shown in the right-hand pane on desktop before any bin is opened yet
-  // (mobile never sees this — there the bin pane only renders once a bin
-  // is actually open), and as a defensive fallback if renderBinScreen is
-  // ever called with no bin open.
+  // Shown below the chip row before any bin is opened yet — same on mobile
+  // and desktop — and as a defensive fallback if renderBinScreen is ever
+  // called with no bin open.
   function renderBinEmptyState() {
     return `<div class="tg-view"><div class="tg-status">Select a bin to start sorting.</div></div>`;
   }
@@ -2202,12 +2180,12 @@
   // potentially-scrolled containers around the replace; this runs
   // synchronously before the browser paints, so there's no visible jump.
   //
-  // Both panes (overview + opened bin) are always rendered into the DOM
-  // together, wrapped in .tg-layout: below the desktop breakpoint, CSS
-  // shows only the one named by data-active-pane (identical to the old
-  // single-screen behavior — tap a bin replaces the overview, back
-  // returns to it); at the breakpoint CSS shows both side by side. The
-  // JS/state model doesn't otherwise change with viewport width.
+  // One column, top to bottom, identical at every viewport width: overview
+  // (heading/subtitle/toggle/chip row) then the opened bin's cards (or the
+  // empty state) directly below it — the chip row sits outside the bin's
+  // own scrolling stack, so it stays put (pinned) while cards scroll. No
+  // pane-swap, no per-breakpoint branching; the JS/state model is the same
+  // regardless of viewport width.
   function paintTriage() {
     if (!triageContainer) return;
     const prevStack = triageContainer.querySelector('.tg-stack');
@@ -2228,9 +2206,9 @@
     const binHtml = isBinOpen ? renderBinScreen(triageState.data) : renderBinEmptyState();
 
     triageContainer.innerHTML = `
-      <div class="tg-layout" data-active-pane="${isBinOpen ? 'bin' : 'overview'}">
-        <div class="tg-pane tg-pane-overview">${overviewHtml}</div>
-        <div class="tg-pane tg-pane-bin">${binHtml}</div>
+      <div class="tg-view">
+        ${overviewHtml}
+        ${binHtml}
       </div>
     `;
 
