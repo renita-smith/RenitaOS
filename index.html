@@ -223,19 +223,19 @@
 
   .tg-track-head { display: flex; align-items: baseline; justify-content: space-between; padding: 14px 2px 8px; }
 
-  /* Bins as a horizontal, wrapping chip row — shared shape for both
-     Note-type and Task/domain bins (the row sits outside the bin's own
-     scrolling card stack below, so it stays pinned in place while cards
-     scroll). flex-wrap does the mobile/desktop split for free: narrower
-     viewports just wrap to more rows, no breakpoint override needed. */
-  .tg-chiprow { display: flex; flex-wrap: wrap; gap: 8px; padding-bottom: 8px; flex-shrink: 0; }
+  /* Bins — shared shape for both Note-type and Task/domain bins (the row
+     sits outside the bin's own scrolling card stack below, so it stays
+     pinned in place while cards scroll). Mobile-first default is the
+     original full-width vertical stack, one bin per row; the horizontal
+     wrapping chip row is a desktop-only (>=768px) override below. */
+  .tg-chiprow { display: flex; flex-direction: column; gap: 8px; padding-bottom: 8px; flex-shrink: 0; }
   .tg-bin-chip {
-    display: flex; align-items: center; gap: 8px;
-    padding: 10px 16px; border-radius: var(--radius-lg);
+    display: flex; align-items: center; gap: 12px; width: 100%;
+    padding: 15px 16px; border-radius: var(--radius-lg);
     background: var(--surface-soft); color: var(--text); cursor: pointer;
   }
-  .tg-bin-chip .name { font-size: 14px; font-weight: 500; }
-  .tg-bin-chip .n { font-size: 13px; }
+  .tg-bin-chip .name { flex: 1; font-size: 15px; font-weight: 500; }
+  .tg-bin-chip .n { font-size: 15px; }
   /* Selection ring only — a Task/domain chip's own inline background/color
      (its Domain identity) wins over this rule's background by cascade
      order (inline beats class), so the ring composes with a domain color
@@ -513,6 +513,13 @@
        (its bin chips + cards; no more separate sidebar pane), so it opts
        out of this general bound. */
     .shell-content:not(.stretch) { max-width: 640px; margin: 0 auto; width: 100%; }
+
+    /* Triage bins — desktop-only horizontal, wrapping chip row (mobile
+       keeps the full-width vertical stack from the base rules above). */
+    .tg-chiprow { flex-direction: row; flex-wrap: wrap; }
+    .tg-bin-chip { width: auto; gap: 8px; padding: 10px 16px; }
+    .tg-bin-chip .name { flex: none; font-size: 14px; }
+    .tg-bin-chip .n { font-size: 13px; }
   }
 </style>
 </head>
@@ -530,7 +537,7 @@
     <div class="nav-track">
       <a href="#/home" class="nav-btn" data-route="home">Home</a>
       <a href="./capture.html" class="nav-btn">Capture</a>
-      <a href="#/triage" class="nav-btn" data-route="triage">Triage</a>
+      <a href="#/inbox" class="nav-btn" data-route="inbox" id="navInboxItem">Inbox …</a>
       <span class="nav-btn nav-btn--soon" aria-disabled="true" title="Coming soon">Today</span>
       <span class="nav-btn nav-btn--soon" aria-disabled="true" title="Coming soon">Domains</span>
       <span class="nav-btn nav-btn--soon" aria-disabled="true" title="Coming soon">Search</span>
@@ -755,6 +762,7 @@
   }
 
   const inboxPill = document.getElementById('inboxPill');
+  const navInboxItem = document.getElementById('navInboxItem');
   const content = document.getElementById('content');
 
   async function refreshInboxCount() {
@@ -763,14 +771,17 @@
         countInboxRecords(CONFIG.DB.NOTES),
         countInboxRecords(CONFIG.DB.TASKS),
       ]);
-      inboxPill.textContent = `${notesCount + tasksCount} to Sort`;
+      const total = notesCount + tasksCount;
+      inboxPill.textContent = `${total} to Sort`;
+      navInboxItem.textContent = `Inbox ${total}`;
     } catch (err) {
       console.error('Failed to refresh inbox count', err);
       inboxPill.textContent = '— to Sort';
+      navInboxItem.textContent = 'Inbox —';
     }
   }
 
-  inboxPill.addEventListener('click', () => { location.hash = '#/triage'; });
+  inboxPill.addEventListener('click', () => { location.hash = '#/inbox'; });
 
   // --- Triage — read/display slice ------------------------------------------
   // Palette (RenitaOS-Palette.md) is canonical for all color below; it
@@ -2276,7 +2287,7 @@
   let swipeDrag = null;
 
   content.addEventListener('pointerdown', (e) => {
-    if (currentRoute() !== 'triage') return;
+    if (currentRoute() !== 'inbox') return;
     // Select mode has its own tap-to-check interaction (and its own future
     // bulk delete) — swipe-to-delete is only for the normal sorting flow.
     if (triageState.selecting) return;
@@ -2389,7 +2400,7 @@
   }
 
   content.addEventListener('wheel', (e) => {
-    if (currentRoute() !== 'triage') return;
+    if (currentRoute() !== 'inbox') return;
     if (triageState.selecting) return;
     const wrapEl = e.target.closest('.tg-swipe-wrap');
     const cardId = wrapEl ? wrapEl.dataset.swipeCard : null;
@@ -2427,7 +2438,7 @@
 
   // Event delegation for Triage interactions — attached once to #content.
   content.addEventListener('click', (e) => {
-    if (currentRoute() !== 'triage') return;
+    if (currentRoute() !== 'inbox') return;
 
     // A chip/ghost that opens (or closes, if already open) a popover.
     const chipTrigger = e.target.closest('[data-chip-action]');
@@ -2584,7 +2595,7 @@
   // characters. Leaving the input's own DOM node untouched means focus
   // and caret position never move.
   content.addEventListener('input', (e) => {
-    if (currentRoute() !== 'triage') return;
+    if (currentRoute() !== 'inbox') return;
     if (!e.target.matches('[data-pop-filter]')) return;
     triageState.popoverQuery = e.target.value;
     const dynamicEl = triageContainer && triageContainer.querySelector('.tg-pop-dynamic');
@@ -2603,7 +2614,7 @@
   // The native date input in the Due/Date popover ("Pick a date…") —
   // per-card only (Due on tasks, Date on notes); bulk has no date action.
   content.addEventListener('change', (e) => {
-    if (currentRoute() !== 'triage') return;
+    if (currentRoute() !== 'inbox') return;
     if (!e.target.matches('[data-pop-date-input]') || !e.target.value) return;
     if (triageState.popover && triageState.popover.field === 'date') {
       applyNoteDate(triageState.popover.cardId, e.target.value);
@@ -2627,7 +2638,7 @@
   };
 
   // --- Hash router ------------------------------------------------------
-  const ROUTES = ['home', 'triage'];
+  const ROUTES = ['home', 'inbox'];
 
   function currentRoute() {
     const hash = location.hash.replace(/^#\/?/, '');
@@ -2635,12 +2646,20 @@
   }
 
   function render() {
+    // "#/triage" was the route's name before the Inbox rename — alias any
+    // old link to the new one rather than 404-ing it into Home. Rewriting
+    // the hash (rather than just resolving 'inbox' internally) fires
+    // hashchange, which re-enters render() with the corrected URL.
+    if (location.hash.replace(/^#\/?/, '') === 'triage') {
+      location.hash = '#/inbox';
+      return;
+    }
     const route = currentRoute();
     document.querySelectorAll('.nav-btn').forEach((btn) => {
       btn.classList.toggle('active', btn.dataset.route === route);
     });
-    content.classList.toggle('stretch', route === 'triage');
-    if (route === 'triage') {
+    content.classList.toggle('stretch', route === 'inbox');
+    if (route === 'inbox') {
       mountTriage(content);
     } else {
       content.innerHTML = VIEWS[route]();
