@@ -185,6 +185,14 @@
     position: relative;
   }
 
+  /* The opened bin's own content (renderBinScreen's root) nests a second
+     .tg-view inside the outer screen wrapper's. Its plain flex:1/min-height:0
+     above would let a tall chip row above it (see .tg-chiprow) squeeze it
+     down to nothing; this floor guarantees its header + refresh bar (and a
+     peek of the first card) always has room to show, even if that means
+     the chip row above gives up space and scrolls internally instead. */
+  .tg-view > .tg-view { min-height: 220px; }
+
   .tg-status {
     flex: 1; display: flex; align-items: center; justify-content: center;
     text-align: center; padding: 40px 20px; color: var(--muted-text); font-size: 14px;
@@ -227,8 +235,18 @@
      sits outside the bin's own scrolling card stack below, so it stays
      pinned in place while cards scroll). Mobile-first default is the
      original full-width vertical stack, one bin per row; the horizontal
-     wrapping chip row is a desktop-only (>=768px) override below. */
-  .tg-chiprow { display: flex; flex-direction: column; gap: 8px; padding-bottom: 8px; flex-shrink: 0; }
+     wrapping chip row is a desktop-only (>=768px) override below.
+     max-height + its own scroll (like the original .tg-track) bounds the
+     list — without this, a long list of bins has no upper limit on a
+     mobile screen, and since the opened bin's content below it sits in a
+     flex:1 sibling with no scroll context of its own, a tall-enough chip
+     list silently squeezes that whole section to zero height instead of
+     just pushing it below the fold: opening a bin then looks like nothing
+     happened, because there is nothing left to scroll to. min-height: 0
+     (rather than the old flex-shrink: 0) lets it actually give up space
+     below that cap too, so the opened bin's guaranteed minimum (below)
+     wins the argument over how little of the chip row is showing. */
+  .tg-chiprow { display: flex; flex-direction: column; gap: 8px; padding-bottom: 8px; min-height: 0; max-height: 45vh; overflow-y: auto; }
   .tg-bin-chip {
     display: flex; align-items: center; gap: 12px; width: 100%;
     padding: 15px 16px; border-radius: var(--radius-lg);
@@ -1453,6 +1471,14 @@
     triageState.selected = new Set();
     triageState.bulkPopover = null;
     triageState.swipedCardId = null;
+    // The mobile bin list can run taller than the viewport (one full-width
+    // row per bin) — without this, opening a bin low in that list leaves
+    // its header and cards scrolled out of view below the fold, with
+    // nothing on screen to show the tap did anything. paintTriage's own
+    // scroll handling below is for the opposite case (preserve position
+    // during in-place edits), so this is a one-shot override consumed on
+    // the very next paint.
+    triageState.scrollToOpenedBin = true;
     paintTriage();
   }
 
@@ -2150,7 +2176,7 @@
     popover: null, popoverQuery: '', toast: null, busy: false,
     snackbar: null, removedBatch: null, justClearedCount: null,
     selecting: false, selected: new Set(), bulkPopover: null,
-    swipedCardId: null,
+    swipedCardId: null, scrollToOpenedBin: false,
   };
   let triageContainer = null;
 
@@ -2202,6 +2228,8 @@
     const prevStack = triageContainer.querySelector('.tg-stack');
     const stackScrollTop = prevStack ? prevStack.scrollTop : 0;
     const containerScrollTop = triageContainer.scrollTop;
+    const scrollToOpenedBin = triageState.scrollToOpenedBin;
+    triageState.scrollToOpenedBin = false;
 
     if (triageState.loading) {
       triageContainer.innerHTML = `<div class="tg-view"><div class="tg-status">Loading Triage…</div></div>`;
@@ -2223,18 +2251,25 @@
       </div>
     `;
 
-    triageContainer.scrollTop = containerScrollTop;
-    const newStack = triageContainer.querySelector('.tg-stack');
-    if (newStack) newStack.scrollTop = stackScrollTop;
-
-    // Re-assert both scroll positions one frame later too — on touch devices
-    // a tap can leave native momentum/rubber-band scrolling still in flight,
-    // which can override the synchronous set above before the next paint.
-    // Cheap and a no-op when nothing was still in motion.
-    requestAnimationFrame(() => {
+    if (!scrollToOpenedBin) {
       triageContainer.scrollTop = containerScrollTop;
-      const stackNow = triageContainer.querySelector('.tg-stack');
-      if (stackNow) stackNow.scrollTop = stackScrollTop;
+      const newStack = triageContainer.querySelector('.tg-stack');
+      if (newStack) newStack.scrollTop = stackScrollTop;
+    }
+
+    // Re-assert one frame later too — on touch devices a tap can leave
+    // native momentum/rubber-band scrolling still in flight, which can
+    // override the synchronous set above before the next paint. Cheap and
+    // a no-op when nothing was still in motion.
+    requestAnimationFrame(() => {
+      if (scrollToOpenedBin) {
+        const binHead = triageContainer.querySelector('.tg-bin-head');
+        if (binHead) binHead.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      } else {
+        triageContainer.scrollTop = containerScrollTop;
+        const stackNow = triageContainer.querySelector('.tg-stack');
+        if (stackNow) stackNow.scrollTop = stackScrollTop;
+      }
       adjustPopoverPosition();
     });
   }
