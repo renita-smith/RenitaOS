@@ -241,7 +241,7 @@
      order (inline beats class), so the ring composes with a domain color
      instead of replacing it; a plain Note-type chip has no inline style,
      so it picks up the deeper-sage fill too. */
-  .tg-bin-chip.active { background: var(--tg-sage-deep); box-shadow: inset 0 0 0 1px #3A4410; font-weight: 700; }
+  .tg-bin-chip.active { background: var(--tg-sage-deep); box-shadow: inset 0 0 0 1px color-mix(in oklch, #3A4410 45%, transparent); font-weight: 700; }
   .tg-empty-track { padding: 20px 2px; font-size: 13px; color: var(--muted-text); }
 
   .tg-bin-head { padding: 22px 0 12px; border-bottom: 1px solid var(--hairline); flex-shrink: 0; }
@@ -505,7 +505,7 @@
        bin chips below. */
     .nav-track { flex-direction: column; width: 100%; background: transparent; padding: 0; gap: 4px; }
     .nav-btn { flex: 0 0 auto; text-align: left; padding: 10px 14px; color: var(--text); }
-    .nav-btn.active { background: #DBE2C1; box-shadow: inset 0 0 0 1px #3A4410; }
+    .nav-btn.active { background: #DBE2C1; box-shadow: inset 0 0 0 1px color-mix(in oklch, #3A4410 45%, transparent); }
     .nav-btn--soon { display: block; }
 
     /* Content stays a comfortable bounded width on desktop — except
