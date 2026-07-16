@@ -610,6 +610,12 @@
   .pf-meta-label { font-size: 10px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--muted-text); }
   .pf-meta-value { font-size: 14px; color: var(--text); }
   .pf-meta-value--muted { color: var(--muted-text); }
+  /* Date reads as editable-but-not-yet-wired: a calendar glyph plus a
+     hover underline set it apart from Created/Last Edited's plain muted
+     text beside it. No picker attaches until the edit slice. */
+  .pf-meta-value--date { display: inline-flex; align-items: center; gap: 5px; width: fit-content; }
+  .pf-meta-date-icon { font-size: 11px; opacity: .65; }
+  .pf-meta-value--date:hover { text-decoration: underline; text-underline-offset: 3px; text-decoration-color: var(--muted-text); }
 
   .pf-body { font-family: 'Newsreader', serif; font-size: 17px; line-height: 1.65; color: oklch(0.24 0.014 75); white-space: pre-wrap; }
   .pf-body--empty { font-style: italic; color: var(--muted-text); }
@@ -633,7 +639,7 @@
     <div class="nav-track">
       <a href="#/home" class="nav-btn" data-route="home">Home</a>
       <a href="./capture.html" class="nav-btn">Capture</a>
-      <a href="#/inbox" class="nav-btn" data-route="inbox" id="navInboxItem">Inbox …</a>
+      <a href="#/inbox" class="nav-btn" data-route="inbox" id="navInboxItem">Inbox (…)</a>
       <span class="nav-btn nav-btn--soon" aria-disabled="true" title="Coming soon">Today</span>
       <span class="nav-btn nav-btn--soon" aria-disabled="true" title="Coming soon">Domains</span>
       <span class="nav-btn nav-btn--soon" aria-disabled="true" title="Coming soon">Search</span>
@@ -871,11 +877,13 @@
       ]);
       const total = notesCount + tasksCount;
       inboxPill.textContent = `${total} to Sort`;
-      navInboxItem.textContent = `Inbox ${total}`;
+      // Rail only — the Inbox screen's own "N waiting · One bin at a time."
+      // heading (renderOverview's tg-ov-sub) stays un-parenthesized.
+      navInboxItem.textContent = `Inbox (${total})`;
     } catch (err) {
       console.error('Failed to refresh inbox count', err);
       inboxPill.textContent = '— to Sort';
-      navInboxItem.textContent = 'Inbox —';
+      navInboxItem.textContent = 'Inbox (—)';
     }
   }
 
@@ -2944,7 +2952,7 @@
     const metaHtml = `<div class="pf-meta-grid">
       <div class="pf-meta-col">
         <div class="pf-meta-label">Date</div>
-        <div class="pf-meta-value">${n.date && n.date.start ? escapeHtml(formatDateShort(n.date.start)) : '—'}</div>
+        <div class="pf-meta-value pf-meta-value--date"><span class="pf-meta-date-icon">🗓</span>${n.date && n.date.start ? escapeHtml(formatDateShort(n.date.start)) : '—'}</div>
       </div>
       <div class="pf-meta-col">
         <div class="pf-meta-label">Created</div>
