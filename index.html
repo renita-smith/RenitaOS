@@ -578,6 +578,9 @@
   .pf-view { width: 100%; padding: 24px 0 60px; }
   .pf-crumb { font-size: 12px; font-weight: 600; color: var(--muted-text); margin-bottom: 16px; }
   .pf-crumb .sep { margin: 0 6px; opacity: .55; }
+  /* Note's flat unique-id handle ("NOTE-247") in the breadcrumb's spot —
+     monospace sets it apart as an id, not a path. */
+  .pf-crumb--id { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace; letter-spacing: .02em; }
   .pf-hero { font-family: 'Newsreader', serif; font-size: 28px; line-height: 1.25; color: var(--text); margin-bottom: 20px; }
 
   .pf-pillrow { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 28px; }
@@ -730,6 +733,14 @@
     const db = await getSchema(databaseId);
     const [name] = Object.entries(db.properties).find(([, prop]) => prop.type === 'title');
     return name;
+  }
+  // Resolved by type ('unique_id'), never a hardcoded property name — the
+  // prefix itself ("NOTE" etc.) is also read live from the property value,
+  // never assumed. Returns null when the database has none.
+  async function uniqueIdPropertyName(databaseId) {
+    const db = await getSchema(databaseId);
+    const entry = Object.entries(db.properties).find(([, prop]) => prop.type === 'unique_id');
+    return entry ? entry[0] : null;
   }
   async function relationPropertyName(sourceDatabaseId, targetDatabaseId) {
     const db = await getSchema(sourceDatabaseId);
@@ -2801,12 +2812,13 @@
     const page = await notionRequest(`/v1/pages/${pageId}`);
 
     const [
-      notesTitleProp, notesStatusSchema, notesDomainProp,
+      notesTitleProp, notesStatusSchema, notesDomainProp, notesUniqueIdProp,
       notesProjectsProp, notesPeopleProp, notesTagsProp, notesCollectionsProp, notesResourcesProp,
     ] = await Promise.all([
       titlePropertyName(CONFIG.DB.NOTES),
       getStatusSchema(CONFIG.DB.NOTES),
       getNotesDomainProp(CONFIG.DB.NOTES),
+      uniqueIdPropertyName(CONFIG.DB.NOTES),
       relationPropertyName(CONFIG.DB.NOTES, CONFIG.DB.PROJECTS),
       relationPropertyName(CONFIG.DB.NOTES, CONFIG.DB.PEOPLE),
       relationPropertyName(CONFIG.DB.NOTES, CONFIG.DB.TAGS),
@@ -2819,6 +2831,12 @@
     const statusName = (statusProp && statusProp.status && statusProp.status.name) || null;
     const types = ((page.properties[CONFIG.NOTES_PROP.TYPE] || {}).multi_select || []).map((o) => o.name);
     const date = (page.properties[CONFIG.NOTES_PROP.DATE] || {}).date || null;
+
+    // "{prefix}-{number}" e.g. "NOTE-247" — both halves read live off the
+    // property value itself, never hardcoded (the prefix is whatever the
+    // Notion database's unique_id property is actually configured with).
+    const uniqueIdVal = notesUniqueIdProp ? (page.properties[notesUniqueIdProp] || {}).unique_id : null;
+    const uniqueId = uniqueIdVal ? `${uniqueIdVal.prefix || ''}-${uniqueIdVal.number}` : null;
 
     // Same either-relation-or-select handling as Triage's note cards (see
     // getNotesDomainProp above) — resolved structurally, never assumed.
@@ -2864,7 +2882,7 @@
     if (domainRel.length) domainName = domainRel[0].name;
 
     return {
-      id: page.id, title, statusName, types, date,
+      id: page.id, title, uniqueId, statusName, types, date,
       domainId, domainName,
       projects, people, tags, collections, resources,
       icons: { projects: projectsIcon, people: peopleIcon, tags: tagsIcon, collections: collectionsIcon, resources: resourcesIcon, domains: domainsIcon },
@@ -2965,9 +2983,9 @@
     const bodyHtml = n.body ? `<div class="pf-body">${escapeHtml(n.body)}</div>` : `<div class="pf-body pf-body--empty">(empty)</div>`;
 
     // Notes are cross-cutting (many domains/projects can share one note),
-    // so the breadcrumb never fabricates a single structural parent — it's
-    // always the flat "Notes › {title}".
-    const crumbHtml = `<div class="pf-crumb">Notes <span class="sep">›</span> ${escapeHtml(n.title || 'Untitled')}</div>`;
+    // so there's no structural parent to build a breadcrumb path from —
+    // just the note's own unique-id handle ("NOTE-247"), read-only.
+    const crumbHtml = `<div class="pf-crumb pf-crumb--id">${n.uniqueId ? escapeHtml(n.uniqueId) : '—'}</div>`;
     const heroHtml = `<div class="serif pf-hero">${escapeHtml(n.title || 'Untitled')}</div>`;
 
     return `<div class="pf-view">
