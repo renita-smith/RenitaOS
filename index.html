@@ -90,6 +90,8 @@
     font-family: inherit;
   }
   .inbox-pill:active { background: var(--button-pressed); color: var(--cream); }
+  /* An Inbox-triage element — doesn't belong on a single record's profile. */
+  .inbox-pill.hidden { display: none; }
 
   .shell-content {
     flex: 1;
@@ -528,8 +530,8 @@
        plain olive text; only the active one gets the standard active-state
        treatment (deeper sage + olive keyline), same language as Triage's
        bin chips below. */
-    .nav-track { flex-direction: column; width: 100%; background: transparent; padding: 0; gap: 4px; }
-    .nav-btn { flex: 0 0 auto; text-align: left; padding: 10px 14px; color: var(--text); }
+    .nav-track { flex-direction: column; width: 100%; background: transparent; padding: 0; gap: 2px; }
+    .nav-btn { flex: 0 0 auto; text-align: left; padding: 8px 14px; font-size: 15px; color: var(--text); }
     .nav-btn.active { background: #DBE2C1; box-shadow: inset 0 0 0 1px color-mix(in oklch, #3A4410 45%, transparent); }
     .nav-btn--soon { display: block; }
 
@@ -538,6 +540,11 @@
        (its bin chips + cards; no more separate sidebar pane), so it opts
        out of this general bound. */
     .shell-content:not(.stretch) { max-width: 640px; margin: 0 auto; width: 100%; }
+    /* Real profiles anchor flush to the rail (no auto-centering) so nav +
+       content read as one composition instead of content floating in a
+       dead gutter — the "coming soon" placeholders above keep the
+       centered look, this only overrides the margin for .profile. */
+    .shell-content.profile { margin: 0; }
 
     /* Triage — desktop keeps both panes together, stacked in one column
        (chip row across the top, opened bin's content directly below),
@@ -582,6 +589,11 @@
   }
   .pf-pill-label { display: inline-flex; align-items: center; gap: 6px; cursor: pointer; }
   .pf-pill-label:hover { text-decoration: underline; }
+  /* Labeled empty slot for an unset relation — read-side only this slice,
+     no tap/add action (that attaches in the edit slice). Dashed, muted,
+     and unfilled so it visibly reads as "nothing here yet" rather than a
+     real value. */
+  .pf-pill--ghost { background: transparent; color: var(--muted-text); border: 1px dashed var(--faint-text); }
   /* Rendered but inert this slice — the caret's picker attaches next
      slice, per the two-hit-area relation-pill design in
      RenitaOS-Conventions.md. */
@@ -590,7 +602,7 @@
   .pf-pill-divider { width: 1px; height: 20px; background: var(--hairline); margin: 0 6px; flex-shrink: 0; }
 
   .pf-meta-grid {
-    display: grid; grid-template-columns: 1fr; gap: 18px;
+    display: grid; grid-template-columns: 1fr; gap: 18px; align-items: center;
     padding: 20px 0; margin-bottom: 30px;
     border-top: 1px solid var(--hairline); border-bottom: 1px solid var(--hairline);
   }
@@ -2871,36 +2883,62 @@
     return `<span class="pf-pill pf-pill--value">${innerHtml}</span>`;
   }
 
+  // The labeled empty-slot pill for a relation field with nothing linked
+  // yet — read-side only, no tap action (see .pf-pill--ghost).
+  function renderGhostPill(fieldLabel) {
+    return `<span class="pf-pill pf-pill--ghost">+ ${escapeHtml(fieldLabel)}</span>`;
+  }
+
   function renderNoteProfile(n) {
+    // pageId in DOMAIN_META is stored dashless (copied from a Notion URL);
+    // the Notion API always returns relation ids WITH dashes — normalizeDbId
+    // (already used the same way for database-id matching elsewhere in this
+    // file) strips both sides down to the same shape before comparing, so a
+    // real Domain reliably resolves to its earth tone instead of silently
+    // falling back to the neutral "no domain" grey.
     const domainMeta = n.domainId
-      ? (DOMAIN_META.find((d) => d.pageId === n.domainId) || NO_DOMAIN_META)
+      ? (DOMAIN_META.find((d) => normalizeDbId(d.pageId) === normalizeDbId(n.domainId)) || NO_DOMAIN_META)
       : (n.domainName ? (DOMAIN_META.find((d) => d.code === n.domainName) || NO_DOMAIN_META) : null);
+    // All six relation fields always show a pill — populated ones as solid,
+    // navigable pills; empty ones as a labeled ghost slot (read-side only,
+    // no add action yet) — so the field frame reads complete either way.
     const domainPillHtml = n.domainName
       ? renderRelPill({
           label: n.domainName, icon: renderChipIcon(n.icons.domains),
           navId: n.domainId, navRoute: 'domain',
           styleAttr: domainMeta ? `background:${domainMeta.fill};color:${domainMeta.text};` : '',
         })
-      : '';
-    const projectsHtml = n.projects.map((p) => renderRelPill({ label: p.name, icon: renderChipIcon(n.icons.projects), navId: p.id, navRoute: 'project' })).join('');
-    const peopleHtml = n.people.map((p) => renderRelPill({ label: p.name, icon: renderChipIcon(n.icons.people), navId: p.id, navRoute: 'person' })).join('');
-    const tagsHtml = n.tags.map((t) => renderRelPill({ label: t.name, icon: renderChipIcon(n.icons.tags), navId: t.id, navRoute: 'tag' })).join('');
-    const collectionsHtml = n.collections.map((c) => renderRelPill({ label: c.name, icon: renderChipIcon(n.icons.collections), navId: c.id, navRoute: 'collection' })).join('');
+      : renderGhostPill('Domain');
+    const projectsHtml = n.projects.length
+      ? n.projects.map((p) => renderRelPill({ label: p.name, icon: renderChipIcon(n.icons.projects), navId: p.id, navRoute: 'project' })).join('')
+      : renderGhostPill('Project');
+    const peopleHtml = n.people.length
+      ? n.people.map((p) => renderRelPill({ label: p.name, icon: renderChipIcon(n.icons.people), navId: p.id, navRoute: 'person' })).join('')
+      : renderGhostPill('Person');
+    const tagsHtml = n.tags.length
+      ? n.tags.map((t) => renderRelPill({ label: t.name, icon: renderChipIcon(n.icons.tags), navId: t.id, navRoute: 'tag' })).join('')
+      : renderGhostPill('Tag');
+    const collectionsHtml = n.collections.length
+      ? n.collections.map((c) => renderRelPill({ label: c.name, icon: renderChipIcon(n.icons.collections), navId: c.id, navRoute: 'collection' })).join('')
+      : renderGhostPill('Collection');
     // Resources has no #/resource/{id} route in this foundation slice (not
-    // part of the seven shared routes) — its pills render without a
+    // part of the seven shared routes) — populated pills render without a
     // navigable label until that route exists.
-    const resourcesHtml = n.resources.map((r) => renderRelPill({ label: r.name, icon: renderChipIcon(n.icons.resources) })).join('');
+    const resourcesHtml = n.resources.length
+      ? n.resources.map((r) => renderRelPill({ label: r.name, icon: renderChipIcon(n.icons.resources) })).join('')
+      : renderGhostPill('Resource');
     const relPillsHtml = domainPillHtml + projectsHtml + peopleHtml + tagsHtml + collectionsHtml + resourcesHtml;
 
+    // Date dropped from the pill row — it lives in the meta grid only now,
+    // so it isn't shown twice.
     const typeHtml = n.types.length
       ? n.types.map((t) => {
           const { icon, name } = splitTrailingEmoji(t);
           return renderValuePill(`${icon ? `<span class="pf-pill-icon">${escapeHtml(icon)}</span>` : ''}${escapeHtml(name)}`);
         }).join('')
       : renderValuePill('No type');
-    const dateHtml = renderValuePill(`<span class="pf-pill-icon">🗓</span>${n.date && n.date.start ? escapeHtml(formatDateShort(n.date.start)) : 'No date'}`);
     const statusHtml = renderValuePill(n.statusName ? escapeHtml(n.statusName) : 'No status');
-    const valuePillsHtml = typeHtml + dateHtml + statusHtml;
+    const valuePillsHtml = typeHtml + statusHtml;
     const dividerHtml = relPillsHtml ? '<span class="pf-pill-divider"></span>' : '';
 
     const metaHtml = `<div class="pf-meta-grid">
@@ -3031,6 +3069,9 @@
     });
     content.classList.toggle('stretch', route.name === 'inbox');
     content.classList.toggle('profile', REAL_PROFILE_ROUTES.includes(route.name));
+    // The Inbox-triage "N to Sort" pill doesn't belong on a record's own
+    // profile (real or still-stubbed) — Home and Inbox keep it.
+    inboxPill.classList.toggle('hidden', ENTITY_ROUTES.includes(route.name));
     if (route.name === 'inbox') {
       mountTriage(content);
     } else if (route.name === 'note') {
