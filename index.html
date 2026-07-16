@@ -548,6 +548,51 @@
        shrink and scroll internally first to make it happen. */
     .tg-pane-bin > .tg-view { min-height: 220px; }
   }
+
+  /* ============================================================
+     Entity profiles — read/navigate-only foundation slice. Shared by
+     every #/{entity}/{id} route; prefixed pf- to avoid colliding with
+     tg- (Triage) and any future screen sharing this shell. Mobile-first,
+     same as the rest of the file — the meta grid's two-column split is a
+     desktop-only override below.
+     ============================================================ */
+  .pf-view { width: 100%; padding: 24px 0 60px; }
+  .pf-crumb { font-size: 12px; font-weight: 600; color: var(--muted-text); margin-bottom: 16px; }
+  .pf-crumb .sep { margin: 0 6px; opacity: .55; }
+  .pf-hero { font-family: 'Newsreader', serif; font-size: 28px; line-height: 1.25; color: var(--text); margin-bottom: 20px; }
+
+  .pf-pillrow { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 28px; }
+  .pf-pill {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 6px 12px; border-radius: var(--radius-sm);
+    background: var(--surface-soft); color: var(--text);
+    font-size: 12px; font-weight: 600;
+  }
+  .pf-pill-label { display: inline-flex; align-items: center; gap: 6px; cursor: pointer; }
+  .pf-pill-label:hover { text-decoration: underline; }
+  /* Rendered but inert this slice — the caret's picker attaches next
+     slice, per the two-hit-area relation-pill design in
+     RenitaOS-Conventions.md. */
+  .pf-pill-caret { opacity: .5; font-size: 9px; margin-left: 2px; }
+  .pf-pill-icon { display: inline-flex; align-items: center; font-size: 12px; line-height: 1; }
+  .pf-pill-divider { width: 1px; height: 20px; background: var(--hairline); margin: 0 6px; flex-shrink: 0; }
+
+  .pf-meta-grid {
+    display: grid; grid-template-columns: 1fr; gap: 18px;
+    padding: 20px 0; margin-bottom: 30px;
+    border-top: 1px solid var(--hairline); border-bottom: 1px solid var(--hairline);
+  }
+  .pf-meta-col { display: flex; flex-direction: column; gap: 8px; }
+  .pf-meta-label { font-size: 10px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--muted-text); }
+  .pf-meta-value { font-size: 14px; color: var(--text); }
+  .pf-meta-value--muted { color: var(--muted-text); }
+
+  .pf-body { font-family: 'Newsreader', serif; font-size: 17px; line-height: 1.65; color: oklch(0.24 0.014 75); white-space: pre-wrap; }
+  .pf-body--empty { font-style: italic; color: var(--muted-text); }
+
+  @media (min-width: 768px) {
+    .pf-meta-grid { grid-template-columns: 1fr 1fr; gap: 24px; }
+  }
 </style>
 </head>
 <body>
@@ -587,6 +632,8 @@
       PROJECTS: '33110b0375a88054b94bfda7c3e93ddb',
       DOMAINS: '33110b0375a88024b4f2c8e6beaca80e',
       TAGS: '1a39ff9fd10747ad9d418577707c012f',
+      COLLECTIONS: '315a07b97c6b461f917f5b01f6730ccc',
+      RESOURCES: '1801744784014ecdaf20a384006cd644',
     },
     // Type/Date are the exact non-relation property NAMES (not emoji-
     // prefixed), per RenitaOS-Backend-Notes-Template.md §2. But the Type
@@ -2505,17 +2552,20 @@
       return;
     }
 
-    // Opens the record's full Notion URL (already on the card from the page
-    // object, no extra fetch) in a new tab. Resolved by card id at click
-    // time rather than embedding the URL in the DOM, so this can swap to an
-    // in-app profile route later (e.g. `location.hash = '#/notes/'+id`)
-    // without touching the markup that triggers it.
+    // Notes open in-app now (#/note/{id}); Tasks (and every other future
+    // entity) still open their full Notion URL in a new tab until those
+    // profiles exist. Resolved by card id at click time rather than
+    // embedding a target in the markup, so each track's target can keep
+    // evolving independently without touching the markup that triggers it.
     const openRecordBtn = e.target.closest('[data-open-record]');
     if (openRecordBtn) {
       e.stopPropagation();
       const cardId = openRecordBtn.dataset.openRecord;
-      const allCards = triageState.track === 'notes' ? triageState.data.notesCards : triageState.data.tasksCards;
-      const card = allCards.find((c) => c.id === cardId);
+      if (triageState.track === 'notes') {
+        location.hash = `#/note/${cardId}`;
+        return;
+      }
+      const card = triageState.data.tasksCards.find((c) => c.id === cardId);
       if (card && card.url) window.open(card.url, '_blank', 'noopener');
       return;
     }
@@ -2671,6 +2721,246 @@
     }
   });
 
+  // --- Entity profiles — read/navigate-only foundation slice ---------------
+  // Every #/{entity}/{id} route lands here. Note is wired for real against
+  // Notion; the other six are minimal placeholders so a relation-pill tap
+  // (Domain, Projects, People, Tags, Collections) has somewhere to land.
+  // This slice writes nothing — editing pills attach next slice.
+  const ENTITY_ROUTES = ['note', 'task', 'project', 'domain', 'person', 'tag', 'collection'];
+  const ENTITY_LABELS = { note: 'Note', task: 'Task', project: 'Project', domain: 'Domain', person: 'Person', tag: 'Tag', collection: 'Collection' };
+
+  function renderEntityStub(entityName) {
+    const label = ENTITY_LABELS[entityName] || entityName;
+    return `<div class="placeholder"><div class="placeholder-title">${escapeHtml(label)} profile — coming soon</div></div>`;
+  }
+
+  // A page's timestamp fields (created_time/last_edited_time) are absolute
+  // instants (they carry a real UTC offset, unlike the date-only Date
+  // field elsewhere in this file) — safe to hand straight to `new Date()`
+  // and read back in local time, unlike formatDateShort's manual parsing.
+  function formatDateTime(iso) {
+    const d = new Date(iso);
+    const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const h12 = ((d.getHours() + 11) % 12) + 1;
+    const ampm = d.getHours() < 12 ? 'AM' : 'PM';
+    const mins = String(d.getMinutes()).padStart(2, '0');
+    return `${MONTHS[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()} · ${h12}:${mins} ${ampm}`;
+  }
+
+  // Relation properties only carry ids — resolve each linked page's title
+  // individually rather than querying the whole target database, since a
+  // single profile only ever needs the handful of records it actually
+  // links to. A relation pointing at a since-archived/deleted page fails
+  // softly (dropped from the list) instead of breaking the whole profile.
+  async function resolveRelationNames(databaseId, ids) {
+    if (!ids.length) return [];
+    const titleProp = await titlePropertyName(databaseId);
+    const pages = await Promise.all(ids.map(async (id) => {
+      try { return await notionRequest(`/v1/pages/${id}`); } catch (err) { console.error('Failed to resolve relation page', id, err); return null; }
+    }));
+    return pages.filter(Boolean).map((p) => ({ id: p.id, name: plainTitle(p, titleProp) })).filter((p) => p.name);
+  }
+
+  async function loadNoteProfile(pageId) {
+    const page = await notionRequest(`/v1/pages/${pageId}`);
+
+    const [
+      notesTitleProp, notesStatusSchema, notesDomainProp,
+      notesProjectsProp, notesPeopleProp, notesTagsProp, notesCollectionsProp, notesResourcesProp,
+    ] = await Promise.all([
+      titlePropertyName(CONFIG.DB.NOTES),
+      getStatusSchema(CONFIG.DB.NOTES),
+      getNotesDomainProp(CONFIG.DB.NOTES),
+      relationPropertyName(CONFIG.DB.NOTES, CONFIG.DB.PROJECTS),
+      relationPropertyName(CONFIG.DB.NOTES, CONFIG.DB.PEOPLE),
+      relationPropertyName(CONFIG.DB.NOTES, CONFIG.DB.TAGS),
+      relationPropertyName(CONFIG.DB.NOTES, CONFIG.DB.COLLECTIONS),
+      relationPropertyName(CONFIG.DB.NOTES, CONFIG.DB.RESOURCES),
+    ]);
+
+    const title = plainTitle(page, notesTitleProp);
+    const statusProp = page.properties[notesStatusSchema.name];
+    const statusName = (statusProp && statusProp.status && statusProp.status.name) || null;
+    const types = ((page.properties[CONFIG.NOTES_PROP.TYPE] || {}).multi_select || []).map((o) => o.name);
+    const date = (page.properties[CONFIG.NOTES_PROP.DATE] || {}).date || null;
+
+    // Same either-relation-or-select handling as Triage's note cards (see
+    // getNotesDomainProp above) — resolved structurally, never assumed.
+    let domainId = null;
+    let domainName = null;
+    if (notesDomainProp) {
+      const propVal = page.properties[notesDomainProp.name];
+      if (notesDomainProp.type === 'relation') {
+        const relIds = (propVal && propVal.relation) || [];
+        domainId = relIds[0] ? relIds[0].id : null;
+      } else {
+        const sel = propVal && propVal.select;
+        domainName = sel ? sel.name : null;
+      }
+    }
+
+    const projectIds = ((page.properties[notesProjectsProp] || {}).relation || []).map((r) => r.id);
+    const peopleIds = ((page.properties[notesPeopleProp] || {}).relation || []).map((r) => r.id);
+    const tagIds = ((page.properties[notesTagsProp] || {}).relation || []).map((r) => r.id);
+    const collectionIds = ((page.properties[notesCollectionsProp] || {}).relation || []).map((r) => r.id);
+    const resourceIds = ((page.properties[notesResourcesProp] || {}).relation || []).map((r) => r.id);
+
+    const [
+      projects, people, tags, collections, resources, domainRel, body,
+      projectsIcon, peopleIcon, tagsIcon, collectionsIcon, resourcesIcon, domainsIcon,
+    ] = await Promise.all([
+      resolveRelationNames(CONFIG.DB.PROJECTS, projectIds),
+      resolveRelationNames(CONFIG.DB.PEOPLE, peopleIds),
+      resolveRelationNames(CONFIG.DB.TAGS, tagIds),
+      resolveRelationNames(CONFIG.DB.COLLECTIONS, collectionIds),
+      resolveRelationNames(CONFIG.DB.RESOURCES, resourceIds),
+      domainId ? resolveRelationNames(CONFIG.DB.DOMAINS, [domainId]) : Promise.resolve([]),
+      fetchPageBodyText(pageId),
+      // One shared icon per relation-pill category — the database's own
+      // icon, memoized via getSchema, same pattern loadTriageData uses.
+      getDatabaseIcon(CONFIG.DB.PROJECTS),
+      getDatabaseIcon(CONFIG.DB.PEOPLE),
+      getDatabaseIcon(CONFIG.DB.TAGS),
+      getDatabaseIcon(CONFIG.DB.COLLECTIONS),
+      getDatabaseIcon(CONFIG.DB.RESOURCES),
+      getDatabaseIcon(CONFIG.DB.DOMAINS),
+    ]);
+    if (domainRel.length) domainName = domainRel[0].name;
+
+    return {
+      id: page.id, title, statusName, types, date,
+      domainId, domainName,
+      projects, people, tags, collections, resources,
+      icons: { projects: projectsIcon, people: peopleIcon, tags: tagsIcon, collections: collectionsIcon, resources: resourcesIcon, domains: domainsIcon },
+      body,
+      createdTime: page.created_time,
+      lastEditedTime: page.last_edited_time,
+    };
+  }
+
+  // A relation pill's LABEL is the only navigable hit area this slice — the
+  // caret renders (so the two-hit-area shape is already in place for next
+  // slice's picker) but has no handler yet. Domain is the only category
+  // that ever carries a styleAttr (its earth tone); everything else stays
+  // plain olive-on-sage via .pf-pill's own default.
+  function renderRelPill({ label, icon, navId, navRoute, styleAttr }) {
+    const styleAttrHtml = styleAttr ? ` style="${styleAttr}"` : '';
+    if (!navId || !navRoute) {
+      return `<span class="pf-pill"${styleAttrHtml}>${icon || ''}${escapeHtml(label)}</span>`;
+    }
+    return `<span class="pf-pill pf-pill--rel"${styleAttrHtml}><span class="pf-pill-label" data-pf-nav="${navRoute}/${escapeHtml(navId)}">${icon || ''}${escapeHtml(label)}</span><span class="pf-pill-caret" aria-hidden="true">⌄</span></span>`;
+  }
+
+  function renderValuePill(innerHtml) {
+    return `<span class="pf-pill pf-pill--value">${innerHtml}</span>`;
+  }
+
+  function renderNoteProfile(n) {
+    const domainMeta = n.domainId
+      ? (DOMAIN_META.find((d) => d.pageId === n.domainId) || NO_DOMAIN_META)
+      : (n.domainName ? (DOMAIN_META.find((d) => d.code === n.domainName) || NO_DOMAIN_META) : null);
+    const domainPillHtml = n.domainName
+      ? renderRelPill({
+          label: n.domainName, icon: renderChipIcon(n.icons.domains),
+          navId: n.domainId, navRoute: 'domain',
+          styleAttr: domainMeta ? `background:${domainMeta.fill};color:${domainMeta.text};` : '',
+        })
+      : '';
+    const projectsHtml = n.projects.map((p) => renderRelPill({ label: p.name, icon: renderChipIcon(n.icons.projects), navId: p.id, navRoute: 'project' })).join('');
+    const peopleHtml = n.people.map((p) => renderRelPill({ label: p.name, icon: renderChipIcon(n.icons.people), navId: p.id, navRoute: 'person' })).join('');
+    const tagsHtml = n.tags.map((t) => renderRelPill({ label: t.name, icon: renderChipIcon(n.icons.tags), navId: t.id, navRoute: 'tag' })).join('');
+    const collectionsHtml = n.collections.map((c) => renderRelPill({ label: c.name, icon: renderChipIcon(n.icons.collections), navId: c.id, navRoute: 'collection' })).join('');
+    // Resources has no #/resource/{id} route in this foundation slice (not
+    // part of the seven shared routes) — its pills render without a
+    // navigable label until that route exists.
+    const resourcesHtml = n.resources.map((r) => renderRelPill({ label: r.name, icon: renderChipIcon(n.icons.resources) })).join('');
+    const relPillsHtml = domainPillHtml + projectsHtml + peopleHtml + tagsHtml + collectionsHtml + resourcesHtml;
+
+    const typeHtml = n.types.length
+      ? n.types.map((t) => {
+          const { icon, name } = splitTrailingEmoji(t);
+          return renderValuePill(`${icon ? `<span class="pf-pill-icon">${escapeHtml(icon)}</span>` : ''}${escapeHtml(name)}`);
+        }).join('')
+      : renderValuePill('No type');
+    const dateHtml = renderValuePill(`<span class="pf-pill-icon">🗓</span>${n.date && n.date.start ? escapeHtml(formatDateShort(n.date.start)) : 'No date'}`);
+    const statusHtml = renderValuePill(n.statusName ? escapeHtml(n.statusName) : 'No status');
+    const valuePillsHtml = typeHtml + dateHtml + statusHtml;
+    const dividerHtml = relPillsHtml ? '<span class="pf-pill-divider"></span>' : '';
+
+    const metaHtml = `<div class="pf-meta-grid">
+      <div class="pf-meta-col">
+        <div class="pf-meta-label">Date</div>
+        <div class="pf-meta-value">${n.date && n.date.start ? escapeHtml(formatDateShort(n.date.start)) : '—'}</div>
+      </div>
+      <div class="pf-meta-col">
+        <div class="pf-meta-label">Created</div>
+        <div class="pf-meta-value pf-meta-value--muted">${escapeHtml(formatDateTime(n.createdTime))}</div>
+        <div class="pf-meta-label">Last edited</div>
+        <div class="pf-meta-value pf-meta-value--muted">${escapeHtml(formatDateTime(n.lastEditedTime))}</div>
+      </div>
+    </div>`;
+
+    const bodyHtml = n.body ? `<div class="pf-body">${escapeHtml(n.body)}</div>` : `<div class="pf-body pf-body--empty">(empty)</div>`;
+
+    // Notes are cross-cutting (many domains/projects can share one note),
+    // so the breadcrumb never fabricates a single structural parent — it's
+    // always the flat "Notes › {title}".
+    const crumbHtml = `<div class="pf-crumb">Notes <span class="sep">›</span> ${escapeHtml(n.title || 'Untitled')}</div>`;
+    const heroHtml = `<div class="serif pf-hero">${escapeHtml(n.title || 'Untitled')}</div>`;
+
+    return `<div class="pf-view">
+      ${crumbHtml}
+      ${heroHtml}
+      <div class="pf-pillrow">${relPillsHtml}${dividerHtml}${valuePillsHtml}</div>
+      ${metaHtml}
+      ${bodyHtml}
+    </div>`;
+  }
+
+  const noteProfileState = { id: null, loading: false, error: null, data: null };
+
+  function paintNoteProfile(container) {
+    if (noteProfileState.loading) {
+      container.innerHTML = `<div class="pf-view"><div class="tg-status">Loading…</div></div>`;
+      return;
+    }
+    if (noteProfileState.error) {
+      container.innerHTML = `<div class="pf-view"><div class="tg-status tg-status--error">${escapeHtml(noteProfileState.error)}</div></div>`;
+      return;
+    }
+    container.innerHTML = renderNoteProfile(noteProfileState.data);
+  }
+
+  async function mountNoteProfile(container, id) {
+    noteProfileState.id = id;
+    noteProfileState.loading = true;
+    noteProfileState.error = null;
+    noteProfileState.data = null;
+    paintNoteProfile(container);
+    try {
+      const data = await loadNoteProfile(id);
+      if (noteProfileState.id !== id) return; // route moved on while this was in flight
+      noteProfileState.data = data;
+    } catch (err) {
+      console.error('Failed to load note profile', err);
+      if (noteProfileState.id !== id) return;
+      noteProfileState.error = err.message || 'Could not load this note — check the Worker.';
+    } finally {
+      if (noteProfileState.id === id) {
+        noteProfileState.loading = false;
+        paintNoteProfile(container);
+      }
+    }
+  }
+
+  // Relation-pill label taps (any profile) navigate via the hash router,
+  // regardless of which route is currently mounted — unlike the Triage
+  // click delegation below, which is gated to the inbox route only.
+  content.addEventListener('click', (e) => {
+    const navEl = e.target.closest('[data-pf-nav]');
+    if (navEl) location.hash = `#/${navEl.dataset.pfNav}`;
+  });
+
   // --- Views ----------------------------------------------------------------
   // Capture isn't an in-shell route: the nav links straight to capture.html
   // until the Capture screen is migrated in here. Triage is a real screen
@@ -2686,11 +2976,28 @@
   };
 
   // --- Hash router ------------------------------------------------------
-  const ROUTES = ['home', 'inbox'];
+  // Static routes match the whole hash; entity routes are a singular noun
+  // + Notion page id (#/note/{id}, #/task/{id}, ...) — parsed by splitting
+  // on "/" rather than matched against a fixed list, since the id half is
+  // arbitrary. Anything unrecognized (including a bare entity name with no
+  // id) falls back to Home rather than erroring.
+  const STATIC_ROUTES = ['home', 'inbox'];
 
-  function currentRoute() {
+  function parseRoute() {
     const hash = location.hash.replace(/^#\/?/, '');
-    return ROUTES.includes(hash) ? hash : 'home';
+    const segments = hash.split('/').filter(Boolean);
+    if (segments.length === 0) return { name: 'home' };
+    const [first, second] = segments;
+    if (STATIC_ROUTES.includes(first)) return { name: first };
+    if (ENTITY_ROUTES.includes(first) && second) return { name: first, id: decodeURIComponent(second) };
+    return { name: 'home' };
+  }
+
+  // Triage's own click/input/change/wheel listeners below gate on "is this
+  // the inbox route" by name alone — kept as a thin wrapper over
+  // parseRoute so that plumbing doesn't need to change.
+  function currentRoute() {
+    return parseRoute().name;
   }
 
   function render() {
@@ -2702,15 +3009,19 @@
       location.hash = '#/inbox';
       return;
     }
-    const route = currentRoute();
+    const route = parseRoute();
     document.querySelectorAll('.nav-btn').forEach((btn) => {
-      btn.classList.toggle('active', btn.dataset.route === route);
+      btn.classList.toggle('active', btn.dataset.route === route.name);
     });
-    content.classList.toggle('stretch', route === 'inbox');
-    if (route === 'inbox') {
+    content.classList.toggle('stretch', route.name === 'inbox');
+    if (route.name === 'inbox') {
       mountTriage(content);
+    } else if (route.name === 'note') {
+      mountNoteProfile(content, route.id);
+    } else if (ENTITY_ROUTES.includes(route.name)) {
+      content.innerHTML = renderEntityStub(route.name);
     } else {
-      content.innerHTML = VIEWS[route]();
+      content.innerHTML = VIEWS[route.name]();
     }
     // The inbox count can change on any screen (Capture adds to it, Triage
     // will resolve it later), so it's refreshed on every route change.
