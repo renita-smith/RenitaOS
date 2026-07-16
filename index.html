@@ -171,6 +171,13 @@
      ============================================================ */
   .shell-content.stretch { align-items: stretch; justify-content: flex-start; padding: 0; }
 
+  /* Real entity profiles (Note, and whichever join it later) start at the
+     top of the content row — parallel with the nav rail above, which now
+     starts there too (see .shell's grid-template-areas) — rather than the
+     base .shell-content centering meant for the short "coming soon"
+     placeholders (Home, the still-stubbed entity routes). */
+  .shell-content.profile { align-items: flex-start; justify-content: flex-start; padding: 0; }
+
   .tg-view {
     --tg-sage-deep: #DBE2C1;
     --tg-icon: #3A4410;
@@ -496,8 +503,13 @@
       display: grid;
       grid-template-columns: 200px minmax(0, 1fr);
       grid-template-rows: auto 1fr;
+      /* Nav sits only in the content row (the "." leaves row 1's nav cell
+         empty) — it no longer spans up behind the topbar, so it starts
+         flush with content's own top edge instead of the wordmark's. That
+         empty cell is exactly the topbar's own height, so nav is pushed
+         down by that much automatically, however tall the topbar renders. */
       grid-template-areas:
-        "nav topbar"
+        ".   topbar"
         "nav content";
       column-gap: 32px;
     }
@@ -2728,6 +2740,10 @@
   // This slice writes nothing — editing pills attach next slice.
   const ENTITY_ROUTES = ['note', 'task', 'project', 'domain', 'person', 'tag', 'collection'];
   const ENTITY_LABELS = { note: 'Note', task: 'Task', project: 'Project', domain: 'Domain', person: 'Person', tag: 'Tag', collection: 'Collection' };
+  // Routes with a real profile (vs. still a "coming soon" stub) get the
+  // top-aligned .profile content treatment instead of the stub's centered
+  // placeholder look — see .shell-content.profile.
+  const REAL_PROFILE_ROUTES = ['note'];
 
   function renderEntityStub(entityName) {
     const label = ENTITY_LABELS[entityName] || entityName;
@@ -3014,6 +3030,7 @@
       btn.classList.toggle('active', btn.dataset.route === route.name);
     });
     content.classList.toggle('stretch', route.name === 'inbox');
+    content.classList.toggle('profile', REAL_PROFILE_ROUTES.includes(route.name));
     if (route.name === 'inbox') {
       mountTriage(content);
     } else if (route.name === 'note') {
