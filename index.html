@@ -963,6 +963,22 @@
       .replace(/"/g, '&quot;');
   }
 
+  // Shared by every profile that renders a Notion unique_id handle — joins
+  // with a literal ASCII hyphen-minus (U+002D), the only character Notion's
+  // own /{prefix}-{number} URL slug and its ID search actually match. A
+  // stray en-dash/em-dash/minus-sign anywhere in the assembled string (e.g.
+  // from a prefix value that itself contains one) is normalized back to a
+  // plain hyphen rather than trusted verbatim, so the on-screen handle is
+  // always copy-paste identical to Notion's — never smart-typography'd.
+  function formatUniqueId(prefix, number) {
+    const raw = `${(prefix || '').trim()}-${number}`;
+    // U+2010-U+2015 = hyphen, non-breaking hyphen, figure dash, en dash, em
+    // dash, horizontal bar; U+2212 = minus sign. Explicit \u escapes (not
+    // literal glyphs) so every character this strips is independently
+    // verifiable by codepoint, not by eyeballing a source-file character.
+    return raw.replace(/[\u2010-\u2015\u2212]/g, '-');
+  }
+
   function plainTitle(page, propName) {
     const arr = page.properties[propName] && page.properties[propName].title;
     if (!arr || !arr.length) return '';
@@ -2835,8 +2851,11 @@
     // "{prefix}-{number}" e.g. "NOTE-247" — both halves read live off the
     // property value itself, never hardcoded (the prefix is whatever the
     // Notion database's unique_id property is actually configured with).
+    // formatUniqueId guarantees the joining hyphen is the plain ASCII one
+    // Notion's own URL slug and ID search require, never a smart-typography
+    // substitute (see its own comment).
     const uniqueIdVal = notesUniqueIdProp ? (page.properties[notesUniqueIdProp] || {}).unique_id : null;
-    const uniqueId = uniqueIdVal ? `${uniqueIdVal.prefix || ''}-${uniqueIdVal.number}` : null;
+    const uniqueId = uniqueIdVal ? formatUniqueId(uniqueIdVal.prefix, uniqueIdVal.number) : null;
 
     // Same either-relation-or-select handling as Triage's note cards (see
     // getNotesDomainProp above) — resolved structurally, never assumed.
