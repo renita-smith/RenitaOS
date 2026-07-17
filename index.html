@@ -579,9 +579,27 @@
   .pf-crumb { font-size: 12px; font-weight: 600; color: var(--muted-text); margin-bottom: 16px; }
   .pf-crumb .sep { margin: 0 6px; opacity: .55; }
   /* Note's flat unique-id handle ("NOTE-247") in the breadcrumb's spot —
-     monospace sets it apart as an id, not a path. */
+     monospace sets it apart as an id, not a path. Applied to the id
+     portion only (a span) on profiles like Task that also show a
+     structural path (which stays the crumb's normal, non-monospace type)
+     after it. */
   .pf-crumb--id { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace; letter-spacing: .02em; }
+  /* A breadcrumb path segment that actually navigates (Task's Domain ›
+     Project) — the id itself never does, it's a label. */
+  .pf-crumb-link { cursor: pointer; }
+  .pf-crumb-link:hover { text-decoration: underline; }
   .pf-hero { font-family: 'Newsreader', serif; font-size: 28px; line-height: 1.25; color: var(--text); margin-bottom: 20px; }
+  /* Task's hero pairs a completion checkbox with the title, per the
+     Profile layout grammar's "checkbox sits to the left of the title,
+     aligned to its first line" — render only, no write, this slice. */
+  .pf-hero-row { display: flex; align-items: flex-start; gap: 12px; margin-bottom: 20px; }
+  .pf-hero-row .pf-hero { margin-bottom: 0; }
+  .pf-hero-checkbox {
+    flex-shrink: 0; width: 20px; height: 20px; border-radius: var(--radius-sm); margin-top: 8px;
+    background: #fff; box-shadow: inset 0 0 0 1.5px oklch(0.75 0.012 75);
+    color: #fff; display: flex; align-items: center; justify-content: center; font-size: 12px;
+  }
+  .pf-hero-checkbox--checked { background: var(--text); box-shadow: inset 0 0 0 1.5px var(--text); }
 
   .pf-pillrow { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 28px; }
   .pf-pill {
@@ -675,7 +693,7 @@
     // never hardcoded — they're fetched live via getMultiSelectOptions,
     // same principle as relation/status resolution below.
     NOTES_PROP: { TYPE: 'Type', DATE: 'Date' },
-    TASKS_PROP: { DUE_DATE: 'Due Date' },
+    TASKS_PROP: { DUE_DATE: 'Due Date', DO_DATE: 'Do Date' },
     // Refresh moves a qualified card out of Inbox into its next natural
     // status (§5 controlled values) — matched case-insensitively and
     // resolved to its exact stored casing at write time, same as Inbox.
@@ -829,6 +847,18 @@
       })());
     }
     return notesDomainPropCache.get(databaseId);
+  }
+
+  // Tasks have two select-type properties per the backend notes (Priority
+  // AND Time Slot) — resolved by type PLUS a keyword match on the name
+  // (never a hardcoded emoji-prefixed string) so this reliably picks
+  // Priority and not Time Slot. Returns null if no such property exists.
+  async function getTasksPriorityProp(databaseId) {
+    const db = await getSchema(databaseId);
+    const entry = Object.entries(db.properties).find(
+      ([name, prop]) => prop.type === 'select' && name.toLowerCase().includes('priority')
+    );
+    return entry ? entry[0] : null;
   }
 
   // A Notion page's `icon` field is either an emoji or an uploaded/external
@@ -2611,11 +2641,12 @@
       return;
     }
 
-    // Notes open in-app now (#/note/{id}); Tasks (and every other future
-    // entity) still open their full Notion URL in a new tab until those
-    // profiles exist. Resolved by card id at click time rather than
-    // embedding a target in the markup, so each track's target can keep
-    // evolving independently without touching the markup that triggers it.
+    // Notes and Tasks both open in-app now (#/note/{id}, #/task/{id});
+    // every other future entity still opens its full Notion URL in a new
+    // tab until its profile exists. Resolved by card id at click time
+    // rather than embedding a target in the markup, so each track's
+    // target can keep evolving independently without touching the markup
+    // that triggers it.
     const openRecordBtn = e.target.closest('[data-open-record]');
     if (openRecordBtn) {
       e.stopPropagation();
@@ -2624,8 +2655,10 @@
         location.hash = `#/note/${cardId}`;
         return;
       }
-      const card = triageState.data.tasksCards.find((c) => c.id === cardId);
-      if (card && card.url) window.open(card.url, '_blank', 'noopener');
+      if (triageState.track === 'tasks') {
+        location.hash = `#/task/${cardId}`;
+        return;
+      }
       return;
     }
 
@@ -2790,7 +2823,7 @@
   // Routes with a real profile (vs. still a "coming soon" stub) get the
   // top-aligned .profile content treatment instead of the stub's centered
   // placeholder look — see .shell-content.profile.
-  const REAL_PROFILE_ROUTES = ['note'];
+  const REAL_PROFILE_ROUTES = ['note', 'task'];
 
   function renderEntityStub(entityName) {
     const label = ENTITY_LABELS[entityName] || entityName;
@@ -2822,6 +2855,30 @@
       try { return await notionRequest(`/v1/pages/${id}`); } catch (err) { console.error('Failed to resolve relation page', id, err); return null; }
     }));
     return pages.filter(Boolean).map((p) => ({ id: p.id, name: plainTitle(p, titleProp) })).filter((p) => p.name);
+  }
+
+  // A task's Domain isn't its own field — it only exists via its Project's
+  // own Domain relation (never a task-level rollup), so resolving a task's
+  // project(s) and its domain is one combined lookup: fetch the linked
+  // project page(s), then read the FIRST one's own Domain relation.
+  async function resolveTaskProjectAndDomain(projectIds) {
+    if (!projectIds.length) return { projects: [], domainId: null };
+    const [projectTitleProp, projectsDomainsProp] = await Promise.all([
+      titlePropertyName(CONFIG.DB.PROJECTS),
+      relationPropertyName(CONFIG.DB.PROJECTS, CONFIG.DB.DOMAINS),
+    ]);
+    const pages = await Promise.all(projectIds.map(async (id) => {
+      try { return await notionRequest(`/v1/pages/${id}`); } catch (err) { console.error('Failed to resolve project page', id, err); return null; }
+    }));
+    const resolvedPages = pages.filter(Boolean);
+    const projects = resolvedPages.map((p) => ({ id: p.id, name: plainTitle(p, projectTitleProp) })).filter((p) => p.name);
+    const firstProjectPage = resolvedPages[0] || null;
+    let domainId = null;
+    if (firstProjectPage) {
+      const domRel = (firstProjectPage.properties[projectsDomainsProp] || {}).relation || [];
+      domainId = domRel[0] ? domRel[0].id : null;
+    }
+    return { projects, domainId };
   }
 
   async function loadNoteProfile(pageId) {
@@ -2915,13 +2972,17 @@
   // caret renders (so the two-hit-area shape is already in place for next
   // slice's picker) but has no handler yet. Domain is the only category
   // that ever carries a styleAttr (its earth tone); everything else stays
-  // plain olive-on-sage via .pf-pill's own default.
-  function renderRelPill({ label, icon, navId, navRoute, styleAttr }) {
+  // plain olive-on-sage via .pf-pill's own default. `caret: false` opts a
+  // pill out of the caret entirely (not just inert) — Task's Domain pill,
+  // whose value is read-only always (a rollup through its project, never
+  // directly editable), is the one deliberate use of this.
+  function renderRelPill({ label, icon, navId, navRoute, styleAttr, caret = true }) {
     const styleAttrHtml = styleAttr ? ` style="${styleAttr}"` : '';
     if (!navId || !navRoute) {
       return `<span class="pf-pill"${styleAttrHtml}>${icon || ''}${escapeHtml(label)}</span>`;
     }
-    return `<span class="pf-pill pf-pill--rel"${styleAttrHtml}><span class="pf-pill-label" data-pf-nav="${navRoute}/${escapeHtml(navId)}">${icon || ''}${escapeHtml(label)}</span><span class="pf-pill-caret" aria-hidden="true">⌄</span></span>`;
+    const caretHtml = caret ? '<span class="pf-pill-caret" aria-hidden="true">⌄</span>' : '';
+    return `<span class="pf-pill pf-pill--rel"${styleAttrHtml}><span class="pf-pill-label" data-pf-nav="${navRoute}/${escapeHtml(navId)}">${icon || ''}${escapeHtml(label)}</span>${caretHtml}</span>`;
   }
 
   function renderValuePill(innerHtml) {
@@ -3016,6 +3077,146 @@
     </div>`;
   }
 
+  async function loadTaskProfile(pageId) {
+    const page = await notionRequest(`/v1/pages/${pageId}`);
+
+    const [
+      tasksTitleProp, tasksStatusSchema, tasksUniqueIdProp, tasksPriorityProp,
+      tasksProjectsProp, tasksPeopleProp,
+    ] = await Promise.all([
+      titlePropertyName(CONFIG.DB.TASKS),
+      getStatusSchema(CONFIG.DB.TASKS),
+      uniqueIdPropertyName(CONFIG.DB.TASKS),
+      getTasksPriorityProp(CONFIG.DB.TASKS),
+      relationPropertyName(CONFIG.DB.TASKS, CONFIG.DB.PROJECTS),
+      relationPropertyName(CONFIG.DB.TASKS, CONFIG.DB.PEOPLE),
+    ]);
+
+    const title = plainTitle(page, tasksTitleProp);
+    const statusProp = page.properties[tasksStatusSchema.name];
+    const statusName = (statusProp && statusProp.status && statusProp.status.name) || null;
+    const priorityProp = tasksPriorityProp ? page.properties[tasksPriorityProp] : null;
+    const priorityName = (priorityProp && priorityProp.select && priorityProp.select.name) || null;
+    const dueDate = (page.properties[CONFIG.TASKS_PROP.DUE_DATE] || {}).date || null;
+    const doDate = (page.properties[CONFIG.TASKS_PROP.DO_DATE] || {}).date || null;
+
+    const uniqueIdVal = tasksUniqueIdProp ? (page.properties[tasksUniqueIdProp] || {}).unique_id : null;
+    const uniqueId = uniqueIdVal ? formatUniqueId(uniqueIdVal.prefix, uniqueIdVal.number) : null;
+
+    const projectIds = ((page.properties[tasksProjectsProp] || {}).relation || []).map((r) => r.id);
+    const peopleIds = ((page.properties[tasksPeopleProp] || {}).relation || []).map((r) => r.id);
+
+    // Sequential: domain resolution depends on which project(s) resolve
+    // first (see resolveTaskProjectAndDomain), so it can't join the
+    // Promise.all below until that's known.
+    const projectResolution = await resolveTaskProjectAndDomain(projectIds);
+
+    const [people, body, projectsIcon, peopleIcon, domainsIcon, domainRel] = await Promise.all([
+      resolveRelationNames(CONFIG.DB.PEOPLE, peopleIds),
+      fetchPageBodyText(pageId),
+      getDatabaseIcon(CONFIG.DB.PROJECTS),
+      getDatabaseIcon(CONFIG.DB.PEOPLE),
+      getDatabaseIcon(CONFIG.DB.DOMAINS),
+      projectResolution.domainId ? resolveRelationNames(CONFIG.DB.DOMAINS, [projectResolution.domainId]) : Promise.resolve([]),
+    ]);
+    const domainName = domainRel.length ? domainRel[0].name : null;
+
+    return {
+      id: page.id, title, uniqueId, statusName, priorityName, dueDate, doDate,
+      domainId: projectResolution.domainId, domainName,
+      projects: projectResolution.projects, people,
+      icons: { projects: projectsIcon, people: peopleIcon, domains: domainsIcon },
+      body,
+      createdTime: page.created_time,
+      lastEditedTime: page.last_edited_time,
+    };
+  }
+
+  function renderTaskProfile(t) {
+    const domainMeta = t.domainId
+      ? (DOMAIN_META.find((d) => normalizeDbId(d.pageId) === normalizeDbId(t.domainId)) || NO_DOMAIN_META)
+      : null;
+    // Domain is read-only here — deliberately no ghost when empty (there's
+    // no project to add), and no caret when present (a task's domain is
+    // inherited through its project; you change it by changing the
+    // project, never this pill).
+    const domainPillHtml = t.domainName
+      ? renderRelPill({
+          label: t.domainName, icon: renderChipIcon(t.icons.domains),
+          navId: t.domainId, navRoute: 'domain',
+          styleAttr: domainMeta ? `background:${domainMeta.fill};color:${domainMeta.text};` : '',
+          caret: false,
+        })
+      : '';
+    const projectsHtml = t.projects.length
+      ? t.projects.map((p) => renderRelPill({ label: p.name, icon: renderChipIcon(t.icons.projects), navId: p.id, navRoute: 'project' })).join('')
+      : renderGhostPill('Project');
+    // Tasks have no Tags relation — Projects/People ("For") are the only
+    // other relation pills, per the profile spec.
+    const peopleHtml = t.people.length
+      ? t.people.map((p) => renderRelPill({ label: p.name, icon: renderChipIcon(t.icons.people), navId: p.id, navRoute: 'person' })).join('')
+      : renderGhostPill('For');
+    const relPillsHtml = domainPillHtml + projectsHtml + peopleHtml;
+
+    const statusHtml = renderValuePill(t.statusName ? escapeHtml(t.statusName) : 'No status');
+    // Priority displays as stars per RenitaOS-Conventions.md's pill rules
+    // ("Priority displays as stars rather than a color") — rendered
+    // verbatim from the live option value, never a guessed numeric-to-star
+    // mapping, so it already reads as stars if that's how the option is
+    // configured in Notion.
+    const priorityHtml = renderValuePill(t.priorityName ? escapeHtml(t.priorityName) : 'No priority');
+    const valuePillsHtml = statusHtml + priorityHtml;
+    const dividerHtml = relPillsHtml ? '<span class="pf-pill-divider"></span>' : '';
+
+    const metaHtml = `<div class="pf-meta-grid">
+      <div class="pf-meta-col">
+        <div class="pf-meta-label">Due Date</div>
+        <div class="pf-meta-value pf-meta-value--date"><span class="pf-meta-date-icon">🗓</span>${t.dueDate && t.dueDate.start ? escapeHtml(formatDateShort(t.dueDate.start)) : '—'}</div>
+        <div class="pf-meta-label">Do Date</div>
+        <div class="pf-meta-value pf-meta-value--date"><span class="pf-meta-date-icon">🗓</span>${t.doDate && t.doDate.start ? escapeHtml(formatDateShort(t.doDate.start)) : '—'}</div>
+      </div>
+      <div class="pf-meta-col">
+        <div class="pf-meta-label">Created</div>
+        <div class="pf-meta-value pf-meta-value--muted">${escapeHtml(formatDateTime(t.createdTime))}</div>
+        <div class="pf-meta-label">Last edited</div>
+        <div class="pf-meta-value pf-meta-value--muted">${escapeHtml(formatDateTime(t.lastEditedTime))}</div>
+      </div>
+    </div>`;
+
+    const bodyHtml = t.body ? `<div class="pf-body">${escapeHtml(t.body)}</div>` : `<div class="pf-body pf-body--empty">(empty)</div>`;
+
+    // Only the id is a label; a Domain › Project path (when a project
+    // exists) follows it as real navigable links — flat ID-only for a
+    // projectless (bare-capture) task.
+    const idSpan = `<span class="pf-crumb--id">${t.uniqueId ? escapeHtml(t.uniqueId) : '—'}</span>`;
+    let pathHtml = '';
+    if (t.projects.length) {
+      const project = t.projects[0];
+      const domainSegment = t.domainName
+        ? `<span class="pf-crumb-link" data-pf-nav="domain/${escapeHtml(t.domainId)}">${escapeHtml(t.domainName)}</span><span class="sep">›</span>`
+        : '';
+      pathHtml = `<span class="sep">·</span>${domainSegment}<span class="pf-crumb-link" data-pf-nav="project/${escapeHtml(project.id)}">${escapeHtml(project.name)}</span>`;
+    }
+    const crumbHtml = `<div class="pf-crumb">${idSpan}${pathHtml}</div>`;
+
+    // Hero checkbox is a status mirror, render-only — checking/unchecking
+    // writes nothing this slice (that lands with the Status/Completed
+    // write in the edit slice).
+    const isDone = (t.statusName || '').toLowerCase() === 'done';
+    const heroHtml = `<div class="pf-hero-row">
+      <span class="pf-hero-checkbox${isDone ? ' pf-hero-checkbox--checked' : ''}" aria-hidden="true">${isDone ? '✓' : ''}</span>
+      <div class="serif pf-hero">${escapeHtml(t.title || 'Untitled')}</div>
+    </div>`;
+
+    return `<div class="pf-view">
+      ${crumbHtml}
+      ${heroHtml}
+      <div class="pf-pillrow">${relPillsHtml}${dividerHtml}${valuePillsHtml}</div>
+      ${metaHtml}
+      ${bodyHtml}
+    </div>`;
+  }
+
   const noteProfileState = { id: null, loading: false, error: null, data: null };
 
   function paintNoteProfile(container) {
@@ -3048,6 +3249,42 @@
       if (noteProfileState.id === id) {
         noteProfileState.loading = false;
         paintNoteProfile(container);
+      }
+    }
+  }
+
+  const taskProfileState = { id: null, loading: false, error: null, data: null };
+
+  function paintTaskProfile(container) {
+    if (taskProfileState.loading) {
+      container.innerHTML = `<div class="pf-view"><div class="tg-status">Loading…</div></div>`;
+      return;
+    }
+    if (taskProfileState.error) {
+      container.innerHTML = `<div class="pf-view"><div class="tg-status tg-status--error">${escapeHtml(taskProfileState.error)}</div></div>`;
+      return;
+    }
+    container.innerHTML = renderTaskProfile(taskProfileState.data);
+  }
+
+  async function mountTaskProfile(container, id) {
+    taskProfileState.id = id;
+    taskProfileState.loading = true;
+    taskProfileState.error = null;
+    taskProfileState.data = null;
+    paintTaskProfile(container);
+    try {
+      const data = await loadTaskProfile(id);
+      if (taskProfileState.id !== id) return; // route moved on while this was in flight
+      taskProfileState.data = data;
+    } catch (err) {
+      console.error('Failed to load task profile', err);
+      if (taskProfileState.id !== id) return;
+      taskProfileState.error = err.message || 'Could not load this task — check the Worker.';
+    } finally {
+      if (taskProfileState.id === id) {
+        taskProfileState.loading = false;
+        paintTaskProfile(container);
       }
     }
   }
@@ -3121,6 +3358,8 @@
       mountTriage(content);
     } else if (route.name === 'note') {
       mountNoteProfile(content, route.id);
+    } else if (route.name === 'task') {
+      mountTaskProfile(content, route.id);
     } else if (ENTITY_ROUTES.includes(route.name)) {
       content.innerHTML = renderEntityStub(route.name);
     } else {
