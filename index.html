@@ -641,6 +641,51 @@
   .pf-body { font-family: 'Newsreader', serif; font-size: 17px; line-height: 1.65; color: oklch(0.24 0.014 75); white-space: pre-wrap; }
   .pf-body--empty { font-style: italic; color: var(--muted-text); }
 
+  /* ============================================================
+     Relation-list profiles (Tag, Collection, Person) — the "header +
+     several parallel relation-lists" pattern from Conventions.md. Thinner
+     header than Note/Task (no pill row, no meta grid — see .pf-view above
+     for the shared crumb/hero), then a tab row and one dense row-list at a
+     time. Wraps to multiple rows on any width rather than scrolling
+     horizontally, per the convention's mobile rule (applied unconditionally
+     since it reads fine at desktop widths too).
+     ============================================================ */
+  .pf-tabs { display: flex; flex-wrap: wrap; gap: 8px; margin: 4px 0 24px; }
+  .pf-tab {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 9px 14px; border-radius: var(--radius-sm);
+    background: var(--surface-soft); color: var(--text);
+    border: none; cursor: pointer; font-family: inherit; font-size: 13px; font-weight: 600;
+  }
+  /* Standard active-state (Triage bins, the nav rail): filled deeper sage +
+     1px olive keyline. */
+  .pf-tab--active { background: #DBE2C1; box-shadow: inset 0 0 0 1px color-mix(in oklch, #3A4410 45%, transparent); }
+  .pf-tab-n { font-size: 12px; color: var(--muted-text); }
+  .pf-tab--active .pf-tab-n { color: var(--text); }
+
+  .pf-tab-panel-count {
+    font-size: 11px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase;
+    color: var(--muted-text); margin-bottom: 10px; display: flex; align-items: center; gap: 6px;
+  }
+  .pf-tab-panel-count .pf-tab-n { font-size: 13px; text-transform: none; letter-spacing: normal; font-weight: 600; }
+
+  .pf-tab-empty { font-family: 'Newsreader', serif; font-style: italic; font-size: 15px; color: var(--muted-text); padding: 20px 2px 8px; }
+
+  /* Dense bordered rows, not cards — each row is the referenced record's
+     title + ID handle, plus a domain chip when one resolves. */
+  .pf-row-list { display: flex; flex-direction: column; }
+  .pf-row {
+    display: flex; align-items: center; justify-content: space-between; gap: 12px;
+    padding: 14px 2px; border-bottom: 1px solid var(--hairline);
+  }
+  .pf-row-list .pf-row:last-child { border-bottom: none; }
+  .pf-row--nav { cursor: pointer; }
+  .pf-row--nav:hover { background: oklch(0.97 0.005 75); }
+  .pf-row-main { display: flex; align-items: baseline; gap: 10px; min-width: 0; flex-wrap: wrap; }
+  .pf-row-title { font-family: 'Newsreader', serif; font-size: 16px; color: var(--text); }
+  .pf-row-id { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace; font-size: 11px; color: var(--muted-text); letter-spacing: .02em; }
+  .pf-row-domain { flex-shrink: 0; font-size: 10px; font-weight: 600; padding: 3px 9px; border-radius: var(--radius-sm); }
+
   @media (min-width: 768px) {
     .pf-meta-grid { grid-template-columns: 1fr 1fr; gap: 24px; }
   }
@@ -721,15 +766,21 @@
   }
 
   // Pages through every result in a database query — used by the inbox
-  // pill count and by Triage's data load.
-  async function queryAllPages(databaseId, filter) {
+  // pill count and by Triage's data load. `filterPropertyIds` (property
+  // IDs, not names) trims each result to just those properties — used by
+  // the relation-profile tab counts below, which only need `results.length`
+  // and not the full page payload.
+  async function queryAllPages(databaseId, filter, filterPropertyIds) {
     const results = [];
     let cursor;
+    const qs = filterPropertyIds && filterPropertyIds.length
+      ? `?${filterPropertyIds.map((id) => `filter_properties=${encodeURIComponent(id)}`).join('&')}`
+      : '';
     do {
       const body = { page_size: 100 };
       if (filter) body.filter = filter;
       if (cursor) body.start_cursor = cursor;
-      const page = await notionRequest(`/v1/databases/${databaseId}/query`, { method: 'POST', body });
+      const page = await notionRequest(`/v1/databases/${databaseId}/query${qs}`, { method: 'POST', body });
       results.push(...page.results);
       cursor = page.has_more ? page.next_cursor : undefined;
     } while (cursor);
@@ -2814,16 +2865,17 @@
   });
 
   // --- Entity profiles — read/navigate-only foundation slice ---------------
-  // Every #/{entity}/{id} route lands here. Note is wired for real against
-  // Notion; the other six are minimal placeholders so a relation-pill tap
-  // (Domain, Projects, People, Tags, Collections) has somewhere to land.
-  // This slice writes nothing — editing pills attach next slice.
+  // Every #/{entity}/{id} route lands here. Note and Task are wired for
+  // real against Notion; Tag/Collection/Person share the tabbed
+  // relation-list profile below (see "Relation-list profiles"); Project and
+  // Domain are still minimal placeholders. This slice writes nothing —
+  // editing pills/tabs attach next slice.
   const ENTITY_ROUTES = ['note', 'task', 'project', 'domain', 'person', 'tag', 'collection'];
   const ENTITY_LABELS = { note: 'Note', task: 'Task', project: 'Project', domain: 'Domain', person: 'Person', tag: 'Tag', collection: 'Collection' };
   // Routes with a real profile (vs. still a "coming soon" stub) get the
   // top-aligned .profile content treatment instead of the stub's centered
   // placeholder look — see .shell-content.profile.
-  const REAL_PROFILE_ROUTES = ['note', 'task'];
+  const REAL_PROFILE_ROUTES = ['note', 'task', 'tag', 'collection', 'person'];
 
   function renderEntityStub(entityName) {
     const label = ENTITY_LABELS[entityName] || entityName;
@@ -3289,12 +3341,305 @@
     }
   }
 
+  // --- Relation-list profiles (Tag, Collection, Person) — read/navigate
+  // only, no writes to Notion. Conventions.md's "Tabbed relation-lists"
+  // pattern: one shared component — flat ID handle, serif name hero, a tab
+  // row (one tab per referencing database), and the active tab's list of
+  // dense bordered rows. Reuses the note/task profiles' schema-resolution
+  // helpers (relationPropertyName, titlePropertyName, uniqueIdPropertyName,
+  // DOMAIN_META) rather than re-deriving any of it.
+  //
+  // REL_DB_META is the shared registry of every database that can appear as
+  // a tab across the three consumers — keyed by tab key, not by consumer,
+  // since the same databases repeat across tag/collection/person's tab
+  // sets. `route` is the entity route its rows navigate to; Resources has
+  // none yet (same foundation-slice gap as the Note profile's Resources
+  // pills), so its rows render without a navigable label.
+  const REL_DB_META = {
+    notes:       { label: 'Notes',       dbId: CONFIG.DB.NOTES,       route: 'note' },
+    tasks:       { label: 'Tasks',       dbId: CONFIG.DB.TASKS,       route: 'task' },
+    projects:    { label: 'Projects',    dbId: CONFIG.DB.PROJECTS,    route: 'project' },
+    people:      { label: 'People',      dbId: CONFIG.DB.PEOPLE,      route: 'person' },
+    tags:        { label: 'Tags',        dbId: CONFIG.DB.TAGS,        route: 'tag' },
+    collections: { label: 'Collections', dbId: CONFIG.DB.COLLECTIONS, route: 'collection' },
+    resources:   { label: 'Resources',   dbId: CONFIG.DB.RESOURCES,   route: null },
+  };
+
+  // Per RenitaOS-Conventions.md's "Tabbed relation-lists" — the tab set and
+  // order for each consumer. First entry is always the default/active tab
+  // (Notes, in every set). Tasks appears only on Person; Tags/Collections
+  // carry no Tasks tab (tasks are "for" people, never tags/collections).
+  const RELATION_TAB_SETS = {
+    tag: ['notes', 'projects', 'people', 'collections', 'resources'],
+    collection: ['notes', 'people', 'tags', 'projects', 'resources'],
+    person: ['notes', 'tasks', 'projects', 'collections', 'tags'],
+  };
+
+  const RELATION_PROFILE_CONSUMERS = {
+    tag: { dbId: CONFIG.DB.TAGS, label: 'Tag' },
+    collection: { dbId: CONFIG.DB.COLLECTIONS, label: 'Collection' },
+    person: { dbId: CONFIG.DB.PEOPLE, label: 'Person' },
+  };
+
+  // A row's domain chip is resolved structurally, same as the Note/Task
+  // profiles: Notes carries its own Domain (relation-or-select, see
+  // getNotesDomainProp); Projects carries a direct Domain relation; a Task
+  // has no Domain field of its own, so it's read via its first Project's
+  // Domain (resolveTaskProjectAndDomain, already used by the Task profile).
+  // Every other referencing database (People/Tags/Collections/Resources)
+  // has no Domain to resolve — returns null, and the row renders title + ID
+  // only, per spec.
+  async function resolveRowDomainChip(tabKey, page) {
+    if (tabKey === 'notes') {
+      const domainProp = await getNotesDomainProp(CONFIG.DB.NOTES);
+      if (!domainProp) return null;
+      const propVal = page.properties[domainProp.name];
+      if (domainProp.type === 'relation') {
+        const relIds = (propVal && propVal.relation) || [];
+        const domainId = relIds[0] ? relIds[0].id : null;
+        if (!domainId) return null;
+        const meta = DOMAIN_META.find((d) => normalizeDbId(d.pageId) === normalizeDbId(domainId));
+        return meta ? { label: meta.code, fill: meta.fill, text: meta.text } : null;
+      }
+      const selName = propVal && propVal.select && propVal.select.name;
+      if (!selName) return null;
+      const meta = DOMAIN_META.find((d) => d.code === selName);
+      return meta
+        ? { label: meta.code, fill: meta.fill, text: meta.text }
+        : { label: selName, fill: NO_DOMAIN_META.fill, text: NO_DOMAIN_META.text };
+    }
+    if (tabKey === 'projects') {
+      const domainRelProp = await relationPropertyName(CONFIG.DB.PROJECTS, CONFIG.DB.DOMAINS);
+      const relIds = (page.properties[domainRelProp] || {}).relation || [];
+      const domainId = relIds[0] ? relIds[0].id : null;
+      if (!domainId) return null;
+      const meta = DOMAIN_META.find((d) => normalizeDbId(d.pageId) === normalizeDbId(domainId));
+      return meta ? { label: meta.code, fill: meta.fill, text: meta.text } : null;
+    }
+    if (tabKey === 'tasks') {
+      const tasksProjectsProp = await relationPropertyName(CONFIG.DB.TASKS, CONFIG.DB.PROJECTS);
+      const projectIds = ((page.properties[tasksProjectsProp] || {}).relation || []).map((r) => r.id);
+      const { domainId } = await resolveTaskProjectAndDomain(projectIds);
+      if (!domainId) return null;
+      const meta = DOMAIN_META.find((d) => normalizeDbId(d.pageId) === normalizeDbId(domainId));
+      return meta ? { label: meta.code, fill: meta.fill, text: meta.text } : null;
+    }
+    return null;
+  }
+
+  // Minimal-payload count query for a not-yet-hydrated tab — trims each
+  // result to the referencing database's title property (filter_properties
+  // takes property IDs, not names) since only `results.length` is needed.
+  // Still pages through has_more so the count is accurate past one page.
+  async function queryTabCount(meta, relProp, pageId) {
+    const titleProp = await titlePropertyName(meta.dbId);
+    const db = await getSchema(meta.dbId);
+    const titlePropId = db.properties[titleProp] && db.properties[titleProp].id;
+    const pages = await queryAllPages(
+      meta.dbId,
+      { property: relProp, relation: { contains: pageId } },
+      titlePropId ? [titlePropId] : undefined
+    );
+    return pages.length;
+  }
+
+  // Full record fetch for the default tab (eager) or a tab being opened for
+  // the first time (lazy) — one query, doubling as both the row data and
+  // that tab's authoritative count.
+  async function queryTabRecords(tabKey, meta, relProp, pageId) {
+    const pages = await queryAllPages(meta.dbId, { property: relProp, relation: { contains: pageId } });
+    const [titleProp, uniqueIdProp] = await Promise.all([
+      titlePropertyName(meta.dbId),
+      uniqueIdPropertyName(meta.dbId),
+    ]);
+    return Promise.all(pages.map(async (p) => {
+      const title = plainTitle(p, titleProp);
+      const uniqueIdVal = uniqueIdProp ? (p.properties[uniqueIdProp] || {}).unique_id : null;
+      const uniqueId = uniqueIdVal ? formatUniqueId(uniqueIdVal.prefix, uniqueIdVal.number) : null;
+      const domainChip = await resolveRowDomainChip(tabKey, p);
+      return { id: p.id, title, uniqueId, domainChip, route: meta.route };
+    }));
+  }
+
+  // Loads the record's own header (ID handle + title) plus every tab: the
+  // default (Notes) tab gets its full records eagerly (which also yields
+  // its count for free); every other tab gets only its count. A referencing
+  // database that turns out to have no relation property targeting this
+  // consumer database (shouldn't happen given the fixed tab sets above, but
+  // schemas drift) fails that one tab softly — 0, clickable, empty state —
+  // rather than breaking the whole profile.
+  async function loadRelationProfileBase(entityKey, pageId) {
+    const consumer = RELATION_PROFILE_CONSUMERS[entityKey];
+    const [page, titleProp, uniqueIdProp] = await Promise.all([
+      notionRequest(`/v1/pages/${pageId}`),
+      titlePropertyName(consumer.dbId),
+      uniqueIdPropertyName(consumer.dbId),
+    ]);
+    const title = plainTitle(page, titleProp);
+    const uniqueIdVal = uniqueIdProp ? (page.properties[uniqueIdProp] || {}).unique_id : null;
+    const uniqueId = uniqueIdVal ? formatUniqueId(uniqueIdVal.prefix, uniqueIdVal.number) : null;
+
+    const tabKeys = RELATION_TAB_SETS[entityKey];
+    const tabs = await Promise.all(tabKeys.map(async (tabKey, idx) => {
+      const meta = REL_DB_META[tabKey];
+      let relProp = null;
+      try {
+        relProp = await relationPropertyName(meta.dbId, consumer.dbId);
+      } catch (err) {
+        console.error(`No relation on "${tabKey}" targeting ${entityKey}`, err);
+        return { key: tabKey, label: meta.label, route: meta.route, relProp: null, unavailable: true, count: 0, records: [], hydrated: true, loading: false, error: null };
+      }
+      if (idx === 0) {
+        const records = await queryTabRecords(tabKey, meta, relProp, pageId);
+        return { key: tabKey, label: meta.label, route: meta.route, relProp, unavailable: false, count: records.length, records, hydrated: true, loading: false, error: null };
+      }
+      const count = await queryTabCount(meta, relProp, pageId);
+      return { key: tabKey, label: meta.label, route: meta.route, relProp, unavailable: false, count, records: null, hydrated: false, loading: false, error: null };
+    }));
+
+    return { id: page.id, title, uniqueId, consumerLabel: consumer.label, tabs };
+  }
+
+  function renderRelationRow(r) {
+    const navAttr = r.route ? ` data-pf-nav="${r.route}/${escapeHtml(r.id)}"` : '';
+    const domainChipHtml = r.domainChip
+      ? `<span class="pf-row-domain" style="background:${r.domainChip.fill};color:${r.domainChip.text};">${escapeHtml(r.domainChip.label)}</span>`
+      : '';
+    return `<div class="pf-row${r.route ? ' pf-row--nav' : ''}"${navAttr}>
+      <div class="pf-row-main">
+        <span class="pf-row-title">${escapeHtml(r.title || 'Untitled')}</span>
+        <span class="pf-row-id">${r.uniqueId ? escapeHtml(r.uniqueId) : '—'}</span>
+      </div>
+      ${domainChipHtml}
+    </div>`;
+  }
+
+  function renderRelationTabPanel(tab, consumerLabel) {
+    const countHtml = `<div class="pf-tab-panel-count">${escapeHtml(tab.label)}<span class="pf-tab-n">${tab.count}</span></div>`;
+    let bodyHtml;
+    if (tab.loading) {
+      bodyHtml = `<div class="tg-status">Loading…</div>`;
+    } else if (tab.error) {
+      bodyHtml = `<div class="tg-status tg-status--error">${escapeHtml(tab.error)}</div>`;
+    } else if (!tab.records || !tab.records.length) {
+      bodyHtml = `<div class="pf-tab-empty">No ${escapeHtml(tab.label.toLowerCase())} reference this ${escapeHtml(consumerLabel.toLowerCase())} yet.</div>`;
+    } else {
+      bodyHtml = `<div class="pf-row-list">${tab.records.map(renderRelationRow).join('')}</div>`;
+    }
+    return `<div class="pf-tab-panel">${countHtml}${bodyHtml}</div>`;
+  }
+
+  function renderRelationProfile(state) {
+    const d = state.data;
+    const crumbHtml = `<div class="pf-crumb pf-crumb--id">${d.uniqueId ? escapeHtml(d.uniqueId) : '—'}</div>`;
+    const heroHtml = `<div class="serif pf-hero">${escapeHtml(d.title || 'Untitled')}</div>`;
+    // All tabs always render, even at 0 — per the Conventions.md's "Empty
+    // tabs are shown greyed with a 0, never hidden" rule (here: plain, not
+    // greyed-and-disabled, since 0-count tabs stay fully clickable).
+    const tabsHtml = `<div class="pf-tabs" role="tablist">${d.tabs.map((t) => `
+        <button type="button" class="pf-tab${t.key === state.activeTab ? ' pf-tab--active' : ''}" data-pf-tab="${t.key}" role="tab" aria-selected="${t.key === state.activeTab}">
+          <span class="pf-tab-label">${escapeHtml(t.label)}</span>
+          <span class="pf-tab-n">${t.count}</span>
+        </button>`).join('')}</div>`;
+    const activeTab = d.tabs.find((t) => t.key === state.activeTab) || d.tabs[0];
+    const panelHtml = renderRelationTabPanel(activeTab, d.consumerLabel);
+
+    return `<div class="pf-view">
+      ${crumbHtml}
+      ${heroHtml}
+      ${tabsHtml}
+      ${panelHtml}
+    </div>`;
+  }
+
+  const relationProfileState = { entityKey: null, id: null, loading: false, error: null, data: null, activeTab: null };
+
+  function paintRelationProfile(container) {
+    const s = relationProfileState;
+    if (s.loading) {
+      container.innerHTML = `<div class="pf-view"><div class="tg-status">Loading…</div></div>`;
+      return;
+    }
+    if (s.error) {
+      container.innerHTML = `<div class="pf-view"><div class="tg-status tg-status--error">${escapeHtml(s.error)}</div></div>`;
+      return;
+    }
+    container.innerHTML = renderRelationProfile(s);
+  }
+
+  async function mountRelationProfile(container, entityKey, id) {
+    const s = relationProfileState;
+    s.entityKey = entityKey;
+    s.id = id;
+    s.loading = true;
+    s.error = null;
+    s.data = null;
+    s.activeTab = null;
+    paintRelationProfile(container);
+    try {
+      const data = await loadRelationProfileBase(entityKey, id);
+      if (s.id !== id || s.entityKey !== entityKey) return; // route moved on while this was in flight
+      s.data = data;
+      s.activeTab = data.tabs.length ? data.tabs[0].key : null;
+    } catch (err) {
+      console.error('Failed to load relation profile', err);
+      if (s.id !== id || s.entityKey !== entityKey) return;
+      s.error = err.message || 'Could not load this record — check the Worker.';
+    } finally {
+      if (s.id === id && s.entityKey === entityKey) {
+        s.loading = false;
+        paintRelationProfile(container);
+      }
+    }
+  }
+
+  // Switching tabs is instant for an already-hydrated tab (just repaints);
+  // a not-yet-opened tab shows its own "Loading…" in place while its full
+  // record list is fetched, then caches so re-opening it never re-fetches.
+  // A tab already known to be empty (count 0 from the eager pass) skips the
+  // network round-trip entirely — there's nothing a full query would find.
+  async function onRelationTabClick(tabKey) {
+    const s = relationProfileState;
+    if (!s.data) return;
+    const entityKey = s.entityKey;
+    const id = s.id;
+    s.activeTab = tabKey;
+    paintRelationProfile(content);
+    const tab = s.data.tabs.find((t) => t.key === tabKey);
+    if (!tab || tab.hydrated || tab.loading || tab.unavailable) return;
+    if (tab.count === 0) {
+      tab.records = [];
+      tab.hydrated = true;
+      paintRelationProfile(content);
+      return;
+    }
+    tab.loading = true;
+    paintRelationProfile(content);
+    try {
+      const records = await queryTabRecords(tab.key, REL_DB_META[tab.key], tab.relProp, id);
+      if (s.entityKey !== entityKey || s.id !== id) return;
+      tab.records = records;
+      tab.count = records.length;
+      tab.hydrated = true;
+    } catch (err) {
+      console.error('Failed to load relation tab', tabKey, err);
+      if (s.entityKey !== entityKey || s.id !== id) return;
+      tab.error = err.message || 'Could not load this list.';
+    } finally {
+      tab.loading = false;
+      if (s.entityKey === entityKey && s.id === id && s.activeTab === tabKey) paintRelationProfile(content);
+    }
+  }
+
   // Relation-pill label taps (any profile) navigate via the hash router,
   // regardless of which route is currently mounted — unlike the Triage
-  // click delegation below, which is gated to the inbox route only.
+  // click delegation below, which is gated to the inbox route only. Tab
+  // clicks on a relation-list profile are handled the same delegated way.
   content.addEventListener('click', (e) => {
     const navEl = e.target.closest('[data-pf-nav]');
-    if (navEl) location.hash = `#/${navEl.dataset.pfNav}`;
+    if (navEl) { location.hash = `#/${navEl.dataset.pfNav}`; return; }
+    const tabEl = e.target.closest('[data-pf-tab]');
+    if (tabEl) onRelationTabClick(tabEl.dataset.pfTab);
   });
 
   // --- Views ----------------------------------------------------------------
@@ -3360,6 +3705,8 @@
       mountNoteProfile(content, route.id);
     } else if (route.name === 'task') {
       mountTaskProfile(content, route.id);
+    } else if (route.name === 'tag' || route.name === 'collection' || route.name === 'person') {
+      mountRelationProfile(content, route.name, route.id);
     } else if (ENTITY_ROUTES.includes(route.name)) {
       content.innerHTML = renderEntityStub(route.name);
     } else {
