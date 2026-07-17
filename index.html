@@ -1120,54 +1120,102 @@
 
   function byNewest(a, b) { return new Date(b.createdTime) - new Date(a.createdTime); }
 
+  // Runs `worker` over `items` with at most `limit` in flight at once —
+  // still concurrent, just bounded, for a fan-out whose width scales with
+  // live data (e.g. one request per Inbox note) rather than a small fixed
+  // set of calls. `limit` fixed-size "lanes" each pull the next unclaimed
+  // index as they finish, so slower items don't stall the ones behind them
+  // the way naively chunking into fixed batches of `limit` would.
+  async function runWithConcurrency(items, limit, worker) {
+    const results = new Array(items.length);
+    let next = 0;
+    async function runLane() {
+      while (next < items.length) {
+        const i = next++;
+        results[i] = await worker(items[i], i);
+      }
+    }
+    const lanes = Array.from({ length: Math.min(limit, items.length) }, runLane);
+    await Promise.all(lanes);
+    return results;
+  }
+
   async function loadTriageData() {
+    // Every lookup/query below is independent of every other EXCEPT the two
+    // marked — so every promise is started here, up front, in one flat
+    // batch (not staged behind three sequential Promise.all "waves" like
+    // this used to be, which stair-stepped the network waterfall: wave 2's
+    // property/icon lookups don't need anything from wave 1's status
+    // filters, and three of wave 3's four unfiltered page queries don't
+    // need anything from either). Calling each function here starts its
+    // request immediately (a promise begins running the moment it's
+    // created, not when it's awaited) — only the final Promise.all below
+    // actually waits. Assignment order is preserved from the original
+    // waves so the getStatusSchema/getSchema memoization dedup (a getter
+    // and its "piggybacking" sibling call still resolve to one shared
+    // in-flight request, not two) behaves identically to before.
+    const notesFilterPromise = getInboxStatusFilter(CONFIG.DB.NOTES);
+    const tasksFilterPromise = getInboxStatusFilter(CONFIG.DB.TASKS);
     // getStatusSchema is memoized, so grabbing the full options list here
     // (for the bulk Status popover) piggybacks on the same fetch
     // getInboxStatusFilter already needs — no extra request. Same for
     // Type's options: getMultiSelectOptions -> getSchema is memoized, and
-    // getSchema(NOTES) is already about to be fetched for the Tags/People
-    // relation lookups just below, so this doesn't add a network round-trip.
-    const [notesFilter, tasksFilter, notesStatusSchema, tasksStatusSchema, notesTypeOptions, notesDomainProp] = await Promise.all([
-      getInboxStatusFilter(CONFIG.DB.NOTES),
-      getInboxStatusFilter(CONFIG.DB.TASKS),
-      getStatusSchema(CONFIG.DB.NOTES),
-      getStatusSchema(CONFIG.DB.TASKS),
-      getMultiSelectOptions(CONFIG.DB.NOTES, CONFIG.NOTES_PROP.TYPE),
-      getNotesDomainProp(CONFIG.DB.NOTES),
-    ]);
+    // getSchema(NOTES) is already fetched for the Tags/People relation
+    // lookups below, so this doesn't add a network round-trip.
+    const notesStatusSchemaPromise = getStatusSchema(CONFIG.DB.NOTES);
+    const tasksStatusSchemaPromise = getStatusSchema(CONFIG.DB.TASKS);
+    const notesTypeOptionsPromise = getMultiSelectOptions(CONFIG.DB.NOTES, CONFIG.NOTES_PROP.TYPE);
+    const notesDomainPropPromise = getNotesDomainProp(CONFIG.DB.NOTES);
+
+    const notesTagsPropPromise = relationPropertyName(CONFIG.DB.NOTES, CONFIG.DB.TAGS);
+    const notesPeoplePropPromise = relationPropertyName(CONFIG.DB.NOTES, CONFIG.DB.PEOPLE);
+    const tasksProjectsPropPromise = relationPropertyName(CONFIG.DB.TASKS, CONFIG.DB.PROJECTS);
+    const tasksTitlePropPromise = titlePropertyName(CONFIG.DB.TASKS);
+    const projectsDomainsPropPromise = relationPropertyName(CONFIG.DB.PROJECTS, CONFIG.DB.DOMAINS);
+    const tagTitlePropPromise = titlePropertyName(CONFIG.DB.TAGS);
+    const peopleTitlePropPromise = titlePropertyName(CONFIG.DB.PEOPLE);
+    const projectTitlePropPromise = titlePropertyName(CONFIG.DB.PROJECTS);
+    const domainTitlePropPromise = titlePropertyName(CONFIG.DB.DOMAINS);
+    // Each relation pill category shares one icon — the DATABASE's own
+    // icon, not any individual record's — fetched once and stamped on
+    // every pill of that type. getSchema is memoized, so these piggyback
+    // on the same fetches the title/relation lookups above already make;
+    // no extra requests.
+    const tagsDbIconPromise = getDatabaseIcon(CONFIG.DB.TAGS);
+    const peopleDbIconPromise = getDatabaseIcon(CONFIG.DB.PEOPLE);
+    const projectsDbIconPromise = getDatabaseIcon(CONFIG.DB.PROJECTS);
+    const domainsDbIconPromise = getDatabaseIcon(CONFIG.DB.DOMAINS);
+
+    const tagPagesPromise = queryAllPages(CONFIG.DB.TAGS);
+    const peoplePagesPromise = queryAllPages(CONFIG.DB.PEOPLE);
+    const projectPagesPromise = queryAllPages(CONFIG.DB.PROJECTS);
+    const domainPagesPromise = queryAllPages(CONFIG.DB.DOMAINS);
+    // These two alone have a real dependency (the exact {name, value} the
+    // query filter is built from) — each chains off only its OWN filter
+    // promise, so it still starts the instant that filter resolves rather
+    // than waiting on any of the unrelated work above. Pagination inside
+    // queryAllPages is untouched: each call is still one sequential
+    // next_cursor chain: this only changes when independent chains start
+    // relative to each other, not how any single chain paginates.
+    const notePagesPromise = notesFilterPromise.then((notesFilter) =>
+      queryAllPages(CONFIG.DB.NOTES, { property: notesFilter.name, status: { equals: notesFilter.value } })
+    );
+    const taskPagesPromise = tasksFilterPromise.then((tasksFilter) =>
+      queryAllPages(CONFIG.DB.TASKS, { property: tasksFilter.name, status: { equals: tasksFilter.value } })
+    );
 
     const [
+      notesFilter, tasksFilter, notesStatusSchema, tasksStatusSchema, notesTypeOptions, notesDomainProp,
       notesTagsProp, notesPeopleProp, tasksProjectsProp, tasksTitleProp, projectsDomainsProp,
       tagTitleProp, peopleTitleProp, projectTitleProp, domainTitleProp,
       tagsDbIcon, peopleDbIcon, projectsDbIcon, domainsDbIcon,
+      tagPages, peoplePages, projectPages, domainPages, notePages, taskPages,
     ] = await Promise.all([
-      relationPropertyName(CONFIG.DB.NOTES, CONFIG.DB.TAGS),
-      relationPropertyName(CONFIG.DB.NOTES, CONFIG.DB.PEOPLE),
-      relationPropertyName(CONFIG.DB.TASKS, CONFIG.DB.PROJECTS),
-      titlePropertyName(CONFIG.DB.TASKS),
-      relationPropertyName(CONFIG.DB.PROJECTS, CONFIG.DB.DOMAINS),
-      titlePropertyName(CONFIG.DB.TAGS),
-      titlePropertyName(CONFIG.DB.PEOPLE),
-      titlePropertyName(CONFIG.DB.PROJECTS),
-      titlePropertyName(CONFIG.DB.DOMAINS),
-      // Each relation pill category shares one icon — the DATABASE's own
-      // icon, not any individual record's — fetched once and stamped on
-      // every pill of that type. getSchema is memoized, so these piggyback
-      // on the same fetches the title/relation lookups above already make;
-      // no extra requests.
-      getDatabaseIcon(CONFIG.DB.TAGS),
-      getDatabaseIcon(CONFIG.DB.PEOPLE),
-      getDatabaseIcon(CONFIG.DB.PROJECTS),
-      getDatabaseIcon(CONFIG.DB.DOMAINS),
-    ]);
-
-    const [tagPages, peoplePages, projectPages, domainPages, notePages, taskPages] = await Promise.all([
-      queryAllPages(CONFIG.DB.TAGS),
-      queryAllPages(CONFIG.DB.PEOPLE),
-      queryAllPages(CONFIG.DB.PROJECTS),
-      queryAllPages(CONFIG.DB.DOMAINS),
-      queryAllPages(CONFIG.DB.NOTES, { property: notesFilter.name, status: { equals: notesFilter.value } }),
-      queryAllPages(CONFIG.DB.TASKS, { property: tasksFilter.name, status: { equals: tasksFilter.value } }),
+      notesFilterPromise, tasksFilterPromise, notesStatusSchemaPromise, tasksStatusSchemaPromise, notesTypeOptionsPromise, notesDomainPropPromise,
+      notesTagsPropPromise, notesPeoplePropPromise, tasksProjectsPropPromise, tasksTitlePropPromise, projectsDomainsPropPromise,
+      tagTitlePropPromise, peopleTitlePropPromise, projectTitlePropPromise, domainTitlePropPromise,
+      tagsDbIconPromise, peopleDbIconPromise, projectsDbIconPromise, domainsDbIconPromise,
+      tagPagesPromise, peoplePagesPromise, projectPagesPromise, domainPagesPromise, notePagesPromise, taskPagesPromise,
     ]);
 
     const tagList = tagPages.map((p) => ({ id: p.id, name: plainTitle(p, tagTitleProp) })).filter((t) => t.name);
@@ -1189,7 +1237,13 @@
     const domainList = domainPages.map((p) => ({ id: p.id, name: plainTitle(p, domainTitleProp) })).filter((d) => d.name);
     const domainById = new Map(domainList.map((d) => [d.id, d.name]));
 
-    const noteBodies = await Promise.all(notePages.map((p) => fetchPageBodyText(p.id)));
+    // Capped, not a plain Promise.all: unlike every fetch above (a small,
+    // fixed set of requests regardless of Inbox size), this is one request
+    // per Inbox note, so its width scales with however large the backlog
+    // is. A few dozen notes firing at once risks tripping Notion's rate
+    // limit; runWithConcurrency keeps a bounded number in flight while
+    // still running them concurrently rather than one at a time.
+    const noteBodies = await runWithConcurrency(notePages, 6, (p) => fetchPageBodyText(p.id));
 
     const notesCards = notePages.map((page, i) => {
       const types = ((page.properties[CONFIG.NOTES_PROP.TYPE] || {}).multi_select || []).map((o) => o.name);
