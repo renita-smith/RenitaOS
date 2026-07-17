@@ -1,9 +1,9 @@
 // The capture grammar: splits a braindump into per-thought entries and parses
 // each entry independently into a structured "thought" descriptor. Pure
 // functions — no Notion calls here (see cache.js / notion.js / app.js).
-import { TYPE_SET, DOMAIN_CODES } from './config.js';
+import { TYPE_SET, DOMAIN_CODES, DAY_MERGE_TYPE } from './config.js';
 import { findNearMatch } from './similarity.js';
-import { parseLocalDate } from './dateParse.js';
+import { parseLocalDate, todayISO } from './dateParse.js';
 
 // Finds the next occurrence of any of `symbolChars` at a word boundary,
 // starting the search at or after `from`. Returns {symbol, symbolIndex} or
@@ -112,11 +112,26 @@ function classifyDomain(rawValue, isPending, absStart, absEnd) {
   return { ...base, state: 'invalid' };
 }
 
+// Title cascade (RenitaOS-Backend-Notes-Template.md §11, revised):
+// Task -> own text (handled by the caller, before this is ever consulted).
+// Dream -> "DRM | MMDDYY" always (never a typed [title]) — see
+// dreamTitle() below. [title] -> verbatim. Otherwise -> a plain snippet,
+// no type prefix, no date, no dash. Empty body/no snippet -> "Untitled".
+const SNIPPET_WORD_COUNT = 5;
+
 function deriveTitle(body) {
   const words = body.split(/\s+/).filter(Boolean);
   if (!words.length) return '';
-  const slice = words.slice(0, 8).join(' ');
-  return words.length > 8 ? `${slice}…` : slice;
+  const slice = words.slice(0, SNIPPET_WORD_COUNT).join(' ');
+  return words.length > SNIPPET_WORD_COUNT ? `${slice}…` : slice;
+}
+
+// MMDDYY from the note's own Date field — Capture always sets Date to
+// today (§10; there's no pre-save date adjustment in Capture itself), so
+// "today" is that field's value at the point a title is generated here.
+function dreamTitle() {
+  const [y, m, d] = todayISO().split('-');
+  return `DRM | ${m}${d}${y.slice(-2)}`;
 }
 
 // Parses ONE entry's raw text. `caches` is a LookupCache; `confirmedNew` is a
@@ -211,7 +226,11 @@ export function parseEntry(raw, caches, confirmedNew, offset = 0) {
   body = body.replace(/^\s*\+/, '').replace(/\s+/g, ' ').replace(/\s+([.,;:!?])/g, '$1').trim();
 
   const dueDateISO = isTask ? parseLocalDate(body) : null;
-  const title = isTask ? body : (explicitTitle || deriveTitle(body));
+  const title = isTask
+    ? body
+    : typeName === DAY_MERGE_TYPE
+      ? dreamTitle()
+      : (explicitTitle || deriveTitle(body) || 'Untitled');
 
   return {
     raw,
