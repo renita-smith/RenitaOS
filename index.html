@@ -2430,7 +2430,7 @@
     triageState.scrollToOpenedBin = false;
 
     if (triageState.loading) {
-      triageContainer.innerHTML = `<div class="tg-view"><div class="tg-status">Loading Triage…</div></div>`;
+      triageContainer.innerHTML = `<div class="tg-view"><div class="tg-status">Loading Inbox…</div></div>`;
       return;
     }
     if (triageState.error) {
@@ -2482,7 +2482,7 @@
       triageState.data = await loadTriageData();
     } catch (err) {
       console.error('Failed to load Triage data', err);
-      triageState.error = err.message || 'Could not load Triage data — check the Worker.';
+      triageState.error = err.message || 'Could not load Inbox data — check the Worker.';
     } finally {
       triageState.loading = false;
       paintTriage();
