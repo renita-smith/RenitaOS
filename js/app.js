@@ -4,7 +4,7 @@ import {
 } from './config.js';
 import { queryAllPages, createPage, updatePageProperties, appendBlockChildren, paragraphBlocks } from './notion.js';
 import { todayISO } from './dateParse.js';
-import { titlePropertyName, relationPropertyName } from './schema.js';
+import { titlePropertyName, relationPropertyName, resolveMultiSelectOption } from './schema.js';
 import { LookupCache } from './cache.js';
 import { computeThoughts } from './parse.js';
 
@@ -367,16 +367,22 @@ async function saveThought(thought) {
     return;
   }
 
-  const [notesTitleProp, notesDomainsProp, notesProjectsProp, notesPeopleProp, notesTagsProp] = await Promise.all([
+  // Type must be written back as the option's exact, live string (e.g.
+  // "💤 Dream" for the matched "Dream" keyword) — never the bare parsed
+  // token, or Notion creates a new duplicate option instead of tagging the
+  // real one. Resolved once here and reused below for the Dream day-merge
+  // lookup, which has to match on that same real string to find it.
+  const [notesTitleProp, notesDomainsProp, notesProjectsProp, notesPeopleProp, notesTagsProp, resolvedNoteType] = await Promise.all([
     titlePropertyName(DB.NOTES),
     domainCfg ? relationPropertyName(DB.NOTES, DB.DOMAINS) : null,
     projectIds.length ? relationPropertyName(DB.NOTES, DB.PROJECTS) : null,
     relationPropertyName(DB.NOTES, DB.PEOPLE),
     relationPropertyName(DB.NOTES, DB.TAGS),
+    thought.noteType ? resolveMultiSelectOption(DB.NOTES, NOTES_PROP.TYPE, thought.noteType) : null,
   ]);
   const properties = {
     [notesTitleProp]: titleProperty(thought.title),
-    [NOTES_PROP.TYPE]: { multi_select: thought.noteType ? [{ name: thought.noteType }] : [] },
+    [NOTES_PROP.TYPE]: { multi_select: resolvedNoteType ? [{ name: resolvedNoteType }] : [] },
     [NOTES_PROP.DATE]: { date: { start: todayISO() } },
     [NOTES_PROP.STATUS]: { status: { name: NOTE_STATUS_INBOX } },
   };
@@ -386,9 +392,12 @@ async function saveThought(thought) {
   if (tagIds.length) properties[notesTagsProp] = { relation: tagIds.map((id) => ({ id })) };
 
   if (thought.noteType === DAY_MERGE_TYPE) {
+    // Match on the resolved real option string, not the bare "Dream"
+    // keyword — the property actually stores the emoji-prefixed one, and a
+    // bare-string filter would silently never find today's existing record.
     const existing = await queryAllPages(DB.NOTES, {
       and: [
-        { property: NOTES_PROP.TYPE, multi_select: { contains: DAY_MERGE_TYPE } },
+        { property: NOTES_PROP.TYPE, multi_select: { contains: resolvedNoteType } },
         { property: NOTES_PROP.DATE, date: { equals: todayISO() } },
       ],
     });
