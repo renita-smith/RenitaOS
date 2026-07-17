@@ -686,6 +686,25 @@
   .pf-row-id { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace; font-size: 11px; color: var(--muted-text); letter-spacing: .02em; }
   .pf-row-domain { flex-shrink: 0; font-size: 10px; font-weight: 600; padding: 3px 9px; border-radius: var(--radius-sm); }
 
+  /* Notes-tab-only: grouped by Type (groupNotesByType) instead of the flat
+     .pf-row-list every other tab uses. The caption exists so the group
+     tallies below summing past the tab's own distinct-note count reads as
+     intentional (multi-Type notes count in every group they belong to),
+     not a bug. */
+  .pf-notes-caption { font-size: 12px; color: var(--muted-text); margin: -2px 0 18px; }
+  .pf-note-group-head {
+    display: flex; align-items: baseline; justify-content: space-between; gap: 10px;
+    padding: 8px 2px;
+  }
+  /* Divider between groups only — not above the first one (which sits
+     right under the caption, needing no extra rule above it) or the
+     panel's own header above the caption. The sibling combinator finds
+     "every .pf-note-group but the first" without depending on DOM
+     position within .pf-tab-panel, unlike a :first-child check would. */
+  .pf-note-group + .pf-note-group .pf-note-group-head { border-top: 1px solid var(--hairline); margin-top: 6px; padding-top: 14px; }
+  .pf-note-group-label { font-family: 'Newsreader', serif; font-size: 15px; color: var(--text); }
+  .pf-note-group-n { font-size: 13px; color: var(--muted-text); }
+
   @media (min-width: 768px) {
     .pf-meta-grid { grid-template-columns: 1fr 1fr; gap: 24px; }
   }
@@ -3457,8 +3476,45 @@
       const uniqueIdVal = uniqueIdProp ? (p.properties[uniqueIdProp] || {}).unique_id : null;
       const uniqueId = uniqueIdVal ? formatUniqueId(uniqueIdVal.prefix, uniqueIdVal.number) : null;
       const domainChip = await resolveRowDomainChip(tabKey, p);
-      return { id: p.id, title, uniqueId, domainChip, route: meta.route };
+      const row = { id: p.id, title, uniqueId, domainChip, route: meta.route };
+      // Notes-tab-only: carries its Types along for the by-Type grouping
+      // below — read straight off the page object already fetched above
+      // (CONFIG.NOTES_PROP.TYPE, same non-relation property name the Note
+      // profile itself reads), no extra request.
+      if (tabKey === 'notes') {
+        row.types = ((p.properties[CONFIG.NOTES_PROP.TYPE] || {}).multi_select || []).map((o) => o.name);
+      }
+      return row;
     }));
+  }
+
+  // Groups the Notes tab's already-fetched records by Type — display only,
+  // no additional Notion queries (typeOptions' live schema order, which
+  // Inbox's own bins follow, isn't fetched by this slice; see the loading
+  // comment above). A multi-Type note is pushed into EVERY one of its Type
+  // groups — intentional double-count, unlike Inbox's bins which file a
+  // multi-Type note under its first Type only — which is why the tab's own
+  // count and the sum of group counts can legitimately disagree (see the
+  // caption in renderNotesTabGrouped). Reuses splitTrailingEmoji and the
+  // NO_GROUP/"No Type" convention verbatim from Inbox's own note-type bins
+  // (groupNotes above) rather than re-deriving either. Ordered by
+  // descending count, largest group first; ties keep the stable order
+  // Array#sort already preserves (first-encountered).
+  function groupNotesByType(records) {
+    const byType = new Map();
+    records.forEach((r) => {
+      const types = r.types && r.types.length ? r.types : [NO_GROUP];
+      types.forEach((t) => {
+        if (!byType.has(t)) byType.set(t, []);
+        byType.get(t).push(r);
+      });
+    });
+    const groups = Array.from(byType.entries()).map(([key, recs]) => {
+      const { name, icon } = key === NO_GROUP ? { name: 'No Type', icon: '' } : splitTrailingEmoji(key);
+      return { key, name, icon, records: recs };
+    });
+    groups.sort((a, b) => b.records.length - a.records.length);
+    return groups;
   }
 
   // Loads the record's own header (ID handle + title) plus every tab: the
@@ -3514,6 +3570,26 @@
     </div>`;
   }
 
+  // Notes-tab-only subheader treatment: emoji + name (Inbox's own
+  // bin-chip presentation, via splitTrailingEmoji) + a count in the same
+  // sans "tg-count-mono" numeric-data treatment Inbox's chips/counts use
+  // everywhere else. Rows underneath are untouched — renderRelationRow,
+  // same as the flat-list tabs.
+  function renderNotesTabGrouped(records) {
+    const groups = groupNotesByType(records);
+    const captionHtml = `<div class="pf-notes-caption">${records.length} note${records.length === 1 ? '' : 's'} · counted under each type</div>`;
+    const groupsHtml = groups.map((g) => `
+      <div class="pf-note-group">
+        <div class="pf-note-group-head">
+          <span class="pf-note-group-label">${g.icon ? `${escapeHtml(g.icon)} ` : ''}${escapeHtml(g.name)}</span>
+          <span class="pf-note-group-n tg-count-mono">${g.records.length}</span>
+        </div>
+        <div class="pf-row-list">${g.records.map(renderRelationRow).join('')}</div>
+      </div>
+    `).join('');
+    return `${captionHtml}${groupsHtml}`;
+  }
+
   function renderRelationTabPanel(tab, consumerLabel) {
     const countHtml = `<div class="pf-tab-panel-count">${escapeHtml(tab.label)}<span class="pf-tab-n">${tab.count}</span></div>`;
     let bodyHtml;
@@ -3523,6 +3599,8 @@
       bodyHtml = `<div class="tg-status tg-status--error">${escapeHtml(tab.error)}</div>`;
     } else if (!tab.records || !tab.records.length) {
       bodyHtml = `<div class="pf-tab-empty">No ${escapeHtml(tab.label.toLowerCase())} reference this ${escapeHtml(consumerLabel.toLowerCase())} yet.</div>`;
+    } else if (tab.key === 'notes') {
+      bodyHtml = renderNotesTabGrouped(tab.records);
     } else {
       bodyHtml = `<div class="pf-row-list">${tab.records.map(renderRelationRow).join('')}</div>`;
     }
