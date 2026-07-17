@@ -33,3 +33,29 @@ export async function relationPropertyName(sourceDatabaseId, targetDatabaseId) {
   if (!entry) throw new Error(`No relation property on database ${sourceDatabaseId} targets ${targetDatabaseId}`);
   return entry[0];
 }
+
+// Strips emoji/symbols (keeping letters, numbers, spaces) and collapses
+// whitespace, so a bare Type-set keyword ("Dream") matches a live option's
+// real string regardless of which side its emoji sits on ("💤 Dream" or
+// "Dream 💤") — never assumed to be a fixed format.
+function normalizeOptionKeyword(str) {
+  return (str || '').replace(/[^\p{L}\p{N}\s]/gu, '').replace(/\s+/g, ' ').trim().toLowerCase();
+}
+
+// Resolves `keyword` against a multi_select property's real, live options
+// and returns the option's EXACT verbatim string (e.g. "💤 Dream" for
+// "Dream"). A write must always use this — never a bare/guessed name — or
+// Notion silently creates a duplicate option instead of tagging the
+// existing one.
+export async function resolveMultiSelectOption(databaseId, propertyName, keyword) {
+  const db = await getSchema(databaseId);
+  const prop = db.properties[propertyName];
+  if (!prop || prop.type !== 'multi_select') {
+    throw new Error(`"${propertyName}" is not a multi_select property on database ${databaseId}`);
+  }
+  const options = (prop.multi_select && prop.multi_select.options) || [];
+  const target = normalizeOptionKeyword(keyword);
+  const match = options.find((o) => normalizeOptionKeyword(o.name) === target);
+  if (!match) throw new Error(`No "${keyword}" option found on the ${propertyName} property for database ${databaseId}`);
+  return match.name;
+}
