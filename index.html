@@ -3488,19 +3488,34 @@
     }));
   }
 
-  // Groups the Notes tab's already-fetched records by Type — display only,
-  // no additional Notion queries (typeOptions' live schema order, which
-  // Inbox's own bins follow, isn't fetched by this slice; see the loading
-  // comment above). A multi-Type note is pushed into EVERY one of its Type
-  // groups — intentional double-count, unlike Inbox's bins which file a
-  // multi-Type note under its first Type only — which is why the tab's own
-  // count and the sum of group counts can legitimately disagree (see the
-  // caption in renderNotesTabGrouped). Reuses splitTrailingEmoji and the
+  // Same ordering source Inbox's own bins use (groupNotes above, via
+  // loadTriageData's typeOptions) — the Notes database's live Type-option
+  // order, resolved through the shared getMultiSelectOptions/getSchema
+  // cache. Not a new query in practice: queryTabRecords already triggers a
+  // Notes-schema fetch for titlePropertyName/uniqueIdPropertyName, and
+  // getSchema's cache is keyed by database id and shared by every caller
+  // (schemaCache.set stores the in-flight promise itself, so concurrent
+  // callers join it rather than firing a second request) — this just reads
+  // from that same fetch.
+  async function getNotesTypeOrder() {
+    const options = await getMultiSelectOptions(CONFIG.DB.NOTES, CONFIG.NOTES_PROP.TYPE);
+    return options.map((o) => o.name);
+  }
+
+  // Groups the Notes tab's already-fetched records by Type — display only.
+  // A multi-Type note is pushed into EVERY one of its Type groups —
+  // intentional double-count, unlike Inbox's bins which file a multi-Type
+  // note under its first Type only — which is why the tab's own count and
+  // the sum of group counts can legitimately disagree (see the caption in
+  // renderNotesTabGrouped). Reuses splitTrailingEmoji and the
   // NO_GROUP/"No Type" convention verbatim from Inbox's own note-type bins
-  // (groupNotes above) rather than re-deriving either. Ordered by
-  // descending count, largest group first; ties keep the stable order
-  // Array#sort already preserves (first-encountered).
-  function groupNotesByType(records) {
+  // (groupNotes above). Ordered by `typeOrder` (getNotesTypeOrder, above)
+  // exactly as groupNotes orders Inbox's bins — the database's declared
+  // Type order, "No Type" always last — so the Notes tab and Inbox present
+  // types identically. Falls back to descending count only if typeOrder
+  // wasn't available (shouldn't happen — it's always fetched alongside the
+  // tab's records).
+  function groupNotesByType(records, typeOrder) {
     const byType = new Map();
     records.forEach((r) => {
       const types = r.types && r.types.length ? r.types : [NO_GROUP];
@@ -3509,12 +3524,17 @@
         byType.get(t).push(r);
       });
     });
-    const groups = Array.from(byType.entries()).map(([key, recs]) => {
+    let orderedKeys;
+    if (typeOrder && typeOrder.length) {
+      orderedKeys = typeOrder.filter((t) => byType.has(t));
+      if (byType.has(NO_GROUP)) orderedKeys.push(NO_GROUP);
+    } else {
+      orderedKeys = Array.from(byType.keys()).sort((a, b) => byType.get(b).length - byType.get(a).length);
+    }
+    return orderedKeys.map((key) => {
       const { name, icon } = key === NO_GROUP ? { name: 'No Type', icon: '' } : splitTrailingEmoji(key);
-      return { key, name, icon, records: recs };
+      return { key, name, icon, records: byType.get(key) };
     });
-    groups.sort((a, b) => b.records.length - a.records.length);
-    return groups;
   }
 
   // Loads the record's own header (ID handle + title) plus every tab: the
@@ -3543,14 +3563,17 @@
         relProp = await relationPropertyName(meta.dbId, consumer.dbId);
       } catch (err) {
         console.error(`No relation on "${tabKey}" targeting ${entityKey}`, err);
-        return { key: tabKey, label: meta.label, route: meta.route, relProp: null, unavailable: true, count: 0, records: [], hydrated: true, loading: false, error: null };
+        return { key: tabKey, label: meta.label, route: meta.route, relProp: null, unavailable: true, count: 0, records: [], typeOrder: null, hydrated: true, loading: false, error: null };
       }
       if (idx === 0) {
-        const records = await queryTabRecords(tabKey, meta, relProp, pageId);
-        return { key: tabKey, label: meta.label, route: meta.route, relProp, unavailable: false, count: records.length, records, hydrated: true, loading: false, error: null };
+        const [records, typeOrder] = await Promise.all([
+          queryTabRecords(tabKey, meta, relProp, pageId),
+          tabKey === 'notes' ? getNotesTypeOrder() : Promise.resolve(null),
+        ]);
+        return { key: tabKey, label: meta.label, route: meta.route, relProp, unavailable: false, count: records.length, records, typeOrder, hydrated: true, loading: false, error: null };
       }
       const count = await queryTabCount(meta, relProp, pageId);
-      return { key: tabKey, label: meta.label, route: meta.route, relProp, unavailable: false, count, records: null, hydrated: false, loading: false, error: null };
+      return { key: tabKey, label: meta.label, route: meta.route, relProp, unavailable: false, count, records: null, typeOrder: null, hydrated: false, loading: false, error: null };
     }));
 
     return { id: page.id, title, uniqueId, consumerLabel: consumer.label, tabs };
@@ -3575,8 +3598,8 @@
   // sans "tg-count-mono" numeric-data treatment Inbox's chips/counts use
   // everywhere else. Rows underneath are untouched — renderRelationRow,
   // same as the flat-list tabs.
-  function renderNotesTabGrouped(records) {
-    const groups = groupNotesByType(records);
+  function renderNotesTabGrouped(records, typeOrder) {
+    const groups = groupNotesByType(records, typeOrder);
     const captionHtml = `<div class="pf-notes-caption">${records.length} note${records.length === 1 ? '' : 's'} · counted under each type</div>`;
     const groupsHtml = groups.map((g) => `
       <div class="pf-note-group">
@@ -3600,7 +3623,7 @@
     } else if (!tab.records || !tab.records.length) {
       bodyHtml = `<div class="pf-tab-empty">No ${escapeHtml(tab.label.toLowerCase())} reference this ${escapeHtml(consumerLabel.toLowerCase())} yet.</div>`;
     } else if (tab.key === 'notes') {
-      bodyHtml = renderNotesTabGrouped(tab.records);
+      bodyHtml = renderNotesTabGrouped(tab.records, tab.typeOrder);
     } else {
       bodyHtml = `<div class="pf-row-list">${tab.records.map(renderRelationRow).join('')}</div>`;
     }
@@ -3694,9 +3717,13 @@
     tab.loading = true;
     paintRelationProfile(content);
     try {
-      const records = await queryTabRecords(tab.key, REL_DB_META[tab.key], tab.relProp, id);
+      const [records, typeOrder] = await Promise.all([
+        queryTabRecords(tab.key, REL_DB_META[tab.key], tab.relProp, id),
+        tab.key === 'notes' ? getNotesTypeOrder() : Promise.resolve(null),
+      ]);
       if (s.entityKey !== entityKey || s.id !== id) return;
       tab.records = records;
+      tab.typeOrder = typeOrder;
       tab.count = records.length;
       tab.hydrated = true;
     } catch (err) {
