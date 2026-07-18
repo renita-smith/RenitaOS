@@ -705,6 +705,40 @@
   .pf-note-group-label { font-family: 'Newsreader', serif; font-size: 15px; color: var(--text); }
   .pf-note-group-n { font-size: 13px; color: var(--muted-text); }
 
+  /* ============================================================
+     Project profile — Tasks tab. Priority stars (never a color, per
+     Conventions — color stays reserved for Domain); the progress summary
+     (a slim, deliberately muted sage bar); status-grouped task cards
+     (Capture/Triage card vocabulary, reusing .tg-checkbox/.tg-chip).
+     ============================================================ */
+  .pf-priority-stars { letter-spacing: 1px; color: var(--text); }
+
+  .pf-progress { margin-bottom: 18px; }
+  .pf-progress-track { height: 6px; border-radius: 3px; background: var(--surface-soft); overflow: hidden; }
+  /* Deliberately muted — a step past --surface-soft but nowhere near a
+     Domain tile's saturation, so it never competes with the Domain color. */
+  .pf-progress-fill { height: 100%; background: #A9B885; border-radius: 3px; }
+  .pf-progress-label { font-size: 12px; color: var(--muted-text); margin-top: 6px; }
+
+  .pf-status-group-list { display: flex; flex-direction: column; }
+  .pf-status-group + .pf-status-group { margin-top: 4px; }
+  .pf-status-head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; padding: 10px 2px; }
+  .pf-status-head--toggle { cursor: pointer; }
+  .pf-status-head-label { font-family: 'Newsreader', serif; font-size: 15px; color: var(--text); }
+  .pf-status-head-n { font-size: 13px; color: var(--muted-text); }
+  .pf-status-body { display: flex; flex-direction: column; gap: 8px; padding: 2px 0 12px; }
+
+  .pf-task-card {
+    display: flex; align-items: flex-start; gap: 12px;
+    padding: 14px 16px; border-radius: var(--radius-lg);
+    background: var(--surface-soft); cursor: pointer;
+  }
+  .pf-task-card:hover { background: var(--tg-sage-deep, #DBE2C1); }
+  .pf-task-checkbox { margin-top: 1px; flex-shrink: 0; }
+  .pf-task-card-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 8px; }
+  .pf-task-title { font-family: 'Newsreader', serif; font-size: 16px; color: var(--text); }
+  .pf-task-due { align-self: flex-start; }
+
   @media (min-width: 768px) {
     .pf-meta-grid { grid-template-columns: 1fr 1fr; gap: 24px; }
   }
@@ -2948,7 +2982,7 @@
   // Routes with a real profile (vs. still a "coming soon" stub) get the
   // top-aligned .profile content treatment instead of the stub's centered
   // placeholder look — see .shell-content.profile.
-  const REAL_PROFILE_ROUTES = ['note', 'task', 'tag', 'collection', 'person'];
+  const REAL_PROFILE_ROUTES = ['note', 'task', 'project', 'tag', 'collection', 'person'];
 
   function renderEntityStub(entityName) {
     const label = ENTITY_LABELS[entityName] || entityName;
@@ -3790,6 +3824,494 @@
     }
   }
 
+  // --- Project profile — read/navigate only, no writes to Notion. ----------
+  // Two tabs only (Tasks default, Notes), unlike the tag/collection/person
+  // trio's five-tab set above — so this doesn't reuse
+  // RELATION_TAB_SETS/loadRelationProfileBase wholesale. The Notes tab's
+  // shape (dense rows grouped by Type) is identical to every other profile's
+  // Notes tab, so it reuses REL_DB_META.notes + queryTabRecords/queryTabCount/
+  // getNotesTypeOrder/renderRelationTabPanel outright. Tasks needs its own
+  // fetch (Status + Due Date per row) and its own status-grouped card
+  // render, so that half is bespoke.
+
+  // Generic keyword resolvers, same principle as getTasksPriorityProp above
+  // (type match first, keyword second — never a hardcoded emoji-prefixed
+  // name) but not specific to one database, since Projects carries its own
+  // Priority/date/rollup properties under different exact names.
+  async function getSelectPropByKeyword(databaseId, keyword) {
+    const db = await getSchema(databaseId);
+    const target = keyword.toLowerCase();
+    const entry = Object.entries(db.properties).find(
+      ([name, prop]) => prop.type === 'select' && name.toLowerCase().includes(target)
+    );
+    return entry ? entry[0] : null;
+  }
+  // Returns null (never throws) when the schema doesn't have this date yet —
+  // Date Archived/Date Paused are pending schema additions per the build
+  // spec, and every other date field should degrade the same way rather
+  // than special-casing those two.
+  async function getDatePropByKeyword(databaseId, keyword) {
+    const db = await getSchema(databaseId);
+    const target = keyword.toLowerCase();
+    const entry = Object.entries(db.properties).find(
+      ([name, prop]) => prop.type === 'date' && name.toLowerCase().includes(target)
+    );
+    return entry ? entry[0] : null;
+  }
+  async function getRollupPropByKeyword(databaseId, keyword) {
+    const db = await getSchema(databaseId);
+    const target = keyword.toLowerCase();
+    const entry = Object.entries(db.properties).find(
+      ([name, prop]) => prop.type === 'rollup' && name.toLowerCase().includes(target)
+    );
+    return entry ? entry[0] : null;
+  }
+
+  // A rollup's value can come back shaped as a single aggregated number (the
+  // expected case for both Progress and No of Tasks) or, if the rollup is
+  // configured to surface the original property instead of aggregating it,
+  // as an array — array.length is the best-effort fallback for a count in
+  // that shape. Anything else (unset property, no rollup at all) is null,
+  // never a guessed 0, so the summary line can tell "no data" apart from
+  // "zero tasks".
+  function readRollupNumber(page, propName) {
+    if (!propName) return null;
+    const prop = page.properties[propName];
+    if (!prop || !prop.rollup) return null;
+    const r = prop.rollup;
+    if (r.type === 'number') return r.number;
+    if (r.type === 'array' && Array.isArray(r.array)) return r.array.length;
+    return null;
+  }
+
+  // Priority displays as stars per RenitaOS-Conventions.md, mapped from the
+  // High/Med/Low keyword in the live option's own string (never a hardcoded
+  // exact match, since the real value is likely emoji-suffixed like Tasks'
+  // Priority). Falls back to the plain label when the keyword doesn't
+  // resolve, rather than guessing a star count.
+  function priorityStarCount(priorityName) {
+    const n = (priorityName || '').toLowerCase();
+    if (n.includes('high')) return 3;
+    if (n.includes('med')) return 2;
+    if (n.includes('low')) return 1;
+    return null;
+  }
+  function renderPriorityValue(priorityName) {
+    const count = priorityStarCount(priorityName);
+    if (count == null) return escapeHtml(priorityName || 'No priority');
+    return `<span class="pf-priority-stars" aria-label="${escapeHtml(priorityName)}">${'★'.repeat(count)}${'☆'.repeat(3 - count)}</span>`;
+  }
+
+  // Status precedence for the meta grid's one contextual date row — stop at
+  // first match, driven by the Status VALUE (not the separate "Archived"
+  // operational flag, which stays off-profile this phase per the ghost/
+  // flag rule). Date Archived/Date Paused are read whenever that property
+  // exists, regardless of whether Notion has a live "Archived" status value
+  // yet — this just never matches until it does, per "treat a missing
+  // property as simply absent."
+  function projectContextualDateRow(p) {
+    const s = (p.statusName || '').toLowerCase();
+    if (s === 'archived') return { label: 'Date Archived', date: p.archivedDate };
+    if (s === 'done') return { label: 'Date Completed', date: p.completedDate };
+    if (s === 'paused') return { label: 'Date Paused', date: p.pausedDate };
+    return null;
+  }
+
+  async function loadProjectProfile(pageId) {
+    const page = await notionRequest(`/v1/pages/${pageId}`);
+
+    const [
+      projTitleProp, projStatusSchema, projUniqueIdProp,
+      projDomainProp, projPeopleProp, projCollectionsProp, projPriorityProp,
+      startDateProp, deadlineProp, completedDateProp, archivedDateProp, pausedDateProp,
+      progressProp, noOfTasksProp,
+      tasksProjectsProp, notesProjectsProp,
+      domainsIcon, peopleIcon, collectionsIcon,
+    ] = await Promise.all([
+      titlePropertyName(CONFIG.DB.PROJECTS),
+      getStatusSchema(CONFIG.DB.PROJECTS),
+      uniqueIdPropertyName(CONFIG.DB.PROJECTS),
+      relationPropertyName(CONFIG.DB.PROJECTS, CONFIG.DB.DOMAINS),
+      relationPropertyName(CONFIG.DB.PROJECTS, CONFIG.DB.PEOPLE),
+      relationPropertyName(CONFIG.DB.PROJECTS, CONFIG.DB.COLLECTIONS),
+      getSelectPropByKeyword(CONFIG.DB.PROJECTS, 'priority'),
+      getDatePropByKeyword(CONFIG.DB.PROJECTS, 'start'),
+      getDatePropByKeyword(CONFIG.DB.PROJECTS, 'deadline'),
+      getDatePropByKeyword(CONFIG.DB.PROJECTS, 'completed'),
+      getDatePropByKeyword(CONFIG.DB.PROJECTS, 'archived'),
+      getDatePropByKeyword(CONFIG.DB.PROJECTS, 'paused'),
+      getRollupPropByKeyword(CONFIG.DB.PROJECTS, 'progress'),
+      getRollupPropByKeyword(CONFIG.DB.PROJECTS, 'tasks'),
+      relationPropertyName(CONFIG.DB.TASKS, CONFIG.DB.PROJECTS),
+      relationPropertyName(CONFIG.DB.NOTES, CONFIG.DB.PROJECTS),
+      getDatabaseIcon(CONFIG.DB.DOMAINS),
+      getDatabaseIcon(CONFIG.DB.PEOPLE),
+      getDatabaseIcon(CONFIG.DB.COLLECTIONS),
+    ]);
+
+    const title = plainTitle(page, projTitleProp);
+    const statusProp = page.properties[projStatusSchema.name];
+    const statusName = (statusProp && statusProp.status && statusProp.status.name) || null;
+    const priorityName = projPriorityProp ? (((page.properties[projPriorityProp] || {}).select || {}).name || null) : null;
+
+    const uniqueIdVal = projUniqueIdProp ? (page.properties[projUniqueIdProp] || {}).unique_id : null;
+    const uniqueId = uniqueIdVal ? formatUniqueId(uniqueIdVal.prefix, uniqueIdVal.number) : null;
+
+    const startDate = startDateProp ? (page.properties[startDateProp] || {}).date : null;
+    const deadline = deadlineProp ? (page.properties[deadlineProp] || {}).date : null;
+    const completedDate = completedDateProp ? (page.properties[completedDateProp] || {}).date : null;
+    const archivedDate = archivedDateProp ? (page.properties[archivedDateProp] || {}).date : null;
+    const pausedDate = pausedDateProp ? (page.properties[pausedDateProp] || {}).date : null;
+
+    const domainIds = ((page.properties[projDomainProp] || {}).relation || []).map((r) => r.id);
+    const peopleIds = ((page.properties[projPeopleProp] || {}).relation || []).map((r) => r.id);
+    const collectionIds = ((page.properties[projCollectionsProp] || {}).relation || []).map((r) => r.id);
+
+    const [domainRel, people, collections] = await Promise.all([
+      domainIds.length ? resolveRelationNames(CONFIG.DB.DOMAINS, [domainIds[0]]) : Promise.resolve([]),
+      resolveRelationNames(CONFIG.DB.PEOPLE, peopleIds),
+      resolveRelationNames(CONFIG.DB.COLLECTIONS, collectionIds),
+    ]);
+    const domainId = domainIds[0] || null;
+    const domainName = domainRel.length ? domainRel[0].name : null;
+
+    // Progress is read as whichever of a 0..1 fraction or an already-scaled
+    // 0..100 percent the live rollup happens to return (normalizing >1 down
+    // rather than guessing which) so "N of M done" can be reconstructed from
+    // the two named rollups without a third property to hold the raw count.
+    const progressRaw = readRollupNumber(page, progressProp);
+    const totalTasksRaw = readRollupNumber(page, noOfTasksProp);
+    const progressFraction = typeof progressRaw === 'number' ? (progressRaw > 1 ? progressRaw / 100 : progressRaw) : null;
+    const totalTasks = typeof totalTasksRaw === 'number' ? totalTasksRaw : null;
+    const doneTasks = (progressFraction != null && totalTasks != null) ? Math.round(progressFraction * totalTasks) : null;
+
+    return {
+      id: page.id, title, uniqueId, statusName, priorityName,
+      startDate, deadline, completedDate, archivedDate, pausedDate,
+      domainId, domainName, people, collections,
+      icons: { domains: domainsIcon, people: peopleIcon, collections: collectionsIcon },
+      progressFraction, totalTasks, doneTasks,
+      tasksProjectsProp, notesProjectsProp,
+      createdTime: page.created_time,
+      lastEditedTime: page.last_edited_time,
+    };
+  }
+
+  // Minimal-payload count query, mirroring queryTabCount above but against
+  // Tasks' own Projects relation (never the project's inline relation array,
+  // which truncates past 25 — every Tasks-tab query goes through the Tasks
+  // database itself instead).
+  async function queryProjectTaskCount(relProp, pageId) {
+    const titleProp = await titlePropertyName(CONFIG.DB.TASKS);
+    const db = await getSchema(CONFIG.DB.TASKS);
+    const titlePropId = db.properties[titleProp] && db.properties[titleProp].id;
+    const pages = await queryAllPages(
+      CONFIG.DB.TASKS,
+      { property: relProp, relation: { contains: pageId } },
+      titlePropId ? [titlePropId] : undefined
+    );
+    return pages.length;
+  }
+
+  async function queryProjectTaskRecords(relProp, pageId) {
+    const pages = await queryAllPages(CONFIG.DB.TASKS, { property: relProp, relation: { contains: pageId } });
+    const [titleProp, uniqueIdProp, statusSchema] = await Promise.all([
+      titlePropertyName(CONFIG.DB.TASKS),
+      uniqueIdPropertyName(CONFIG.DB.TASKS),
+      getStatusSchema(CONFIG.DB.TASKS),
+    ]);
+    return pages.map((p) => {
+      const taskTitle = plainTitle(p, titleProp);
+      const uniqueIdVal = uniqueIdProp ? (p.properties[uniqueIdProp] || {}).unique_id : null;
+      const uniqueId = uniqueIdVal ? formatUniqueId(uniqueIdVal.prefix, uniqueIdVal.number) : null;
+      const statusProp = p.properties[statusSchema.name];
+      const statusName = (statusProp && statusProp.status && statusProp.status.name) || null;
+      const due = (p.properties[CONFIG.TASKS_PROP.DUE_DATE] || {}).date || null;
+      return { id: p.id, title: taskTitle, uniqueId, statusName, due };
+    });
+  }
+
+  // In Progress/Not Started stay expanded per the system-wide status-collapse
+  // convention; every other status (Done, Paused, or any future addition)
+  // collapses behind a count header — this screen's spec explicitly calls
+  // out "Done (and Paused if present) collapsed", and treating "anything
+  // that isn't active" as the collapse rule covers that without hardcoding
+  // just those two names.
+  function isActiveTaskStatus(name) {
+    const n = (name || '').toLowerCase();
+    return n === 'in progress' || n === 'not started';
+  }
+
+  // Groups already-fetched task records by Status, ordered by the Tasks
+  // database's own live Status-option order (schema order, same principle
+  // as the Notes-by-Type ordering above) with active statuses first, then
+  // everything else — so Paused naturally lands above Done whenever the
+  // schema itself orders them that way (Inbox / Not Started / In Progress /
+  // Paused / Done per the backend notes).
+  function groupProjectTasksByStatus(records, statusOptions) {
+    const byStatus = new Map();
+    records.forEach((r) => {
+      const key = r.statusName || 'No status';
+      if (!byStatus.has(key)) byStatus.set(key, []);
+      byStatus.get(key).push(r);
+    });
+    const schemaOrder = (statusOptions || []).map((o) => o.name);
+    const seen = new Set();
+    const ordered = [];
+    schemaOrder.forEach((n) => { if (byStatus.has(n)) { ordered.push(n); seen.add(n); } });
+    Array.from(byStatus.keys()).forEach((n) => { if (!seen.has(n)) ordered.push(n); });
+    const active = ordered.filter(isActiveTaskStatus);
+    const rest = ordered.filter((n) => !isActiveTaskStatus(n));
+    return [...active, ...rest].map((name) => ({
+      key: name, name, records: byStatus.get(name), collapsedDefault: !isActiveTaskStatus(name),
+    }));
+  }
+
+  // Hybrid load: Tasks is the default tab, so it's fully hydrated on open
+  // (also yielding its own count for free); Notes only gets its lightweight
+  // count query up front and hydrates lazily on first open, exactly like
+  // loadRelationProfileBase's non-default tabs above.
+  async function loadProjectTabs(pageId, tasksProjectsProp, notesProjectsProp) {
+    const [tasksStatusSchema, tasksRecords, notesCount] = await Promise.all([
+      getStatusSchema(CONFIG.DB.TASKS),
+      queryProjectTaskRecords(tasksProjectsProp, pageId),
+      queryTabCount(REL_DB_META.notes, notesProjectsProp, pageId),
+    ]);
+    const tasksTab = {
+      key: 'tasks', label: 'Tasks', count: tasksRecords.length,
+      records: tasksRecords, statusOptions: tasksStatusSchema.options,
+      hydrated: true, loading: false, error: null,
+    };
+    const notesTab = {
+      key: 'notes', label: 'Notes', count: notesCount,
+      records: null, typeOrder: null, hydrated: false, loading: false, error: null,
+    };
+    return [tasksTab, notesTab];
+  }
+
+  function renderProjectTaskCard(r) {
+    const isDone = (r.statusName || '').toLowerCase() === 'done';
+    const dueHtml = r.due && r.due.start
+      ? `<div class="tg-chip pf-task-due"><span class="tg-chip-icon">🗓</span>${escapeHtml(formatDateShort(r.due.start))}</div>`
+      : '';
+    // The whole card is the nav target (read-only checkbox included) — per
+    // this slice's "Tap → #/task/{id}", no separate exclusion for the
+    // checkbox, which has no action of its own yet anyway.
+    return `<div class="pf-task-card" data-pf-nav="task/${escapeHtml(r.id)}">
+      <span class="tg-checkbox pf-task-checkbox${isDone ? ' checked' : ''}" aria-hidden="true">${isDone ? '✓' : ''}</span>
+      <div class="pf-task-card-main">
+        <div class="pf-task-title">${escapeHtml(r.title || 'Untitled')}</div>
+        ${dueHtml}
+      </div>
+    </div>`;
+  }
+
+  function renderProjectStatusGroup(group, collapsedStatus) {
+    const collapsed = collapsedStatus.has(group.key);
+    const collapsible = group.collapsedDefault;
+    const headAttr = collapsible ? ` data-pf-status-toggle="${escapeHtml(group.key)}"` : '';
+    const bodyHtml = (!collapsible || !collapsed)
+      ? `<div class="pf-status-body">${group.records.map(renderProjectTaskCard).join('')}</div>`
+      : '';
+    return `<div class="pf-status-group">
+      <div class="pf-status-head${collapsible ? ' pf-status-head--toggle' : ''}"${headAttr}>
+        <span class="pf-status-head-label">${escapeHtml(group.name)}</span>
+        <span class="pf-status-head-n tg-count-mono">${group.records.length}</span>
+      </div>
+      ${bodyHtml}
+    </div>`;
+  }
+
+  // Slim sage bar (never the Domain color) + the "N of M done" line
+  // reconstructed from the two read-only rollups (see loadProjectProfile) —
+  // display-only, matches whatever Notion's own rollups report.
+  function renderProjectProgressSummary(p) {
+    if (p.totalTasks == null) return '';
+    const pct = p.progressFraction != null ? Math.max(0, Math.min(100, Math.round(p.progressFraction * 100))) : 0;
+    const doneLabel = p.doneTasks != null ? String(p.doneTasks) : '—';
+    return `<div class="pf-progress">
+      <div class="pf-progress-track"><div class="pf-progress-fill" style="width:${pct}%"></div></div>
+      <div class="pf-progress-label">${escapeHtml(doneLabel)} of ${escapeHtml(String(p.totalTasks))} done</div>
+    </div>`;
+  }
+
+  function renderProjectTasksTabPanel(tab, p, collapsedStatus) {
+    const countHtml = `<div class="pf-tab-panel-count">${escapeHtml(tab.label)}<span class="pf-tab-n">${tab.count}</span></div>`;
+    if (tab.loading) return `<div class="pf-tab-panel">${countHtml}<div class="tg-status">Loading…</div></div>`;
+    if (tab.error) return `<div class="pf-tab-panel">${countHtml}<div class="tg-status tg-status--error">${escapeHtml(tab.error)}</div></div>`;
+    if (!tab.records.length) return `<div class="pf-tab-panel">${countHtml}<div class="pf-tab-empty">No tasks reference this project yet.</div></div>`;
+    const summaryHtml = renderProjectProgressSummary(p);
+    const groups = groupProjectTasksByStatus(tab.records, tab.statusOptions);
+    const groupsHtml = groups.map((g) => renderProjectStatusGroup(g, collapsedStatus)).join('');
+    return `<div class="pf-tab-panel">${countHtml}${summaryHtml}<div class="pf-status-group-list">${groupsHtml}</div></div>`;
+  }
+
+  function renderProjectProfile(s) {
+    const p = s.data.header;
+    const domainMeta = p.domainId
+      ? (DOMAIN_META.find((d) => normalizeDbId(d.pageId) === normalizeDbId(p.domainId)) || NO_DOMAIN_META)
+      : null;
+    const domainPillHtml = p.domainName
+      ? renderRelPill({
+          label: p.domainName, icon: renderChipIcon(p.icons.domains),
+          navId: p.domainId, navRoute: 'domain',
+          styleAttr: domainMeta ? `background:${domainMeta.fill};color:${domainMeta.text};` : '',
+        })
+      : renderGhostPill('Domain');
+    const peopleHtml = p.people.length
+      ? p.people.map((pp) => renderRelPill({ label: pp.name, icon: renderChipIcon(p.icons.people), navId: pp.id, navRoute: 'person' })).join('')
+      : renderGhostPill('Person');
+    const collectionsHtml = p.collections.length
+      ? p.collections.map((c) => renderRelPill({ label: c.name, icon: renderChipIcon(p.icons.collections), navId: c.id, navRoute: 'collection' })).join('')
+      : renderGhostPill('Collection');
+    const relPillsHtml = domainPillHtml + peopleHtml + collectionsHtml;
+
+    const priorityHtml = renderValuePill(renderPriorityValue(p.priorityName));
+    const statusHtml = renderValuePill(p.statusName ? escapeHtml(p.statusName) : 'No status');
+    const valuePillsHtml = priorityHtml + statusHtml;
+    const dividerHtml = relPillsHtml ? '<span class="pf-pill-divider"></span>' : '';
+
+    const contextRow = projectContextualDateRow(p);
+    const contextRowHtml = contextRow ? `
+      <div class="pf-meta-label">${escapeHtml(contextRow.label)}</div>
+      <div class="pf-meta-value pf-meta-value--date"><span class="pf-meta-date-icon">🗓</span>${contextRow.date && contextRow.date.start ? escapeHtml(formatDateShort(contextRow.date.start)) : '—'}</div>
+    ` : '';
+
+    const metaHtml = `<div class="pf-meta-grid">
+      <div class="pf-meta-col">
+        <div class="pf-meta-label">Start Date</div>
+        <div class="pf-meta-value pf-meta-value--date"><span class="pf-meta-date-icon">🗓</span>${p.startDate && p.startDate.start ? escapeHtml(formatDateShort(p.startDate.start)) : '—'}</div>
+        <div class="pf-meta-label">Target Deadline</div>
+        <div class="pf-meta-value pf-meta-value--date"><span class="pf-meta-date-icon">🗓</span>${p.deadline && p.deadline.start ? escapeHtml(formatDateShort(p.deadline.start)) : '—'}</div>
+        ${contextRowHtml}
+      </div>
+      <div class="pf-meta-col">
+        <div class="pf-meta-label">Created</div>
+        <div class="pf-meta-value pf-meta-value--muted">${escapeHtml(formatDateTime(p.createdTime))}</div>
+        <div class="pf-meta-label">Last edited</div>
+        <div class="pf-meta-value pf-meta-value--muted">${escapeHtml(formatDateTime(p.lastEditedTime))}</div>
+      </div>
+    </div>`;
+
+    const domainSegment = p.domainName
+      ? `<span class="sep">·</span><span class="pf-crumb-link" data-pf-nav="domain/${escapeHtml(p.domainId)}">${escapeHtml(p.domainName)}</span>`
+      : '';
+    const crumbHtml = `<div class="pf-crumb"><span class="pf-crumb--id">${p.uniqueId ? escapeHtml(p.uniqueId) : '—'}</span>${domainSegment}</div>`;
+    const heroHtml = `<div class="serif pf-hero">${escapeHtml(p.title || 'Untitled')}</div>`;
+
+    const tabsHtml = `<div class="pf-tabs" role="tablist">${s.data.tabs.map((t) => `
+        <button type="button" class="pf-tab${t.key === s.activeTab ? ' pf-tab--active' : ''}" data-pf-project-tab="${t.key}" role="tab" aria-selected="${t.key === s.activeTab}">
+          <span class="pf-tab-label">${escapeHtml(t.label)}</span>
+          <span class="pf-tab-n">${t.count}</span>
+        </button>`).join('')}</div>`;
+
+    const activeTab = s.data.tabs.find((t) => t.key === s.activeTab) || s.data.tabs[0];
+    const panelHtml = activeTab.key === 'tasks'
+      ? renderProjectTasksTabPanel(activeTab, p, s.collapsedStatus)
+      : renderRelationTabPanel(activeTab, 'Project');
+
+    return `<div class="pf-view">
+      ${crumbHtml}
+      ${heroHtml}
+      <div class="pf-pillrow">${relPillsHtml}${dividerHtml}${valuePillsHtml}</div>
+      ${metaHtml}
+      ${tabsHtml}
+      ${panelHtml}
+    </div>`;
+  }
+
+  const projectProfileState = { id: null, loading: false, error: null, data: null, activeTab: 'tasks', collapsedStatus: new Set() };
+
+  function paintProjectProfile(container) {
+    const s = projectProfileState;
+    if (s.loading) {
+      container.innerHTML = `<div class="pf-view"><div class="tg-status">Loading…</div></div>`;
+      return;
+    }
+    if (s.error) {
+      container.innerHTML = `<div class="pf-view"><div class="tg-status tg-status--error">${escapeHtml(s.error)}</div></div>`;
+      return;
+    }
+    container.innerHTML = renderProjectProfile(s);
+  }
+
+  async function mountProjectProfile(container, id) {
+    const s = projectProfileState;
+    s.id = id;
+    s.loading = true;
+    s.error = null;
+    s.data = null;
+    s.activeTab = 'tasks';
+    s.collapsedStatus = new Set();
+    paintProjectProfile(container);
+    try {
+      const header = await loadProjectProfile(id);
+      if (s.id !== id) return; // route moved on while this was in flight
+      const tabs = await loadProjectTabs(id, header.tasksProjectsProp, header.notesProjectsProp);
+      if (s.id !== id) return;
+      // Default-collapsed groups (Done/Paused/etc.) are computed once here
+      // rather than on every render, so re-rendering after a toggle doesn't
+      // stomp on a group the user already expanded.
+      const groups = groupProjectTasksByStatus(tabs[0].records, tabs[0].statusOptions);
+      groups.forEach((g) => { if (g.collapsedDefault) s.collapsedStatus.add(g.key); });
+      s.data = { header, tabs };
+    } catch (err) {
+      console.error('Failed to load project profile', err);
+      if (s.id !== id) return;
+      s.error = err.message || 'Could not load this project — check the Worker.';
+    } finally {
+      if (s.id === id) {
+        s.loading = false;
+        paintProjectProfile(container);
+      }
+    }
+  }
+
+  // Mirrors onRelationTabClick above but only Notes ever actually hits the
+  // lazy-hydrate path (Tasks is always pre-hydrated as the default tab).
+  async function onProjectTabClick(tabKey) {
+    const s = projectProfileState;
+    if (!s.data) return;
+    const id = s.id;
+    s.activeTab = tabKey;
+    paintProjectProfile(content);
+    const tab = s.data.tabs.find((t) => t.key === tabKey);
+    if (!tab || tab.hydrated || tab.loading) return;
+    if (tab.count === 0) {
+      tab.records = [];
+      tab.hydrated = true;
+      paintProjectProfile(content);
+      return;
+    }
+    tab.loading = true;
+    paintProjectProfile(content);
+    try {
+      const [records, typeOrder] = await Promise.all([
+        queryTabRecords('notes', REL_DB_META.notes, s.data.header.notesProjectsProp, id),
+        getNotesTypeOrder(),
+      ]);
+      if (s.id !== id) return;
+      tab.records = records;
+      tab.typeOrder = typeOrder;
+      tab.count = records.length;
+      tab.hydrated = true;
+    } catch (err) {
+      console.error('Failed to load project tab', tabKey, err);
+      if (s.id !== id) return;
+      tab.error = err.message || 'Could not load this list.';
+    } finally {
+      tab.loading = false;
+      if (s.id === id && s.activeTab === tabKey) paintProjectProfile(content);
+    }
+  }
+
+  function onProjectStatusToggle(key) {
+    const s = projectProfileState;
+    if (s.collapsedStatus.has(key)) s.collapsedStatus.delete(key);
+    else s.collapsedStatus.add(key);
+    paintProjectProfile(content);
+  }
+
   // Relation-pill label taps (any profile) navigate via the hash router,
   // regardless of which route is currently mounted — unlike the Triage
   // click delegation below, which is gated to the inbox route only. Tab
@@ -3798,7 +4320,11 @@
     const navEl = e.target.closest('[data-pf-nav]');
     if (navEl) { location.hash = `#/${navEl.dataset.pfNav}`; return; }
     const tabEl = e.target.closest('[data-pf-tab]');
-    if (tabEl) onRelationTabClick(tabEl.dataset.pfTab);
+    if (tabEl) { onRelationTabClick(tabEl.dataset.pfTab); return; }
+    const projectTabEl = e.target.closest('[data-pf-project-tab]');
+    if (projectTabEl) { onProjectTabClick(projectTabEl.dataset.pfProjectTab); return; }
+    const statusToggleEl = e.target.closest('[data-pf-status-toggle]');
+    if (statusToggleEl) onProjectStatusToggle(statusToggleEl.dataset.pfStatusToggle);
   });
 
   // --- Views ----------------------------------------------------------------
@@ -3864,6 +4390,8 @@
       mountNoteProfile(content, route.id);
     } else if (route.name === 'task') {
       mountTaskProfile(content, route.id);
+    } else if (route.name === 'project') {
+      mountProjectProfile(content, route.id);
     } else if (route.name === 'tag' || route.name === 'collection' || route.name === 'person') {
       mountRelationProfile(content, route.name, route.id);
     } else if (ENTITY_ROUTES.includes(route.name)) {
