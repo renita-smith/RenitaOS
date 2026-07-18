@@ -732,6 +732,12 @@
     display: flex; align-items: flex-start; gap: 12px;
     padding: 14px 16px; border-radius: var(--radius-lg);
     background: var(--surface-soft); cursor: pointer;
+    /* .pf-view carries no side padding, so a filled card would otherwise
+       run edge-to-edge into the scroll container's own scrollbar — this
+       margin is the card's own breathing room, not a page-wide padding
+       change that'd nudge every other (unfilled, so less noticeable)
+       profile element too. */
+    margin-right: 10px;
   }
   .pf-task-card:hover { background: var(--tg-sage-deep, #DBE2C1); }
   .pf-task-checkbox { margin-top: 1px; flex-shrink: 0; }
