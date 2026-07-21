@@ -909,6 +909,15 @@
   .dmn-spark { position: relative; display: flex; align-items: flex-end; gap: 4px; height: 34px; margin-bottom: 4px; }
   .dmn-sbar { flex: 1; background: #DBE2C1; border-radius: 2px; min-height: 3px; cursor: default; }
   .dmn-sbar--now { background: #A9B885; } /* muted olive anchors "this week" on the right */
+  /* Delegated JS tooltip (see the framedRoot mouseover/mouseout listeners
+     near the click delegation below) — positioned against .dmn-spark's own
+     relative box, same treatment as the layout mock's .spark-tip. */
+  .dmn-spark-tip {
+    position: absolute; transform: translate(-50%, -100%); margin-top: -6px;
+    background: #2A3408; color: #F6F2E9; font-family: 'IBM Plex Sans', sans-serif; font-size: 11px;
+    padding: 5px 8px; border-radius: 6px; white-space: nowrap; pointer-events: none; z-index: 5;
+  }
+  .dmn-spark-tip[hidden] { display: none; }
   .dmn-spark-cap { font-size: 11px; color: oklch(0.55 0.012 75); margin-bottom: 10px; }
   .dmn-kv { display: flex; justify-content: space-between; gap: 10px; padding: 5px 0; font-size: 13px; }
   .dmn-kv .k { color: oklch(0.55 0.012 75); }
@@ -4914,7 +4923,16 @@
   }
 
   function renderActivitySection(a) {
-    const sparkHtml = a.spark.map((w) => `<i class="dmn-sbar${w.isCurrent ? ' dmn-sbar--now' : ''}" title="${escapeHtml(w.label)}" style="height:${w.pct}%"></i>`).join('');
+    // A native title attribute here was the original approach, but it's
+    // exactly the kind of thing that reads as "inconsistent": the OS/browser
+    // controls its own show delay, and — worse — dmnProps gets a fresh
+    // innerHTML on every paintDomainProfile() (any status-collapse toggle or
+    // shelf-tab click elsewhere on the page), which destroys and recreates
+    // these bars; a still-hovering native tooltip has no way to reappear on
+    // the new element without an actual mouse movement. A delegated JS
+    // tooltip (below) shows instantly on mouseover and doesn't depend on any
+    // one bar element surviving a repaint, only on framedRoot itself.
+    const sparkHtml = a.spark.map((w) => `<i class="dmn-sbar${w.isCurrent ? ' dmn-sbar--now' : ''}" data-label="${escapeHtml(w.label)}" style="height:${w.pct}%"></i>`).join('');
     const stalledHtml = a.stalledCount > 0
       ? `<div class="dmn-kv alarm"><span class="k">Stalled projects</span><span class="v"><span class="dmn-flag">!</span>${a.stalledCount}</span></div>`
       : `<div class="dmn-kv"><span class="k">Stalled projects</span><span class="v">0</span></div>`;
@@ -5080,6 +5098,42 @@
     if (shelfTabEl) { onDomainShelfTabClick(shelfTabEl.dataset.dmnShelfTab); return; }
     const statusToggleEl = e.target.closest('[data-dmn-status-toggle]');
     if (statusToggleEl) onDomainStatusToggle(statusToggleEl.dataset.dmnStatusToggle);
+  });
+
+  // Activity spark tooltip — delegated on #framedRoot (same reasoning as
+  // the click listener above: it's the one element guaranteed to survive
+  // every repaint, unlike the .dmn-sbar bars themselves, which are
+  // recreated on every paintDomainProfile() call). mouseover/mouseout
+  // (bubbling) rather than mouseenter/mouseleave, since delegation needs
+  // the bubble phase. The tooltip node itself is created lazily per
+  // .dmn-spark and left in place — paintDomainProfile()'s innerHTML swap
+  // discards it along with the bars each time, so there's nothing to clean
+  // up beyond hiding it on mouseout.
+  framedRoot.addEventListener('mouseover', (e) => {
+    const bar = e.target.closest('.dmn-sbar');
+    if (!bar) return;
+    const spark = bar.closest('.dmn-spark');
+    if (!spark) return;
+    let tip = spark.querySelector('.dmn-spark-tip');
+    if (!tip) {
+      tip = document.createElement('div');
+      tip.className = 'dmn-spark-tip';
+      tip.hidden = true;
+      spark.appendChild(tip);
+    }
+    tip.textContent = bar.dataset.label || '';
+    tip.hidden = false;
+    const sr = spark.getBoundingClientRect();
+    const br = bar.getBoundingClientRect();
+    tip.style.left = `${br.left - sr.left + br.width / 2}px`;
+    tip.style.top = `${br.top - sr.top}px`;
+  });
+  framedRoot.addEventListener('mouseout', (e) => {
+    const bar = e.target.closest('.dmn-sbar');
+    if (!bar) return;
+    const spark = bar.closest('.dmn-spark');
+    const tip = spark && spark.querySelector('.dmn-spark-tip');
+    if (tip) tip.hidden = true;
   });
 
   // Relation-pill label taps (any profile) navigate via the hash router,
