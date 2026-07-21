@@ -93,6 +93,23 @@
   /* An Inbox-triage element — doesn't belong on a single record's profile. */
   .inbox-pill.hidden { display: none; }
 
+  /* Groups the topbar's two right-side actions so .shell-topbar's own
+     justify-content:space-between still lays out just two things (title,
+     this group) — same layout math as before Capture existed here. */
+  .shell-topbar-actions { display: flex; align-items: center; gap: 8px; }
+
+  /* Persistent Capture affordance for Home/Inbox (build brief §3) — Capture
+     left the nav rail as a tab, so both screens that still use the old
+     .shell (Inbox/Capture are explicitly not panel-wrapped this sprint) get
+     it here instead, in the one bit of chrome every old-shell route shares. */
+  .topbar-capture {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 32px; height: 32px; border-radius: var(--radius-sm);
+    background: var(--text); color: var(--cream);
+    text-decoration: none; font-size: 18px; line-height: 1;
+  }
+  .topbar-capture:active { opacity: .85; }
+
   .shell-content {
     flex: 1;
     min-height: 0;
@@ -569,11 +586,18 @@
   }
 
   /* ============================================================
-     Entity profiles — read/navigate-only foundation slice. Shared by
-     every #/{entity}/{id} route; prefixed pf- to avoid colliding with
-     tg- (Triage) and any future screen sharing this shell. Mobile-first,
-     same as the rest of the file — the meta grid's two-column split is a
-     desktop-only override below.
+     Entity profiles — pre-Addendum-2 stacked-column layout. Retired by the
+     Framed-Layout Retrofit sprint: every #/{entity}/{id} route now renders
+     into the "Framed shell" block further down instead. .pf-pillrow and
+     .pf-meta-grid in particular are fully retired (no profile still emits
+     them) — kept here, unused, rather than deleted, since several .pf-*
+     rules below (.pf-tabs, .pf-tab-panel, .pf-row-list, .pf-note-group*,
+     .pf-body, .pf-priority-stars, .pf-status-*, .pf-pill*) ARE still reused
+     verbatim by the retrofitted profiles (see renderRelPill/
+     renderGhostPill/renderValuePill/renderRelationTabPanel/
+     renderNotesTabGrouped/renderProjectStatusGroup and friends) — those
+     tokens (--surface-soft etc.) are :root-scoped, so they resolve fine
+     inside the framed shell too, despite being defined in this block.
      ============================================================ */
   .pf-view { width: 100%; padding: 24px 0 60px; }
   .pf-crumb { font-size: 12px; font-weight: 600; color: var(--muted-text); margin-bottom: 16px; }
@@ -750,13 +774,15 @@
   }
 
   /* ============================================================
-     Framed shell (Addendum 2) — the app-wide profile shell, scoped for
-     now to the #/domain/{id} route only (Domain is the first consumer;
-     Note/Task/Project/Tag/Collection/Person retrofit to this frame in a
-     later sprint, per the build brief's "Integration" note). Kept in its
-     own dmn- namespace, fully self-contained, so it can't collide with
-     the existing .shell, .pf- and .tg- rule families above — this is the
-     reusable module the retrofit will lift wholesale.
+     Framed shell (Addendum 2) — the app-wide profile shell. Domain was its
+     first consumer and proved the frame; the Framed-Layout Retrofit sprint
+     made it the shared shell for every entity profile (Note, Task, Project,
+     Domain, Tag, Collection, Person) — kept the "dmn-" prefix rather than
+     renaming wholesale (this is a private, non-user-visible namespace; the
+     brief's own language reuses these classes literally, e.g. "reuse the
+     Domain's .task-grid / .task" for Project's tasks). Home and Inbox are
+     explicitly out of scope this sprint and still render into the old
+     `.shell` — see body.dmn-route below.
 
      #framedRoot sits as a sibling of .shell; body.dmn-route toggles which
      of the two is visible (see the router's render()). #framedRoot is its
@@ -776,7 +802,10 @@
   }
 
   .dmn-inner {
-    --dmn-max-width: 1200px; /* Addendum 2 starting point; tune by eye in the polish sprint */
+    /* Settled during the Framed-Layout Retrofit sprint — one shared token,
+       applied to every framed profile via this one rule (there's only ever
+       one .dmn-inner in the document at a time). */
+    --dmn-max-width: 1200px;
     max-width: var(--dmn-max-width);
     margin: 28px auto;
     background: #F6F2E9; /* lighter cream content panel */
@@ -815,12 +844,28 @@
   .dmn-rail a .dmn-ic { width: 16px; height: 16px; color: #3A4410; flex: none; }
   .dmn-rail a .dmn-n { margin-left: auto; font-family: 'IBM Plex Sans', sans-serif; font-size: 13px; color: oklch(0.55 0.012 75); }
 
-  /* ---- Header: ID line leads, then serif title + domain color chip ---- */
+  /* ---- Header: ID line leads (flat ID, or ID + breadcrumb path for
+     Task/Project), then serif title + optional chip/checkbox ---- */
   .dmn-head { margin-bottom: 20px; }
-  .dmn-idline { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 12px; color: oklch(0.55 0.012 75); letter-spacing: .02em; }
+  .dmn-idline { font-size: 12px; color: oklch(0.55 0.012 75); display: flex; align-items: center; flex-wrap: wrap; }
+  /* The ID portion only is monospace (matches formatUniqueId's plain-ASCII
+     handle everywhere else in the app); breadcrumb path segments after it
+     (Task's Domain › Project, Project's Domain) stay the ambient sans. */
+  .dmn-crumb-id { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; letter-spacing: .02em; }
+  .dmn-crumb-link { color: #2A3408; cursor: pointer; text-decoration: none; }
+  .dmn-crumb-link:hover { text-decoration: underline; }
+  .dmn-crumb-sep { margin: 0 6px; opacity: .55; }
   .dmn-title-row { display: flex; align-items: center; gap: 12px; margin-top: 6px; }
   .dmn-title { font-family: 'Newsreader', serif; font-size: 30px; line-height: 1.1; font-weight: 500; margin: 0; }
   .dmn-chip { width: 22px; height: 22px; border-radius: 6px; flex: none; }
+  /* Task's render-only completion checkbox, beside the title (Profile
+     layout grammar: "checkbox sits to the left of the title"). */
+  .dmn-hero-checkbox {
+    flex-shrink: 0; width: 20px; height: 20px; border-radius: 4px;
+    background: #fff; box-shadow: inset 0 0 0 1.5px oklch(0.75 0.012 75);
+    color: #fff; display: flex; align-items: center; justify-content: center; font-size: 12px;
+  }
+  .dmn-hero-checkbox--checked { background: #2A3408; box-shadow: inset 0 0 0 1.5px #2A3408; }
 
   /* ---- Main column ---- */
   .dmn-col { min-width: 0; }
@@ -866,6 +911,13 @@
   .dmn-task:hover { border-color: #DBE2C1; }
   .dmn-task .dmn-top { display: flex; gap: 10px; align-items: flex-start; }
   .dmn-box { width: 17px; height: 17px; border: 1.5px solid #3A4410; border-radius: 4px; flex: none; margin-top: 2px; }
+  /* Project's Tasks tab (unlike Domain's Inbox/Admin) includes a Done
+     group, so its card-grid checkbox needs a filled/checked state too —
+     render-only, same as every other completion mirror in this file. */
+  .dmn-box--checked {
+    background: #2A3408; border-color: #2A3408; color: #F6F2E9;
+    display: flex; align-items: center; justify-content: center; font-size: 11px; line-height: 1;
+  }
   .dmn-task .dmn-tname { font-family: 'Newsreader', serif; font-size: 15px; line-height: 1.25; }
   .dmn-task .dmn-tdate { margin-top: auto; font-family: 'IBM Plex Sans', sans-serif; font-size: 12px; color: oklch(0.55 0.012 75); }
 
@@ -884,9 +936,27 @@
   .dmn-tab:hover { background: #DBE2C1; }
   .dmn-tab.active { background: #DBE2C1; border-color: #2A3408; }
 
-  /* ---- Right rail: Capture -> Progress -> Activity -> Dates ---- */
+  /* ---- Right rail. Order per Addendum 2 + the reconciliation note: Domain
+     is Capture -> Progress -> Activity -> Dates (no Properties — a Domain
+     carries almost none); every other profile is Capture -> Progress (where
+     the record has one) -> Dates -> Properties. ---- */
   .dmn-props { position: sticky; top: 24px; align-self: start; display: flex; flex-direction: column; gap: 22px; }
   .dmn-prop-sec h3 { font-family: 'IBM Plex Sans', sans-serif; font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: oklch(0.55 0.012 75); margin: 0 0 10px; }
+
+  /* Properties section (refines "Pills" per Addendum 2) — the relation +
+     value fields as a vertical labeled list instead of a header pill row.
+     Each row's value re-renders the exact same .pf-pill markup
+     (renderRelPill/renderGhostPill/renderValuePill, unchanged) the old
+     pf-pillrow used — .pf-pill's own tokens (--surface-soft etc.) are
+     :root-scoped, so they resolve fine here despite living outside .pf-view.
+     Pill behavior is unchanged: relation pills navigate+edit (label+caret,
+     caret inert this slice), value pills are plain text; Task's Domain is
+     the one deliberate no-caret pill (rendered with caret:false, same as
+     before). */
+  .dmn-prop-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; padding: 8px 0; border-bottom: 1px solid #DED8CA; }
+  .dmn-prop-row:last-child { border-bottom: none; }
+  .dmn-prop-label { font-size: 12px; color: oklch(0.55 0.012 75); flex-shrink: 0; padding-top: 5px; }
+  .dmn-prop-value { display: flex; flex-wrap: wrap; gap: 6px; justify-content: flex-end; }
 
   /* Persistent capture affordance — top of the rail, above Progress. A
      plain link to capture.html (same "Capture isn't an in-shell route yet"
@@ -929,8 +999,11 @@
     margin-right: 6px; vertical-align: middle;
   }
 
-  /* ---- Mobile: single column. Order = Capture, Progress, Activity, Work,
-     Inbox/Admin, Shelf, Dates (build brief §2 + §6). ---- */
+  /* ---- Mobile: single column. Domain's order = Capture, Progress,
+     Activity, Work, Inbox/Admin, Shelf, Dates (build brief §2 + §6).
+     Every other framed profile follows the same "metadata rail trails the
+     main content" pattern: Capture, Progress, [main column], Dates,
+     Properties. ---- */
   @media (max-width: 820px) {
     .dmn-inner { margin: 0; border-radius: 0; min-height: 100vh; }
     .dmn-shell { display: flex; flex-direction: column; gap: 20px; padding: 16px 16px 48px; }
@@ -941,14 +1014,16 @@
     .dmn-rail a .dmn-n { margin-left: 5px; }
 
     /* Flatten the rail's own children into the shell's flex flow so
-       Progress/Activity/Dates can be placed independently around the
-       Work column (Addendum 2's "display: contents" mobile technique). */
+       Progress/Activity/Dates/Properties can be placed independently
+       around the main column (Addendum 2's "display: contents" mobile
+       technique). */
     .dmn-props { display: contents; }
     .dmn-capture { order: 1; }
     .dmn-prop-sec--progress { order: 2; }
     .dmn-prop-sec--activity { order: 3; }
     .dmn-col { order: 4; }
     .dmn-prop-sec--dates { order: 5; }
+    .dmn-prop-sec--properties { order: 6; }
 
     .dmn-task-grid { grid-template-columns: 1fr; }
   }
@@ -959,18 +1034,25 @@
 
   <header class="shell-topbar">
     <div class="shell-title">RenitaOS</div>
-    <button id="inboxPill" class="inbox-pill" type="button">… to Sort</button>
+    <div class="shell-topbar-actions">
+      <a href="./capture.html" class="topbar-capture" title="Capture" aria-label="Capture">+</a>
+      <button id="inboxPill" class="inbox-pill" type="button">… to Sort</button>
+    </div>
   </header>
 
   <main id="content" class="shell-content"></main>
 
+  <!-- Addendum 2 nav set (Home · Today · Inbox (N) · Explore · Search) —
+       Domains dropped (browse role -> Explore) and Capture is no longer a
+       rail tab (see .topbar-capture above). Home and Inbox are the only two
+       routes still using this rail; every other route uses the framed
+       shell's own rail (#framedRoot .dmn-rail), which carries the same set. -->
   <nav class="shell-nav">
     <div class="nav-track">
       <a href="#/home" class="nav-btn" data-route="home">Home</a>
-      <a href="./capture.html" class="nav-btn">Capture</a>
-      <a href="#/inbox" class="nav-btn" data-route="inbox" id="navInboxItem">Inbox (…)</a>
       <span class="nav-btn nav-btn--soon" aria-disabled="true" title="Coming soon">Today</span>
-      <span class="nav-btn nav-btn--soon" aria-disabled="true" title="Coming soon">Domains</span>
+      <a href="#/inbox" class="nav-btn" data-route="inbox" id="navInboxItem">Inbox (…)</a>
+      <span class="nav-btn nav-btn--soon" aria-disabled="true" title="Coming soon">Explore</span>
       <span class="nav-btn nav-btn--soon" aria-disabled="true" title="Coming soon">Search</span>
     </div>
   </nav>
@@ -3204,18 +3286,13 @@
     }
   });
 
-  // --- Entity profiles — read/navigate-only foundation slice ---------------
-  // Every #/{entity}/{id} route lands here. Note and Task are wired for
-  // real against Notion; Tag/Collection/Person share the tabbed
-  // relation-list profile below (see "Relation-list profiles"); Project and
-  // Domain are still minimal placeholders. This slice writes nothing —
-  // editing pills/tabs attach next slice.
+  // --- Entity profiles — read/navigate-only, framed-shell slice ------------
+  // Every #/{entity}/{id} route lands here and renders into the shared
+  // framed shell (see body.dmn-route in render()). All seven now have a
+  // real implementation; renderEntityStub below is kept only as a fallback
+  // for a route name added to ENTITY_ROUTES before its profile exists.
   const ENTITY_ROUTES = ['note', 'task', 'project', 'domain', 'person', 'tag', 'collection'];
   const ENTITY_LABELS = { note: 'Note', task: 'Task', project: 'Project', domain: 'Domain', person: 'Person', tag: 'Tag', collection: 'Collection' };
-  // Routes with a real profile (vs. still a "coming soon" stub) get the
-  // top-aligned .profile content treatment instead of the stub's centered
-  // placeholder look — see .shell-content.profile.
-  const REAL_PROFILE_ROUTES = ['note', 'task', 'project', 'tag', 'collection', 'person'];
 
   function renderEntityStub(entityName) {
     const label = ENTITY_LABELS[entityName] || entityName;
@@ -3387,7 +3464,41 @@
     return `<span class="pf-pill pf-pill--ghost">+ ${escapeHtml(fieldLabel)}</span>`;
   }
 
-  function renderNoteProfile(n) {
+  // One row of the framed shell's right-rail Properties list (Addendum 2)
+  // — shared by every retrofitted profile (Note/Task/Project). `innerHtml`
+  // is whatever pill markup renderRelPill/renderGhostPill/renderValuePill
+  // already produce; this only supplies the label + row chrome, replacing
+  // the old pf-pillrow's flat row.
+  function renderPropRow(label, innerHtml) {
+    return `<div class="dmn-prop-row"><div class="dmn-prop-label">${escapeHtml(label)}</div><div class="dmn-prop-value">${innerHtml}</div></div>`;
+  }
+
+  // Notes are cross-cutting (many domains/projects can share one note), so
+  // there's no structural parent for a breadcrumb path — just the note's
+  // own unique-id handle ("NOTE-247"), read-only, flat.
+  function renderNoteHeader(n) {
+    return `<div class="dmn-head">
+      <div class="dmn-idline"><span class="dmn-crumb-id">${n.uniqueId ? escapeHtml(n.uniqueId) : '—'}</span></div>
+      <div class="dmn-title-row"><h1 class="dmn-title">${escapeHtml(n.title || 'Untitled')}</h1></div>
+    </div>`;
+  }
+
+  function renderNoteDates(n) {
+    return `<section class="dmn-prop-sec dmn-prop-sec--dates">
+      <h3>Dates</h3>
+      <div class="dmn-kv"><span class="k">Date</span><span class="v">${n.date && n.date.start ? '🗓 ' + escapeHtml(formatDateShort(n.date.start)) : '—'}</span></div>
+      <div class="dmn-kv"><span class="k">Created</span><span class="v">${escapeHtml(formatDateTime(n.createdTime))}</span></div>
+      <div class="dmn-kv"><span class="k">Last edited</span><span class="v">${escapeHtml(formatDateTime(n.lastEditedTime))}</span></div>
+    </section>`;
+  }
+
+  // Framed-Layout Retrofit §4 — Note's right-rail Properties, in the
+  // brief's stated order: Domain, Type, Status, People, Tags, Collections,
+  // Project, Resources. All eight always show a row — populated ones as
+  // solid, navigable pills; empty ones as a labeled ghost slot (read-side
+  // only, no add action yet) — so the field frame reads complete either
+  // way, same rule the old pf-pillrow followed.
+  function renderNoteProperties(n) {
     // pageId in DOMAIN_META is stored dashless (copied from a Notion URL);
     // the Notion API always returns relation ids WITH dashes — normalizeDbId
     // (already used the same way for database-id matching elsewhere in this
@@ -3397,19 +3508,20 @@
     const domainMeta = n.domainId
       ? (DOMAIN_META.find((d) => normalizeDbId(d.pageId) === normalizeDbId(n.domainId)) || NO_DOMAIN_META)
       : (n.domainName ? (DOMAIN_META.find((d) => d.code === n.domainName) || NO_DOMAIN_META) : null);
-    // All six relation fields always show a pill — populated ones as solid,
-    // navigable pills; empty ones as a labeled ghost slot (read-side only,
-    // no add action yet) — so the field frame reads complete either way.
-    const domainPillHtml = n.domainName
+    const domainHtml = n.domainName
       ? renderRelPill({
           label: n.domainName, icon: renderChipIcon(n.icons.domains),
           navId: n.domainId, navRoute: 'domain',
           styleAttr: domainMeta ? `background:${domainMeta.fill};color:${domainMeta.text};` : '',
         })
       : renderGhostPill('Domain');
-    const projectsHtml = n.projects.length
-      ? n.projects.map((p) => renderRelPill({ label: p.name, icon: renderChipIcon(n.icons.projects), navId: p.id, navRoute: 'project' })).join('')
-      : renderGhostPill('Project');
+    const typeHtml = n.types.length
+      ? n.types.map((t) => {
+          const { icon, name } = splitTrailingEmoji(t);
+          return renderValuePill(`${icon ? `<span class="pf-pill-icon">${escapeHtml(icon)}</span>` : ''}${escapeHtml(name)}`);
+        }).join('')
+      : renderValuePill('No type');
+    const statusHtml = renderValuePill(n.statusName ? escapeHtml(n.statusName) : 'No status');
     const peopleHtml = n.people.length
       ? n.people.map((p) => renderRelPill({ label: p.name, icon: renderChipIcon(n.icons.people), navId: p.id, navRoute: 'person' })).join('')
       : renderGhostPill('Person');
@@ -3419,54 +3531,26 @@
     const collectionsHtml = n.collections.length
       ? n.collections.map((c) => renderRelPill({ label: c.name, icon: renderChipIcon(n.icons.collections), navId: c.id, navRoute: 'collection' })).join('')
       : renderGhostPill('Collection');
+    const projectsHtml = n.projects.length
+      ? n.projects.map((p) => renderRelPill({ label: p.name, icon: renderChipIcon(n.icons.projects), navId: p.id, navRoute: 'project' })).join('')
+      : renderGhostPill('Project');
     // Resources has no #/resource/{id} route in this foundation slice (not
     // part of the seven shared routes) — populated pills render without a
     // navigable label until that route exists.
     const resourcesHtml = n.resources.length
       ? n.resources.map((r) => renderRelPill({ label: r.name, icon: renderChipIcon(n.icons.resources) })).join('')
       : renderGhostPill('Resource');
-    const relPillsHtml = domainPillHtml + projectsHtml + peopleHtml + tagsHtml + collectionsHtml + resourcesHtml;
-
-    // Date dropped from the pill row — it lives in the meta grid only now,
-    // so it isn't shown twice.
-    const typeHtml = n.types.length
-      ? n.types.map((t) => {
-          const { icon, name } = splitTrailingEmoji(t);
-          return renderValuePill(`${icon ? `<span class="pf-pill-icon">${escapeHtml(icon)}</span>` : ''}${escapeHtml(name)}`);
-        }).join('')
-      : renderValuePill('No type');
-    const statusHtml = renderValuePill(n.statusName ? escapeHtml(n.statusName) : 'No status');
-    const valuePillsHtml = typeHtml + statusHtml;
-    const dividerHtml = relPillsHtml ? '<span class="pf-pill-divider"></span>' : '';
-
-    const metaHtml = `<div class="pf-meta-grid">
-      <div class="pf-meta-col">
-        <div class="pf-meta-label">Date</div>
-        <div class="pf-meta-value pf-meta-value--date"><span class="pf-meta-date-icon">🗓</span>${n.date && n.date.start ? escapeHtml(formatDateShort(n.date.start)) : '—'}</div>
-      </div>
-      <div class="pf-meta-col">
-        <div class="pf-meta-label">Created</div>
-        <div class="pf-meta-value pf-meta-value--muted">${escapeHtml(formatDateTime(n.createdTime))}</div>
-        <div class="pf-meta-label">Last edited</div>
-        <div class="pf-meta-value pf-meta-value--muted">${escapeHtml(formatDateTime(n.lastEditedTime))}</div>
-      </div>
-    </div>`;
-
-    const bodyHtml = n.body ? `<div class="pf-body">${escapeHtml(n.body)}</div>` : `<div class="pf-body pf-body--empty">(empty)</div>`;
-
-    // Notes are cross-cutting (many domains/projects can share one note),
-    // so there's no structural parent to build a breadcrumb path from —
-    // just the note's own unique-id handle ("NOTE-247"), read-only.
-    const crumbHtml = `<div class="pf-crumb pf-crumb--id">${n.uniqueId ? escapeHtml(n.uniqueId) : '—'}</div>`;
-    const heroHtml = `<div class="serif pf-hero">${escapeHtml(n.title || 'Untitled')}</div>`;
-
-    return `<div class="pf-view">
-      ${crumbHtml}
-      ${heroHtml}
-      <div class="pf-pillrow">${relPillsHtml}${dividerHtml}${valuePillsHtml}</div>
-      ${metaHtml}
-      ${bodyHtml}
-    </div>`;
+    return `<section class="dmn-prop-sec dmn-prop-sec--properties">
+      <h3>Properties</h3>
+      ${renderPropRow('Domain', domainHtml)}
+      ${renderPropRow('Type', typeHtml)}
+      ${renderPropRow('Status', statusHtml)}
+      ${renderPropRow('People', peopleHtml)}
+      ${renderPropRow('Tags', tagsHtml)}
+      ${renderPropRow('Collections', collectionsHtml)}
+      ${renderPropRow('Project', projectsHtml)}
+      ${renderPropRow('Resources', resourcesHtml)}
+    </section>`;
   }
 
   async function loadTaskProfile(pageId) {
@@ -3524,15 +3608,54 @@
     };
   }
 
-  function renderTaskProfile(t) {
+  // Only the id is a label; a Domain › Project path (when a project exists)
+  // follows it as real navigable links — flat ID-only for a projectless
+  // (bare-capture) task.
+  function renderTaskHeader(t) {
+    const idSpan = `<span class="dmn-crumb-id">${t.uniqueId ? escapeHtml(t.uniqueId) : '—'}</span>`;
+    let pathHtml = '';
+    if (t.projects.length) {
+      const project = t.projects[0];
+      const domainSegment = t.domainName
+        ? `<a class="dmn-crumb-link" data-pf-nav="domain/${escapeHtml(t.domainId)}">${escapeHtml(t.domainName)}</a><span class="dmn-crumb-sep">›</span>`
+        : '';
+      pathHtml = `<span class="dmn-crumb-sep">·</span>${domainSegment}<a class="dmn-crumb-link" data-pf-nav="project/${escapeHtml(project.id)}">${escapeHtml(project.name)}</a>`;
+    }
+    // Hero checkbox is a status mirror, render-only — checking/unchecking
+    // writes nothing this slice (that lands with the Status/Completed
+    // write in the edit slice).
+    const isDone = (t.statusName || '').toLowerCase() === 'done';
+    return `<div class="dmn-head">
+      <div class="dmn-idline">${idSpan}${pathHtml}</div>
+      <div class="dmn-title-row">
+        <span class="dmn-hero-checkbox${isDone ? ' dmn-hero-checkbox--checked' : ''}" aria-hidden="true">${isDone ? '✓' : ''}</span>
+        <h1 class="dmn-title">${escapeHtml(t.title || 'Untitled')}</h1>
+      </div>
+    </div>`;
+  }
+
+  function renderTaskDates(t) {
+    return `<section class="dmn-prop-sec dmn-prop-sec--dates">
+      <h3>Dates</h3>
+      <div class="dmn-kv"><span class="k">Due Date</span><span class="v">${t.dueDate && t.dueDate.start ? '🗓 ' + escapeHtml(formatDateShort(t.dueDate.start)) : '—'}</span></div>
+      <div class="dmn-kv"><span class="k">Do Date</span><span class="v">${t.doDate && t.doDate.start ? '🗓 ' + escapeHtml(formatDateShort(t.doDate.start)) : '—'}</span></div>
+      <div class="dmn-kv"><span class="k">Created</span><span class="v">${escapeHtml(formatDateTime(t.createdTime))}</span></div>
+      <div class="dmn-kv"><span class="k">Last edited</span><span class="v">${escapeHtml(formatDateTime(t.lastEditedTime))}</span></div>
+    </section>`;
+  }
+
+  // Framed-Layout Retrofit §4 — Task's right-rail Properties: Domain
+  // [read-only — no caret, it's a rollup through the project], Project,
+  // For/People, Status, Priority [stars].
+  function renderTaskProperties(t) {
     const domainMeta = t.domainId
       ? (DOMAIN_META.find((d) => normalizeDbId(d.pageId) === normalizeDbId(t.domainId)) || NO_DOMAIN_META)
       : null;
-    // Domain is read-only here — deliberately no ghost when empty (there's
-    // no project to add), and no caret when present (a task's domain is
-    // inherited through its project; you change it by changing the
-    // project, never this pill).
-    const domainPillHtml = t.domainName
+    // Domain is read-only here — deliberately no row at all when empty
+    // (there's no project to derive one from), and no caret when present
+    // (a task's domain is inherited through its project; you change it by
+    // changing the project, never this pill).
+    const domainHtml = t.domainName
       ? renderRelPill({
           label: t.domainName, icon: renderChipIcon(t.icons.domains),
           navId: t.domainId, navRoute: 'domain',
@@ -3540,6 +3663,7 @@
           caret: false,
         })
       : '';
+    const domainRow = domainHtml ? renderPropRow('Domain', domainHtml) : '';
     const projectsHtml = t.projects.length
       ? t.projects.map((p) => renderRelPill({ label: p.name, icon: renderChipIcon(t.icons.projects), navId: p.id, navRoute: 'project' })).join('')
       : renderGhostPill('Project');
@@ -3548,8 +3672,6 @@
     const peopleHtml = t.people.length
       ? t.people.map((p) => renderRelPill({ label: p.name, icon: renderChipIcon(t.icons.people), navId: p.id, navRoute: 'person' })).join('')
       : renderGhostPill('For');
-    const relPillsHtml = domainPillHtml + projectsHtml + peopleHtml;
-
     const statusHtml = renderValuePill(t.statusName ? escapeHtml(t.statusName) : 'No status');
     // Priority displays as stars per RenitaOS-Conventions.md's pill rules
     // ("Priority displays as stars rather than a color") — rendered
@@ -3557,78 +3679,42 @@
     // mapping, so it already reads as stars if that's how the option is
     // configured in Notion.
     const priorityHtml = renderValuePill(t.priorityName ? escapeHtml(t.priorityName) : 'No priority');
-    const valuePillsHtml = statusHtml + priorityHtml;
-    const dividerHtml = relPillsHtml ? '<span class="pf-pill-divider"></span>' : '';
-
-    const metaHtml = `<div class="pf-meta-grid">
-      <div class="pf-meta-col">
-        <div class="pf-meta-label">Due Date</div>
-        <div class="pf-meta-value pf-meta-value--date"><span class="pf-meta-date-icon">🗓</span>${t.dueDate && t.dueDate.start ? escapeHtml(formatDateShort(t.dueDate.start)) : '—'}</div>
-        <div class="pf-meta-label">Do Date</div>
-        <div class="pf-meta-value pf-meta-value--date"><span class="pf-meta-date-icon">🗓</span>${t.doDate && t.doDate.start ? escapeHtml(formatDateShort(t.doDate.start)) : '—'}</div>
-      </div>
-      <div class="pf-meta-col">
-        <div class="pf-meta-label">Created</div>
-        <div class="pf-meta-value pf-meta-value--muted">${escapeHtml(formatDateTime(t.createdTime))}</div>
-        <div class="pf-meta-label">Last edited</div>
-        <div class="pf-meta-value pf-meta-value--muted">${escapeHtml(formatDateTime(t.lastEditedTime))}</div>
-      </div>
-    </div>`;
-
-    const bodyHtml = t.body ? `<div class="pf-body">${escapeHtml(t.body)}</div>` : `<div class="pf-body pf-body--empty">(empty)</div>`;
-
-    // Only the id is a label; a Domain › Project path (when a project
-    // exists) follows it as real navigable links — flat ID-only for a
-    // projectless (bare-capture) task.
-    const idSpan = `<span class="pf-crumb--id">${t.uniqueId ? escapeHtml(t.uniqueId) : '—'}</span>`;
-    let pathHtml = '';
-    if (t.projects.length) {
-      const project = t.projects[0];
-      const domainSegment = t.domainName
-        ? `<span class="pf-crumb-link" data-pf-nav="domain/${escapeHtml(t.domainId)}">${escapeHtml(t.domainName)}</span><span class="sep">›</span>`
-        : '';
-      pathHtml = `<span class="sep">·</span>${domainSegment}<span class="pf-crumb-link" data-pf-nav="project/${escapeHtml(project.id)}">${escapeHtml(project.name)}</span>`;
-    }
-    const crumbHtml = `<div class="pf-crumb">${idSpan}${pathHtml}</div>`;
-
-    // Hero checkbox is a status mirror, render-only — checking/unchecking
-    // writes nothing this slice (that lands with the Status/Completed
-    // write in the edit slice).
-    const isDone = (t.statusName || '').toLowerCase() === 'done';
-    const heroHtml = `<div class="pf-hero-row">
-      <span class="pf-hero-checkbox${isDone ? ' pf-hero-checkbox--checked' : ''}" aria-hidden="true">${isDone ? '✓' : ''}</span>
-      <div class="serif pf-hero">${escapeHtml(t.title || 'Untitled')}</div>
-    </div>`;
-
-    return `<div class="pf-view">
-      ${crumbHtml}
-      ${heroHtml}
-      <div class="pf-pillrow">${relPillsHtml}${dividerHtml}${valuePillsHtml}</div>
-      ${metaHtml}
-      ${bodyHtml}
-    </div>`;
+    return `<section class="dmn-prop-sec dmn-prop-sec--properties">
+      <h3>Properties</h3>
+      ${domainRow}
+      ${renderPropRow('Project', projectsHtml)}
+      ${renderPropRow('For', peopleHtml)}
+      ${renderPropRow('Status', statusHtml)}
+      ${renderPropRow('Priority', priorityHtml)}
+    </section>`;
   }
 
   const noteProfileState = { id: null, loading: false, error: null, data: null };
 
-  function paintNoteProfile(container) {
+  function paintNoteProfile() {
     if (noteProfileState.loading) {
-      container.innerHTML = `<div class="pf-view"><div class="tg-status">Loading…</div></div>`;
+      dmnMain.innerHTML = `<div class="dmn-status">Loading…</div>`;
+      dmnProps.innerHTML = renderCaptureAffordance();
       return;
     }
     if (noteProfileState.error) {
-      container.innerHTML = `<div class="pf-view"><div class="tg-status tg-status--error">${escapeHtml(noteProfileState.error)}</div></div>`;
+      dmnMain.innerHTML = `<div class="dmn-status dmn-status--error">${escapeHtml(noteProfileState.error)}</div>`;
+      dmnProps.innerHTML = renderCaptureAffordance();
       return;
     }
-    container.innerHTML = renderNoteProfile(noteProfileState.data);
+    const n = noteProfileState.data;
+    const bodyHtml = n.body ? `<div class="pf-body">${escapeHtml(n.body)}</div>` : `<div class="pf-body pf-body--empty">(empty)</div>`;
+    dmnMain.innerHTML = `${renderNoteHeader(n)}<section class="dmn-sec">${bodyHtml}</section>`;
+    dmnProps.innerHTML = `${renderCaptureAffordance()}${renderNoteDates(n)}${renderNoteProperties(n)}`;
   }
 
-  async function mountNoteProfile(container, id) {
+  async function mountNoteProfile(id) {
     noteProfileState.id = id;
     noteProfileState.loading = true;
     noteProfileState.error = null;
     noteProfileState.data = null;
-    paintNoteProfile(container);
+    ensureFramedShell();
+    paintNoteProfile();
     try {
       const data = await loadNoteProfile(id);
       if (noteProfileState.id !== id) return; // route moved on while this was in flight
@@ -3640,31 +3726,37 @@
     } finally {
       if (noteProfileState.id === id) {
         noteProfileState.loading = false;
-        paintNoteProfile(container);
+        paintNoteProfile();
       }
     }
   }
 
   const taskProfileState = { id: null, loading: false, error: null, data: null };
 
-  function paintTaskProfile(container) {
+  function paintTaskProfile() {
     if (taskProfileState.loading) {
-      container.innerHTML = `<div class="pf-view"><div class="tg-status">Loading…</div></div>`;
+      dmnMain.innerHTML = `<div class="dmn-status">Loading…</div>`;
+      dmnProps.innerHTML = renderCaptureAffordance();
       return;
     }
     if (taskProfileState.error) {
-      container.innerHTML = `<div class="pf-view"><div class="tg-status tg-status--error">${escapeHtml(taskProfileState.error)}</div></div>`;
+      dmnMain.innerHTML = `<div class="dmn-status dmn-status--error">${escapeHtml(taskProfileState.error)}</div>`;
+      dmnProps.innerHTML = renderCaptureAffordance();
       return;
     }
-    container.innerHTML = renderTaskProfile(taskProfileState.data);
+    const t = taskProfileState.data;
+    const bodyHtml = t.body ? `<div class="pf-body">${escapeHtml(t.body)}</div>` : `<div class="pf-body pf-body--empty">(empty)</div>`;
+    dmnMain.innerHTML = `${renderTaskHeader(t)}<section class="dmn-sec">${bodyHtml}</section>`;
+    dmnProps.innerHTML = `${renderCaptureAffordance()}${renderTaskDates(t)}${renderTaskProperties(t)}`;
   }
 
-  async function mountTaskProfile(container, id) {
+  async function mountTaskProfile(id) {
     taskProfileState.id = id;
     taskProfileState.loading = true;
     taskProfileState.error = null;
     taskProfileState.data = null;
-    paintTaskProfile(container);
+    ensureFramedShell();
+    paintTaskProfile();
     try {
       const data = await loadTaskProfile(id);
       if (taskProfileState.id !== id) return; // route moved on while this was in flight
@@ -3676,7 +3768,7 @@
     } finally {
       if (taskProfileState.id === id) {
         taskProfileState.loading = false;
-        paintTaskProfile(container);
+        paintTaskProfile();
       }
     }
   }
@@ -3904,7 +3996,13 @@
       return { key: tabKey, label: meta.label, route: meta.route, relProp, unavailable: false, count, records: null, typeOrder: null, hydrated: false, loading: false, error: null };
     }));
 
-    return { id: page.id, title, uniqueId, consumerLabel: consumer.label, tabs };
+    // created_time/last_edited_time were already sitting on the fetched
+    // page object — surfaced here (no new query) for the framed shell's
+    // right-rail Dates section, which this trio didn't have before.
+    return {
+      id: page.id, title, uniqueId, consumerLabel: consumer.label, tabs,
+      createdTime: page.created_time, lastEditedTime: page.last_edited_time,
+    };
   }
 
   function renderRelationRow(r) {
@@ -3958,45 +4056,65 @@
     return `<div class="pf-tab-panel">${countHtml}${bodyHtml}</div>`;
   }
 
-  function renderRelationProfile(state) {
-    const d = state.data;
-    const crumbHtml = `<div class="pf-crumb pf-crumb--id">${d.uniqueId ? escapeHtml(d.uniqueId) : '—'}</div>`;
-    const heroHtml = `<div class="serif pf-hero">${escapeHtml(d.title || 'Untitled')}</div>`;
-    // All tabs always render, even at 0 — per the Conventions.md's "Empty
-    // tabs are shown greyed with a 0, never hidden" rule (here: plain, not
-    // greyed-and-disabled, since 0-count tabs stay fully clickable).
-    const tabsHtml = `<div class="pf-tabs" role="tablist">${d.tabs.map((t) => `
-        <button type="button" class="pf-tab${t.key === state.activeTab ? ' pf-tab--active' : ''}" data-pf-tab="${t.key}" role="tab" aria-selected="${t.key === state.activeTab}">
-          <span class="pf-tab-label">${escapeHtml(t.label)}</span>
-          <span class="pf-tab-n">${t.count}</span>
-        </button>`).join('')}</div>`;
-    const activeTab = d.tabs.find((t) => t.key === state.activeTab) || d.tabs[0];
-    const panelHtml = renderRelationTabPanel(activeTab, d.consumerLabel);
-
-    return `<div class="pf-view">
-      ${crumbHtml}
-      ${heroHtml}
-      ${tabsHtml}
-      ${panelHtml}
+  function renderRelationHeader(d) {
+    return `<div class="dmn-head">
+      <div class="dmn-idline"><span class="dmn-crumb-id">${d.uniqueId ? escapeHtml(d.uniqueId) : '—'}</span></div>
+      <div class="dmn-title-row"><h1 class="dmn-title">${escapeHtml(d.title || 'Untitled')}</h1></div>
     </div>`;
+  }
+
+  // Thin right rail (Framed-Layout Retrofit §4) — Dates only; no Properties
+  // section, since none of the three currently resolve any property beyond
+  // what the tabs already carry (loaders are unchanged this sprint — "sparse
+  // rails are fine," per the brief, "the frame already handles this on
+  // Domain"). Tag's Notes-tab count is already-loaded data (no new query),
+  // surfaced here as a Progress-less "Total Notes" stat.
+  function renderRelationDates(state) {
+    const d = state.data;
+    let totalNotesRow = '';
+    if (state.entityKey === 'tag') {
+      const notesTab = d.tabs.find((t) => t.key === 'notes');
+      if (notesTab) totalNotesRow = `<div class="dmn-kv"><span class="k">Total Notes</span><span class="v">${notesTab.count}</span></div>`;
+    }
+    return `<section class="dmn-prop-sec dmn-prop-sec--dates">
+      <h3>Dates</h3>
+      <div class="dmn-kv"><span class="k">Created</span><span class="v">${escapeHtml(formatDateTime(d.createdTime))}</span></div>
+      <div class="dmn-kv"><span class="k">Last edited</span><span class="v">${escapeHtml(formatDateTime(d.lastEditedTime))}</span></div>
+      ${totalNotesRow}
+    </section>`;
   }
 
   const relationProfileState = { entityKey: null, id: null, loading: false, error: null, data: null, activeTab: null };
 
-  function paintRelationProfile(container) {
+  function paintRelationProfile() {
     const s = relationProfileState;
     if (s.loading) {
-      container.innerHTML = `<div class="pf-view"><div class="tg-status">Loading…</div></div>`;
+      dmnMain.innerHTML = `<div class="dmn-status">Loading…</div>`;
+      dmnProps.innerHTML = renderCaptureAffordance();
       return;
     }
     if (s.error) {
-      container.innerHTML = `<div class="pf-view"><div class="tg-status tg-status--error">${escapeHtml(s.error)}</div></div>`;
+      dmnMain.innerHTML = `<div class="dmn-status dmn-status--error">${escapeHtml(s.error)}</div>`;
+      dmnProps.innerHTML = renderCaptureAffordance();
       return;
     }
-    container.innerHTML = renderRelationProfile(s);
+    const d = s.data;
+    // All tabs always render, even at 0 — per the Conventions.md's "Empty
+    // tabs are shown greyed with a 0, never hidden" rule (here: plain, not
+    // greyed-and-disabled, since 0-count tabs stay fully clickable).
+    const tabsHtml = `<div class="pf-tabs" role="tablist">${d.tabs.map((t) => `
+        <button type="button" class="pf-tab${t.key === s.activeTab ? ' pf-tab--active' : ''}" data-pf-tab="${t.key}" role="tab" aria-selected="${t.key === s.activeTab}">
+          <span class="pf-tab-label">${escapeHtml(t.label)}</span>
+          <span class="pf-tab-n">${t.count}</span>
+        </button>`).join('')}</div>`;
+    const activeTab = d.tabs.find((t) => t.key === s.activeTab) || d.tabs[0];
+    const panelHtml = renderRelationTabPanel(activeTab, d.consumerLabel);
+
+    dmnMain.innerHTML = `${renderRelationHeader(d)}<section class="dmn-sec">${tabsHtml}${panelHtml}</section>`;
+    dmnProps.innerHTML = `${renderCaptureAffordance()}${renderRelationDates(s)}`;
   }
 
-  async function mountRelationProfile(container, entityKey, id) {
+  async function mountRelationProfile(entityKey, id) {
     const s = relationProfileState;
     s.entityKey = entityKey;
     s.id = id;
@@ -4004,7 +4122,8 @@
     s.error = null;
     s.data = null;
     s.activeTab = null;
-    paintRelationProfile(container);
+    ensureFramedShell();
+    paintRelationProfile();
     try {
       const data = await loadRelationProfileBase(entityKey, id);
       if (s.id !== id || s.entityKey !== entityKey) return; // route moved on while this was in flight
@@ -4017,7 +4136,7 @@
     } finally {
       if (s.id === id && s.entityKey === entityKey) {
         s.loading = false;
-        paintRelationProfile(container);
+        paintRelationProfile();
       }
     }
   }
@@ -4033,17 +4152,17 @@
     const entityKey = s.entityKey;
     const id = s.id;
     s.activeTab = tabKey;
-    paintRelationProfile(content);
+    paintRelationProfile();
     const tab = s.data.tabs.find((t) => t.key === tabKey);
     if (!tab || tab.hydrated || tab.loading || tab.unavailable) return;
     if (tab.count === 0) {
       tab.records = [];
       tab.hydrated = true;
-      paintRelationProfile(content);
+      paintRelationProfile();
       return;
     }
     tab.loading = true;
-    paintRelationProfile(content);
+    paintRelationProfile();
     try {
       const [records, typeOrder] = await Promise.all([
         queryTabRecords(tab.key, REL_DB_META[tab.key], tab.relProp, id),
@@ -4060,7 +4179,7 @@
       tab.error = err.message || 'Could not load this list.';
     } finally {
       tab.loading = false;
-      if (s.entityKey === entityKey && s.id === id && s.activeTab === tabKey) paintRelationProfile(content);
+      if (s.entityKey === entityKey && s.id === id && s.activeTab === tabKey) paintRelationProfile();
     }
   }
 
@@ -4164,7 +4283,7 @@
       projTitleProp, projStatusSchema, projUniqueIdProp,
       projDomainProp, projPeopleProp, projCollectionsProp, projPriorityProp,
       startDateProp, deadlineProp, completedDateProp, archivedDateProp, pausedDateProp,
-      progressProp, noOfTasksProp,
+      progressProp, noOfTasksProp, doneCountProp,
       tasksProjectsProp, notesProjectsProp,
       domainsIcon, peopleIcon, collectionsIcon,
     ] = await Promise.all([
@@ -4182,6 +4301,12 @@
       getDatePropByKeyword(CONFIG.DB.PROJECTS, 'paused'),
       getRollupPropByKeyword(CONFIG.DB.PROJECTS, 'progress'),
       getRollupPropByKeyword(CONFIG.DB.PROJECTS, 'tasks'),
+      // Framed-Layout Retrofit §4 — read the completed-count rollup
+      // directly for "N of M done" instead of reconstructing N via
+      // round(percent × total); same rollup the Domain profile already
+      // resolves for its own per-project cards. Degrades to the
+      // reconstruction below if the schema doesn't have it.
+      getRollupPropByKeyword(CONFIG.DB.PROJECTS, 'done'),
       relationPropertyName(CONFIG.DB.TASKS, CONFIG.DB.PROJECTS),
       relationPropertyName(CONFIG.DB.NOTES, CONFIG.DB.PROJECTS),
       getDatabaseIcon(CONFIG.DB.DOMAINS),
@@ -4217,13 +4342,17 @@
 
     // Progress is read as whichever of a 0..1 fraction or an already-scaled
     // 0..100 percent the live rollup happens to return (normalizing >1 down
-    // rather than guessing which) so "N of M done" can be reconstructed from
-    // the two named rollups without a third property to hold the raw count.
+    // rather than guessing which). "N of M done" reads doneCountProp
+    // directly when the schema has it; falls back to reconstructing N via
+    // round(percent × total) only when that rollup is absent.
     const progressRaw = readRollupNumber(page, progressProp);
     const totalTasksRaw = readRollupNumber(page, noOfTasksProp);
+    const doneRaw = readRollupNumber(page, doneCountProp);
     const progressFraction = typeof progressRaw === 'number' ? (progressRaw > 1 ? progressRaw / 100 : progressRaw) : null;
     const totalTasks = typeof totalTasksRaw === 'number' ? totalTasksRaw : null;
-    const doneTasks = (progressFraction != null && totalTasks != null) ? Math.round(progressFraction * totalTasks) : null;
+    const doneTasks = typeof doneRaw === 'number'
+      ? doneRaw
+      : ((progressFraction != null && totalTasks != null) ? Math.round(progressFraction * totalTasks) : null);
 
     return {
       id: page.id, title, uniqueId, statusName, priorityName,
@@ -4329,153 +4458,144 @@
     return [tasksTab, notesTab];
   }
 
+  // Framed-Layout Retrofit §4 — the Tasks tab is now the same two-column
+  // near-square card grid the Domain profile's Inbox/Admin uses
+  // (.dmn-task-grid/.dmn-task), status-collapsed the same way Domain's own
+  // work spine is (.dmn-status-hd/.dmn-collapser/.dmn-collapse-body) —
+  // unlike Domain's loose tasks, Project's Tasks tab can include a Done
+  // group, so its card needs the checked box state Domain's never did.
   function renderProjectTaskCard(r) {
     const isDone = (r.statusName || '').toLowerCase() === 'done';
-    const dueHtml = r.due && r.due.start
-      ? `<div class="tg-chip pf-task-due"><span class="tg-chip-icon">🗓</span>${escapeHtml(formatDateShort(r.due.start))}</div>`
-      : '';
-    // The whole card is the nav target (read-only checkbox included) — per
-    // this slice's "Tap → #/task/{id}", no separate exclusion for the
-    // checkbox, which has no action of its own yet anyway.
-    return `<div class="pf-task-card" data-pf-nav="task/${escapeHtml(r.id)}">
-      <span class="tg-checkbox pf-task-checkbox${isDone ? ' checked' : ''}" aria-hidden="true">${isDone ? '✓' : ''}</span>
-      <div class="pf-task-card-main">
-        <div class="pf-task-title">${escapeHtml(r.title || 'Untitled')}</div>
-        ${dueHtml}
-      </div>
+    const dateLabel = r.due && r.due.start ? `Due ${formatDateShort(r.due.start)}` : 'No date';
+    return `<div class="dmn-task" data-pf-nav="task/${escapeHtml(r.id)}">
+      <div class="dmn-top"><span class="dmn-box${isDone ? ' dmn-box--checked' : ''}" aria-hidden="true">${isDone ? '✓' : ''}</span><span class="dmn-tname">${escapeHtml(r.title || 'Untitled')}</span></div>
+      <div class="dmn-tdate">${escapeHtml(dateLabel)}</div>
     </div>`;
   }
 
   function renderProjectStatusGroup(group, collapsedStatus) {
+    const gridHtml = `<div class="dmn-task-grid">${group.records.map(renderProjectTaskCard).join('')}</div>`;
+    if (!group.collapsedDefault) {
+      return `<div class="dmn-status-hd">${escapeHtml(group.name)} <span class="dmn-ct">${group.records.length}</span></div>${gridHtml}`;
+    }
     const collapsed = collapsedStatus.has(group.key);
-    const collapsible = group.collapsedDefault;
-    const headAttr = collapsible ? ` data-pf-status-toggle="${escapeHtml(group.key)}"` : '';
-    const bodyHtml = (!collapsible || !collapsed)
-      ? `<div class="pf-status-body">${group.records.map(renderProjectTaskCard).join('')}</div>`
-      : '';
-    return `<div class="pf-status-group">
-      <div class="pf-status-head${collapsible ? ' pf-status-head--toggle' : ''}"${headAttr}>
-        <span class="pf-status-head-label">${escapeHtml(group.name)}</span>
-        <span class="pf-status-head-n tg-count-mono">${group.records.length}</span>
-      </div>
-      ${bodyHtml}
-    </div>`;
+    return `<button type="button" class="dmn-collapser" aria-expanded="${!collapsed}" data-pf-status-toggle="${escapeHtml(group.key)}">
+        <svg class="dmn-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>
+        <span class="dmn-status-hd" style="margin:0">${escapeHtml(group.name)} <span class="dmn-ct">${group.records.length}</span></span>
+      </button>
+      <div class="dmn-collapse-body"${collapsed ? ' hidden' : ''}>${gridHtml}</div>`;
   }
 
-  // Slim sage bar (never the Domain color) + the "N of M done" line
-  // reconstructed from the two read-only rollups (see loadProjectProfile) —
-  // display-only, matches whatever Notion's own rollups report.
-  function renderProjectProgressSummary(p) {
-    if (p.totalTasks == null) return '';
-    const pct = p.progressFraction != null ? Math.max(0, Math.min(100, Math.round(p.progressFraction * 100))) : 0;
-    const doneLabel = p.doneTasks != null ? String(p.doneTasks) : '—';
-    return `<div class="pf-progress">
-      <div class="pf-progress-track"><div class="pf-progress-fill" style="width:${pct}%"></div></div>
-      <div class="pf-progress-label">${escapeHtml(doneLabel)} of ${escapeHtml(String(p.totalTasks))} done</div>
-    </div>`;
-  }
-
-  function renderProjectTasksTabPanel(tab, p, collapsedStatus) {
+  function renderProjectTasksTabPanel(tab, collapsedStatus) {
     const countHtml = `<div class="pf-tab-panel-count">${escapeHtml(tab.label)}<span class="pf-tab-n">${tab.count}</span></div>`;
     if (tab.loading) return `<div class="pf-tab-panel">${countHtml}<div class="tg-status">Loading…</div></div>`;
     if (tab.error) return `<div class="pf-tab-panel">${countHtml}<div class="tg-status tg-status--error">${escapeHtml(tab.error)}</div></div>`;
     if (!tab.records.length) return `<div class="pf-tab-panel">${countHtml}<div class="pf-tab-empty">No tasks reference this project yet.</div></div>`;
-    const summaryHtml = renderProjectProgressSummary(p);
+    // Progress moved out to the right rail (renderProjectProgressRail) —
+    // no longer shown inline above the task groups.
     const groups = groupProjectTasksByStatus(tab.records, tab.statusOptions);
     const groupsHtml = groups.map((g) => renderProjectStatusGroup(g, collapsedStatus)).join('');
-    return `<div class="pf-tab-panel">${countHtml}${summaryHtml}<div class="pf-status-group-list">${groupsHtml}</div></div>`;
+    return `<div class="pf-tab-panel">${countHtml}<div class="pf-status-group-list">${groupsHtml}</div></div>`;
   }
 
-  function renderProjectProfile(s) {
-    const p = s.data.header;
+  function renderProjectHeader(p) {
+    const domainSegment = p.domainName
+      ? `<span class="dmn-crumb-sep">·</span><a class="dmn-crumb-link" data-pf-nav="domain/${escapeHtml(p.domainId)}">${escapeHtml(p.domainName)}</a>`
+      : '';
+    return `<div class="dmn-head">
+      <div class="dmn-idline"><span class="dmn-crumb-id">${p.uniqueId ? escapeHtml(p.uniqueId) : '—'}</span>${domainSegment}</div>
+      <div class="dmn-title-row"><h1 class="dmn-title">${escapeHtml(p.title || 'Untitled')}</h1></div>
+    </div>`;
+  }
+
+  // Right-rail Progress (Framed-Layout Retrofit §4) — same slim-bar/"N of M
+  // done" shape as the Domain aggregate, N now read directly off the
+  // completed-count rollup (loadProjectProfile) rather than reconstructed.
+  function renderProjectProgressRail(p) {
+    if (p.totalTasks == null) return '';
+    const pct = p.progressFraction != null ? Math.max(0, Math.min(100, Math.round(p.progressFraction * 100))) : 0;
+    const doneLabel = p.doneTasks != null ? String(p.doneTasks) : '—';
+    return `<section class="dmn-prop-sec dmn-prop-sec--progress">
+      <h3>Progress</h3>
+      <div class="dmn-prog-num">${escapeHtml(doneLabel)} of ${escapeHtml(String(p.totalTasks))} done</div>
+      <div class="dmn-prog-bar"><i style="width:${pct}%"></i></div>
+    </section>`;
+  }
+
+  function renderProjectDates(p) {
+    const contextRow = projectContextualDateRow(p);
+    const contextRowHtml = contextRow
+      ? `<div class="dmn-kv"><span class="k">${escapeHtml(contextRow.label)}</span><span class="v">${contextRow.date && contextRow.date.start ? '🗓 ' + escapeHtml(formatDateShort(contextRow.date.start)) : '—'}</span></div>`
+      : '';
+    return `<section class="dmn-prop-sec dmn-prop-sec--dates">
+      <h3>Dates</h3>
+      <div class="dmn-kv"><span class="k">Start Date</span><span class="v">${p.startDate && p.startDate.start ? '🗓 ' + escapeHtml(formatDateShort(p.startDate.start)) : '—'}</span></div>
+      <div class="dmn-kv"><span class="k">Target Deadline</span><span class="v">${p.deadline && p.deadline.start ? '🗓 ' + escapeHtml(formatDateShort(p.deadline.start)) : '—'}</span></div>
+      ${contextRowHtml}
+      <div class="dmn-kv"><span class="k">Created</span><span class="v">${escapeHtml(formatDateTime(p.createdTime))}</span></div>
+      <div class="dmn-kv"><span class="k">Last edited</span><span class="v">${escapeHtml(formatDateTime(p.lastEditedTime))}</span></div>
+    </section>`;
+  }
+
+  function renderProjectProperties(p) {
     const domainMeta = p.domainId
       ? (DOMAIN_META.find((d) => normalizeDbId(d.pageId) === normalizeDbId(p.domainId)) || NO_DOMAIN_META)
       : null;
-    const domainPillHtml = p.domainName
+    const domainHtml = p.domainName
       ? renderRelPill({
           label: p.domainName, icon: renderChipIcon(p.icons.domains),
           navId: p.domainId, navRoute: 'domain',
           styleAttr: domainMeta ? `background:${domainMeta.fill};color:${domainMeta.text};` : '',
         })
       : renderGhostPill('Domain');
+    const priorityHtml = renderValuePill(renderPriorityValue(p.priorityName));
+    const statusHtml = renderValuePill(p.statusName ? escapeHtml(p.statusName) : 'No status');
     const peopleHtml = p.people.length
       ? p.people.map((pp) => renderRelPill({ label: pp.name, icon: renderChipIcon(p.icons.people), navId: pp.id, navRoute: 'person' })).join('')
       : renderGhostPill('Person');
     const collectionsHtml = p.collections.length
       ? p.collections.map((c) => renderRelPill({ label: c.name, icon: renderChipIcon(p.icons.collections), navId: c.id, navRoute: 'collection' })).join('')
       : renderGhostPill('Collection');
-    const relPillsHtml = domainPillHtml + peopleHtml + collectionsHtml;
+    return `<section class="dmn-prop-sec dmn-prop-sec--properties">
+      <h3>Properties</h3>
+      ${renderPropRow('Domain', domainHtml)}
+      ${renderPropRow('Priority', priorityHtml)}
+      ${renderPropRow('Status', statusHtml)}
+      ${renderPropRow('People', peopleHtml)}
+      ${renderPropRow('Collections', collectionsHtml)}
+    </section>`;
+  }
 
-    const priorityHtml = renderValuePill(renderPriorityValue(p.priorityName));
-    const statusHtml = renderValuePill(p.statusName ? escapeHtml(p.statusName) : 'No status');
-    const valuePillsHtml = priorityHtml + statusHtml;
-    const dividerHtml = relPillsHtml ? '<span class="pf-pill-divider"></span>' : '';
+  const projectProfileState = { id: null, loading: false, error: null, data: null, activeTab: 'tasks', collapsedStatus: new Set() };
 
-    const contextRow = projectContextualDateRow(p);
-    const contextRowHtml = contextRow ? `
-      <div class="pf-meta-label">${escapeHtml(contextRow.label)}</div>
-      <div class="pf-meta-value pf-meta-value--date"><span class="pf-meta-date-icon">🗓</span>${contextRow.date && contextRow.date.start ? escapeHtml(formatDateShort(contextRow.date.start)) : '—'}</div>
-    ` : '';
-
-    const metaHtml = `<div class="pf-meta-grid">
-      <div class="pf-meta-col">
-        <div class="pf-meta-label">Start Date</div>
-        <div class="pf-meta-value pf-meta-value--date"><span class="pf-meta-date-icon">🗓</span>${p.startDate && p.startDate.start ? escapeHtml(formatDateShort(p.startDate.start)) : '—'}</div>
-        <div class="pf-meta-label">Target Deadline</div>
-        <div class="pf-meta-value pf-meta-value--date"><span class="pf-meta-date-icon">🗓</span>${p.deadline && p.deadline.start ? escapeHtml(formatDateShort(p.deadline.start)) : '—'}</div>
-        ${contextRowHtml}
-      </div>
-      <div class="pf-meta-col">
-        <div class="pf-meta-label">Created</div>
-        <div class="pf-meta-value pf-meta-value--muted">${escapeHtml(formatDateTime(p.createdTime))}</div>
-        <div class="pf-meta-label">Last edited</div>
-        <div class="pf-meta-value pf-meta-value--muted">${escapeHtml(formatDateTime(p.lastEditedTime))}</div>
-      </div>
-    </div>`;
-
-    const domainSegment = p.domainName
-      ? `<span class="sep">·</span><span class="pf-crumb-link" data-pf-nav="domain/${escapeHtml(p.domainId)}">${escapeHtml(p.domainName)}</span>`
-      : '';
-    const crumbHtml = `<div class="pf-crumb"><span class="pf-crumb--id">${p.uniqueId ? escapeHtml(p.uniqueId) : '—'}</span>${domainSegment}</div>`;
-    const heroHtml = `<div class="serif pf-hero">${escapeHtml(p.title || 'Untitled')}</div>`;
-
+  function paintProjectProfile() {
+    const s = projectProfileState;
+    if (s.loading) {
+      dmnMain.innerHTML = `<div class="dmn-status">Loading…</div>`;
+      dmnProps.innerHTML = renderCaptureAffordance();
+      return;
+    }
+    if (s.error) {
+      dmnMain.innerHTML = `<div class="dmn-status dmn-status--error">${escapeHtml(s.error)}</div>`;
+      dmnProps.innerHTML = renderCaptureAffordance();
+      return;
+    }
+    const p = s.data.header;
     const tabsHtml = `<div class="pf-tabs" role="tablist">${s.data.tabs.map((t) => `
         <button type="button" class="pf-tab${t.key === s.activeTab ? ' pf-tab--active' : ''}" data-pf-project-tab="${t.key}" role="tab" aria-selected="${t.key === s.activeTab}">
           <span class="pf-tab-label">${escapeHtml(t.label)}</span>
           <span class="pf-tab-n">${t.count}</span>
         </button>`).join('')}</div>`;
-
     const activeTab = s.data.tabs.find((t) => t.key === s.activeTab) || s.data.tabs[0];
     const panelHtml = activeTab.key === 'tasks'
-      ? renderProjectTasksTabPanel(activeTab, p, s.collapsedStatus)
+      ? renderProjectTasksTabPanel(activeTab, s.collapsedStatus)
       : renderRelationTabPanel(activeTab, 'Project');
 
-    return `<div class="pf-view">
-      ${crumbHtml}
-      ${heroHtml}
-      <div class="pf-pillrow">${relPillsHtml}${dividerHtml}${valuePillsHtml}</div>
-      ${metaHtml}
-      ${tabsHtml}
-      ${panelHtml}
-    </div>`;
+    dmnMain.innerHTML = `${renderProjectHeader(p)}<section class="dmn-sec">${tabsHtml}${panelHtml}</section>`;
+    dmnProps.innerHTML = `${renderCaptureAffordance()}${renderProjectProgressRail(p)}${renderProjectDates(p)}${renderProjectProperties(p)}`;
   }
 
-  const projectProfileState = { id: null, loading: false, error: null, data: null, activeTab: 'tasks', collapsedStatus: new Set() };
-
-  function paintProjectProfile(container) {
-    const s = projectProfileState;
-    if (s.loading) {
-      container.innerHTML = `<div class="pf-view"><div class="tg-status">Loading…</div></div>`;
-      return;
-    }
-    if (s.error) {
-      container.innerHTML = `<div class="pf-view"><div class="tg-status tg-status--error">${escapeHtml(s.error)}</div></div>`;
-      return;
-    }
-    container.innerHTML = renderProjectProfile(s);
-  }
-
-  async function mountProjectProfile(container, id) {
+  async function mountProjectProfile(id) {
     const s = projectProfileState;
     s.id = id;
     s.loading = true;
@@ -4483,7 +4603,8 @@
     s.data = null;
     s.activeTab = 'tasks';
     s.collapsedStatus = new Set();
-    paintProjectProfile(container);
+    ensureFramedShell();
+    paintProjectProfile();
     try {
       const header = await loadProjectProfile(id);
       if (s.id !== id) return; // route moved on while this was in flight
@@ -4502,7 +4623,7 @@
     } finally {
       if (s.id === id) {
         s.loading = false;
-        paintProjectProfile(container);
+        paintProjectProfile();
       }
     }
   }
@@ -4514,17 +4635,17 @@
     if (!s.data) return;
     const id = s.id;
     s.activeTab = tabKey;
-    paintProjectProfile(content);
+    paintProjectProfile();
     const tab = s.data.tabs.find((t) => t.key === tabKey);
     if (!tab || tab.hydrated || tab.loading) return;
     if (tab.count === 0) {
       tab.records = [];
       tab.hydrated = true;
-      paintProjectProfile(content);
+      paintProjectProfile();
       return;
     }
     tab.loading = true;
-    paintProjectProfile(content);
+    paintProjectProfile();
     try {
       const [records, typeOrder] = await Promise.all([
         queryTabRecords('notes', REL_DB_META.notes, s.data.header.notesProjectsProp, id),
@@ -4541,7 +4662,7 @@
       tab.error = err.message || 'Could not load this list.';
     } finally {
       tab.loading = false;
-      if (s.id === id && s.activeTab === tabKey) paintProjectProfile(content);
+      if (s.id === id && s.activeTab === tabKey) paintProjectProfile();
     }
   }
 
@@ -4549,7 +4670,7 @@
     const s = projectProfileState;
     if (s.collapsedStatus.has(key)) s.collapsedStatus.delete(key);
     else s.collapsedStatus.add(key);
-    paintProjectProfile(content);
+    paintProjectProfile();
   }
 
   // --- Domain profile — the framed shell's first (and so far only)
@@ -4835,7 +4956,7 @@
 
   function renderDomainHeader(d) {
     return `<div class="dmn-head">
-      <div class="dmn-idline">${d.uniqueId ? escapeHtml(d.uniqueId) : '—'}</div>
+      <div class="dmn-idline"><span class="dmn-crumb-id">${d.uniqueId ? escapeHtml(d.uniqueId) : '—'}</span></div>
       <div class="dmn-title-row">
         <h1 class="dmn-title">${escapeHtml(d.title || 'Untitled')}</h1>
         <span class="dmn-chip" style="background:${d.domainMeta.fill}" title="${escapeHtml(d.title || '')} domain color"></span>
@@ -4958,9 +5079,10 @@
   const domainProfileState = { id: null, loading: false, error: null, data: null, collapsedStatus: new Set(), activeShelfTab: 'notes' };
 
   // The framed shell's nav rail is static markup, built once and reused
-  // across every mount (only #dmnMain/#dmnProps repaint per Domain). Kept
-  // separate from the mobile bottom-bar nav in .shell — see the "Framed
-  // shell" CSS block for why the two can't just share one rail yet.
+  // across every framed profile's mount (only #dmnMain/#dmnProps repaint
+  // per profile) — every #/{entity}/{id} route calls this before painting.
+  // Kept separate from the old .shell's own bottom-bar/rail (Home and
+  // Inbox), which is out of scope for panel-wrapping this sprint.
   let framedMounted = false;
   let dmnMain = null;
   let dmnProps = null;
@@ -5086,20 +5208,6 @@
     }
   }
 
-  // Delegated once on #framedRoot (present from load, per its own comment
-  // in the body markup) — same data-pf-nav convention the rest of the app's
-  // profiles use, so rows rendered by the shared renderRelationRow/
-  // renderRelationTabPanel navigate correctly without any Domain-specific
-  // handling.
-  framedRoot.addEventListener('click', (e) => {
-    const navEl = e.target.closest('[data-pf-nav]');
-    if (navEl) { location.hash = `#/${navEl.dataset.pfNav}`; return; }
-    const shelfTabEl = e.target.closest('[data-dmn-shelf-tab]');
-    if (shelfTabEl) { onDomainShelfTabClick(shelfTabEl.dataset.dmnShelfTab); return; }
-    const statusToggleEl = e.target.closest('[data-dmn-status-toggle]');
-    if (statusToggleEl) onDomainStatusToggle(statusToggleEl.dataset.dmnStatusToggle);
-  });
-
   // Activity spark tooltip — delegated on #framedRoot (same reasoning as
   // the click listener above: it's the one element guaranteed to survive
   // every repaint, unlike the .dmn-sbar bars themselves, which are
@@ -5136,11 +5244,16 @@
     if (tip) tip.hidden = true;
   });
 
-  // Relation-pill label taps (any profile) navigate via the hash router,
-  // regardless of which route is currently mounted — unlike the Triage
-  // click delegation below, which is gated to the inbox route only. Tab
-  // clicks on a relation-list profile are handled the same delegated way.
-  content.addEventListener('click', (e) => {
+  // Every entity profile (Note/Task/Project/Domain/Tag/Collection/Person)
+  // now renders exclusively into the framed shell, so all of their
+  // delegated interactions live on this one #framedRoot listener —
+  // consolidated from what used to be a second listener on the old
+  // #content (retired along with the pf- stacked-column layout the
+  // Framed-Layout Retrofit sprint replaced). Relation-pill label taps
+  // navigate via the hash router regardless of which profile is mounted;
+  // tab/status-toggle clicks dispatch to whichever profile's own handler
+  // owns that data attribute.
+  framedRoot.addEventListener('click', (e) => {
     const navEl = e.target.closest('[data-pf-nav]');
     if (navEl) { location.hash = `#/${navEl.dataset.pfNav}`; return; }
     const tabEl = e.target.closest('[data-pf-tab]');
@@ -5148,7 +5261,11 @@
     const projectTabEl = e.target.closest('[data-pf-project-tab]');
     if (projectTabEl) { onProjectTabClick(projectTabEl.dataset.pfProjectTab); return; }
     const statusToggleEl = e.target.closest('[data-pf-status-toggle]');
-    if (statusToggleEl) onProjectStatusToggle(statusToggleEl.dataset.pfStatusToggle);
+    if (statusToggleEl) { onProjectStatusToggle(statusToggleEl.dataset.pfStatusToggle); return; }
+    const shelfTabEl = e.target.closest('[data-dmn-shelf-tab]');
+    if (shelfTabEl) { onDomainShelfTabClick(shelfTabEl.dataset.dmnShelfTab); return; }
+    const domainStatusToggleEl = e.target.closest('[data-dmn-status-toggle]');
+    if (domainStatusToggleEl) onDomainStatusToggle(domainStatusToggleEl.dataset.dmnStatusToggle);
   });
 
   // --- Views ----------------------------------------------------------------
@@ -5204,28 +5321,28 @@
       btn.classList.toggle('active', btn.dataset.route === route.name);
     });
     content.classList.toggle('stretch', route.name === 'inbox');
-    content.classList.toggle('profile', REAL_PROFILE_ROUTES.includes(route.name));
     // The Inbox-triage "N to Sort" pill doesn't belong on a record's own
     // profile (real or still-stubbed) — Home and Inbox keep it.
     inboxPill.classList.toggle('hidden', ENTITY_ROUTES.includes(route.name));
-    // Domain is the framed shell's first consumer (Addendum 2) — scoped to
-    // just this route for now, per the build brief's "do not destabilize
-    // the existing shell or the other routes." body.dmn-route swaps which
-    // of .shell / #framedRoot is visible (see the "Framed shell" CSS block);
-    // every other route keeps rendering into #content exactly as before.
-    document.body.classList.toggle('dmn-route', route.name === 'domain');
+    // Every entity profile (Note/Task/Project/Domain/Tag/Collection/Person)
+    // renders into the framed shell as of the Framed-Layout Retrofit sprint
+    // — Domain was the only one scoped to it before. body.dmn-route swaps
+    // which of .shell / #framedRoot is visible (see the "Framed shell" CSS
+    // block); Home and Inbox are explicitly out of scope for panel-wrapping
+    // this sprint and keep rendering into #content exactly as before.
+    document.body.classList.toggle('dmn-route', ENTITY_ROUTES.includes(route.name));
     if (route.name === 'inbox') {
       mountTriage(content);
     } else if (route.name === 'note') {
-      mountNoteProfile(content, route.id);
+      mountNoteProfile(route.id);
     } else if (route.name === 'task') {
-      mountTaskProfile(content, route.id);
+      mountTaskProfile(route.id);
     } else if (route.name === 'project') {
-      mountProjectProfile(content, route.id);
+      mountProjectProfile(route.id);
     } else if (route.name === 'domain') {
       mountDomainProfile(route.id);
     } else if (route.name === 'tag' || route.name === 'collection' || route.name === 'person') {
-      mountRelationProfile(content, route.name, route.id);
+      mountRelationProfile(route.name, route.id);
     } else if (ENTITY_ROUTES.includes(route.name)) {
       content.innerHTML = renderEntityStub(route.name);
     } else {
