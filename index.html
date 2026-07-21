@@ -748,6 +748,201 @@
   @media (min-width: 768px) {
     .pf-meta-grid { grid-template-columns: 1fr 1fr; gap: 24px; }
   }
+
+  /* ============================================================
+     Framed shell (Addendum 2) — the app-wide profile shell, scoped for
+     now to the #/domain/{id} route only (Domain is the first consumer;
+     Note/Task/Project/Tag/Collection/Person retrofit to this frame in a
+     later sprint, per the build brief's "Integration" note). Kept in its
+     own dmn- namespace, fully self-contained, so it can't collide with
+     the existing .shell, .pf- and .tg- rule families above — this is the
+     reusable module the retrofit will lift wholesale.
+
+     #framedRoot sits as a sibling of .shell; body.dmn-route toggles which
+     of the two is visible (see the router's render()). #framedRoot is its
+     own fixed, independently-scrolling viewport (mirrors why .shell-content
+     is the app's only other scroll container — a second untracked document
+     scroll position is what breaks scroll-to-top-on-repaint elsewhere in
+     this file).
+     ============================================================ */
+  #framedRoot { display: none; }
+  body.dmn-route .shell { display: none; }
+  body.dmn-route #framedRoot {
+    display: block;
+    position: fixed; inset: 0;
+    overflow-y: auto;
+    background: #E7E0D0; /* deeper page = the frame, Addendum 2 */
+    z-index: 5;
+  }
+
+  .dmn-inner {
+    --dmn-max-width: 1200px; /* Addendum 2 starting point; tune by eye in the polish sprint */
+    max-width: var(--dmn-max-width);
+    margin: 28px auto;
+    background: #F6F2E9; /* lighter cream content panel */
+    border-radius: 16px;
+    box-shadow: 0 1px 2px rgba(60,50,30,.05), 0 12px 32px rgba(60,50,30,.10);
+    min-height: calc(100vh - 56px);
+    color: #2A3408;
+    font-family: 'IBM Plex Sans', system-ui, sans-serif;
+    font-size: 15px;
+    line-height: 1.5;
+  }
+
+  .dmn-shell {
+    display: grid;
+    grid-template-columns: 150px minmax(0,1fr) 230px;
+    gap: 32px;
+    padding: 24px 28px 96px;
+  }
+
+  /* ---- Nav rail — on the cream panel, not a sage slab (Addendum 2) ---- */
+  .dmn-rail { position: sticky; top: 24px; align-self: start; }
+  .dmn-brand { font-family: 'Newsreader', Georgia, serif; font-size: 17px; margin: 2px 0 18px 10px; color: #2A3408; }
+  .dmn-rail nav { display: flex; flex-direction: column; gap: 2px; }
+  .dmn-rail a {
+    display: flex; align-items: center; gap: 9px;
+    padding: 7px 10px; border-radius: 4px;
+    font-size: 15px; color: #2A3408; text-decoration: none;
+    border: 1px solid transparent;
+  }
+  .dmn-rail a:hover { background: #DBE2C1; }
+  /* Addendum 2 / Conventions "Rail treatment": no rail item is ever active
+     on a record profile, so .dmn-rail never renders an .active state — the
+     class/CSS below is kept only for parity with the retrofit's shared
+     stylesheet, in case a future non-profile screen mounts this same rail. */
+  .dmn-rail a.active { background: #DBE2C1; border-color: #2A3408; }
+  .dmn-rail a .dmn-ic { width: 16px; height: 16px; color: #3A4410; flex: none; }
+  .dmn-rail a .dmn-n { margin-left: auto; font-family: 'IBM Plex Sans', sans-serif; font-size: 13px; color: oklch(0.55 0.012 75); }
+
+  /* ---- Header: ID line leads, then serif title + domain color chip ---- */
+  .dmn-head { margin-bottom: 20px; }
+  .dmn-idline { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 12px; color: oklch(0.55 0.012 75); letter-spacing: .02em; }
+  .dmn-title-row { display: flex; align-items: center; gap: 12px; margin-top: 6px; }
+  .dmn-title { font-family: 'Newsreader', serif; font-size: 30px; line-height: 1.1; font-weight: 500; margin: 0; }
+  .dmn-chip { width: 22px; height: 22px; border-radius: 6px; flex: none; }
+
+  /* ---- Main column ---- */
+  .dmn-col { min-width: 0; }
+  .dmn-sec { margin-bottom: 28px; }
+  .dmn-sec-hd { font-family: 'IBM Plex Sans', sans-serif; font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: oklch(0.55 0.012 75); margin: 0 0 10px; }
+  .dmn-status { font-family: 'IBM Plex Sans', sans-serif; font-size: 14px; color: oklch(0.55 0.012 75); padding: 20px 2px; }
+  .dmn-status--error { color: #8a3b3b; }
+  .dmn-empty { font-family: 'Newsreader', serif; font-style: italic; font-size: 14px; color: oklch(0.55 0.012 75); padding: 4px 2px 8px; }
+
+  .dmn-status-hd {
+    display: flex; align-items: center; gap: 8px;
+    font-family: 'Newsreader', serif; font-size: 16px; color: #2A3408;
+    margin: 16px 0 8px;
+  }
+  .dmn-status-hd .dmn-ct { font-family: 'IBM Plex Sans', sans-serif; font-size: 13px; color: oklch(0.55 0.012 75); }
+  .dmn-collapser {
+    background: none; border: 0; cursor: pointer; color: #2A3408;
+    display: flex; align-items: center; gap: 8px; padding: 6px 0; width: 100%; text-align: left; font: inherit;
+  }
+  .dmn-collapser .dmn-chev { width: 14px; height: 14px; color: #3A4410; transition: transform .15s; }
+  .dmn-collapser[aria-expanded="false"] .dmn-chev { transform: rotate(-90deg); }
+  .dmn-collapse-body[hidden] { display: none; }
+
+  .dmn-proj {
+    background: #E7ECD6; border-radius: 12px;
+    padding: 14px 16px; margin-bottom: 10px; cursor: pointer;
+    border: 1px solid transparent;
+  }
+  .dmn-proj:hover { border-color: #DBE2C1; }
+  .dmn-proj .dmn-pname { font-family: 'Newsreader', serif; font-size: 16px; }
+  .dmn-proj .dmn-pmeta { display: flex; align-items: center; gap: 10px; margin-top: 8px; }
+  .dmn-proj .dmn-count { font-family: 'IBM Plex Sans', sans-serif; font-size: 13px; color: oklch(0.55 0.012 75); white-space: nowrap; }
+  .dmn-bar { height: 5px; border-radius: 3px; background: #00000010; flex: 1; overflow: hidden; }
+  .dmn-bar > i { display: block; height: 100%; background: #2A3408; opacity: .55; }
+
+  /* Inbox/Admin — two-column near-square cards (task-card grid, Addendum 2) */
+  .dmn-task-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .dmn-task {
+    background: #E7ECD6; border-radius: 12px;
+    padding: 14px; min-height: 104px; display: flex; flex-direction: column;
+    cursor: pointer; border: 1px solid transparent;
+  }
+  .dmn-task:hover { border-color: #DBE2C1; }
+  .dmn-task .dmn-top { display: flex; gap: 10px; align-items: flex-start; }
+  .dmn-box { width: 17px; height: 17px; border: 1.5px solid #3A4410; border-radius: 4px; flex: none; margin-top: 2px; }
+  .dmn-task .dmn-tname { font-family: 'Newsreader', serif; font-size: 15px; line-height: 1.25; }
+  .dmn-task .dmn-tdate { margin-top: auto; font-family: 'IBM Plex Sans', sans-serif; font-size: 12px; color: oklch(0.55 0.012 75); }
+
+  /* Reference shelf — tabbed. Tab headings uppercase (Addendum 2's mock);
+     the tab panel body itself reuses the shipped .pf-tab-panel/.pf-row-list/
+     .pf-note-group* rules (see renderRelationTabPanel/renderNotesTabGrouped
+     reuse), so only the tab chrome needs its own dmn- rules here. */
+  .dmn-divider { height: 1px; background: #DED8CA; margin: 8px 0 20px; }
+  .dmn-tabs { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 14px; }
+  .dmn-tab {
+    padding: 6px 12px; border-radius: 4px; cursor: pointer;
+    background: none; border: 1px solid transparent; color: #2A3408; font: inherit;
+    font-size: 12px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase;
+  }
+  .dmn-tab .dmn-n { font-family: 'IBM Plex Sans', sans-serif; font-size: 12px; font-weight: 400; color: oklch(0.55 0.012 75); margin-left: 6px; letter-spacing: normal; text-transform: none; }
+  .dmn-tab:hover { background: #DBE2C1; }
+  .dmn-tab.active { background: #DBE2C1; border-color: #2A3408; }
+
+  /* ---- Right rail: Capture -> Progress -> Activity -> Dates ---- */
+  .dmn-props { position: sticky; top: 24px; align-self: start; display: flex; flex-direction: column; gap: 22px; }
+  .dmn-prop-sec h3 { font-family: 'IBM Plex Sans', sans-serif; font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: oklch(0.55 0.012 75); margin: 0 0 10px; }
+
+  /* Persistent capture affordance — top of the rail, above Progress. A
+     plain link to capture.html (same "Capture isn't an in-shell route yet"
+     pattern the old rail already uses), styled as a solid button. */
+  .dmn-capture {
+    display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%;
+    background: #2A3408; color: #F6F2E9; border: 0; border-radius: 10px;
+    padding: 12px 16px; cursor: pointer; font: inherit; font-size: 14px; font-weight: 500;
+    text-decoration: none; box-sizing: border-box;
+  }
+  .dmn-capture:hover { opacity: .93; }
+
+  .dmn-prog-num { font-family: 'IBM Plex Sans', sans-serif; font-size: 13px; color: #2A3408; margin-bottom: 6px; }
+  .dmn-prog-bar { height: 6px; border-radius: 3px; background: #00000012; overflow: hidden; }
+  .dmn-prog-bar > i { display: block; height: 100%; background: #2A3408; opacity: .55; }
+
+  /* Activity / health monitor — deliberately muted (no green/red; saturation
+     stays reserved for the Domain wayfinding color per Conventions). */
+  .dmn-pulse { font-family: 'Newsreader', serif; font-size: 15px; color: #2A3408; margin-bottom: 8px; }
+  .dmn-spark { position: relative; display: flex; align-items: flex-end; gap: 4px; height: 34px; margin-bottom: 4px; }
+  .dmn-sbar { flex: 1; background: #DBE2C1; border-radius: 2px; min-height: 3px; cursor: default; }
+  .dmn-sbar--now { background: #A9B885; } /* muted olive anchors "this week" on the right */
+  .dmn-spark-cap { font-size: 11px; color: oklch(0.55 0.012 75); margin-bottom: 10px; }
+  .dmn-kv { display: flex; justify-content: space-between; gap: 10px; padding: 5px 0; font-size: 13px; }
+  .dmn-kv .k { color: oklch(0.55 0.012 75); }
+  .dmn-kv .v { font-family: 'IBM Plex Sans', sans-serif; text-align: right; }
+  .dmn-kv.alarm .v { font-weight: 500; }
+  .dmn-flag {
+    display: inline-flex; align-items: center; justify-content: center; width: 14px; height: 14px;
+    border-radius: 50%; border: 1px solid oklch(0.55 0.012 75); color: oklch(0.55 0.012 75); font-size: 9px; font-weight: 600;
+    margin-right: 6px; vertical-align: middle;
+  }
+
+  /* ---- Mobile: single column. Order = Capture, Progress, Activity, Work,
+     Inbox/Admin, Shelf, Dates (build brief §2 + §6). ---- */
+  @media (max-width: 820px) {
+    .dmn-inner { margin: 0; border-radius: 0; min-height: 100vh; }
+    .dmn-shell { display: flex; flex-direction: column; gap: 20px; padding: 16px 16px 48px; }
+
+    .dmn-rail { order: 0; position: static; display: flex; align-items: center; gap: 4px; overflow-x: auto; padding-bottom: 4px; }
+    .dmn-brand { display: none; }
+    .dmn-rail nav { flex-direction: row; gap: 2px; }
+    .dmn-rail a .dmn-n { margin-left: 5px; }
+
+    /* Flatten the rail's own children into the shell's flex flow so
+       Progress/Activity/Dates can be placed independently around the
+       Work column (Addendum 2's "display: contents" mobile technique). */
+    .dmn-props { display: contents; }
+    .dmn-capture { order: 1; }
+    .dmn-prop-sec--progress { order: 2; }
+    .dmn-prop-sec--activity { order: 3; }
+    .dmn-col { order: 4; }
+    .dmn-prop-sec--dates { order: 5; }
+
+    .dmn-task-grid { grid-template-columns: 1fr; }
+  }
 </style>
 </head>
 <body>
@@ -773,6 +968,13 @@
 
 </div>
 
+<!-- Framed shell (Addendum 2) — the reusable module the Domain profile is
+     the first consumer of. Populated/toggled by the router; see the
+     "Framed shell" CSS block above and mountDomainProfile() below. Present
+     from load so its one delegated click listener can attach immediately,
+     even before ensureFramedShell() ever fills it in. -->
+<div id="framedRoot"></div>
+
 <script>
 (() => {
   // --- Shared bootstrap: defined once, in one place. -----------------------
@@ -789,6 +991,8 @@
       TAGS: '1a39ff9fd10747ad9d418577707c012f',
       COLLECTIONS: '315a07b97c6b461f917f5b01f6730ccc',
       RESOURCES: '1801744784014ecdaf20a384006cd644',
+      ROUTINES: '39110b0375a880f19dc0fb34e0af0e63',
+      SESSIONS: '36210b0375a880b1a76bf85b1efb23a9',
     },
     // Type/Date are the exact non-relation property NAMES (not emoji-
     // prefixed), per RenitaOS-Backend-Notes-Template.md §2. But the Type
@@ -1019,6 +1223,11 @@
   const inboxPill = document.getElementById('inboxPill');
   const navInboxItem = document.getElementById('navInboxItem');
   const content = document.getElementById('content');
+  // The framed shell's own root — present from load (see its comment in
+  // the body markup) even though its inner rail/columns aren't built until
+  // ensureFramedShell() first runs, so its delegated click listener can
+  // attach unconditionally alongside the others here.
+  const framedRoot = document.getElementById('framedRoot');
 
   async function refreshInboxCount() {
     try {
@@ -1031,10 +1240,19 @@
       // Rail only — the Inbox screen's own "N waiting · One bin at a time."
       // heading (renderOverview's tg-ov-sub) stays un-parenthesized.
       navInboxItem.textContent = `Inbox (${total})`;
+      // The framed shell's own rail (only present once a Domain profile has
+      // mounted at least once) mirrors the same "(N)" convention on its own
+      // element, rather than overwriting the whole link's text like the old
+      // rail does above — id lookup rather than a cached reference since
+      // ensureFramedShell() may not have built it yet.
+      const dmnCount = document.getElementById('dmnNavInboxCount');
+      if (dmnCount) dmnCount.textContent = `(${total})`;
     } catch (err) {
       console.error('Failed to refresh inbox count', err);
       inboxPill.textContent = '— to Sort';
       navInboxItem.textContent = 'Inbox (—)';
+      const dmnCount = document.getElementById('dmnNavInboxCount');
+      if (dmnCount) dmnCount.textContent = '(—)';
     }
   }
 
@@ -3476,6 +3694,13 @@
     tags:        { label: 'Tags',        dbId: CONFIG.DB.TAGS,        route: 'tag' },
     collections: { label: 'Collections', dbId: CONFIG.DB.COLLECTIONS, route: 'collection' },
     resources:   { label: 'Resources',   dbId: CONFIG.DB.RESOURCES,   route: null },
+    // Added for the Domain profile's reference shelf (Domain-Profile-Build-
+    // Brief §5.5). Routines has no drill-through profile yet, same gap as
+    // Resources. Sessions is registered for completeness (schema/label) but
+    // is never queried this slice — no session data flows until the logging
+    // Shortcut exists.
+    routines:    { label: 'Routines',    dbId: CONFIG.DB.ROUTINES,    route: null },
+    sessions:    { label: 'Sessions',    dbId: CONFIG.DB.SESSIONS,    route: null },
   };
 
   // Per RenitaOS-Conventions.md's "Tabbed relation-lists" — the tab set and
@@ -4318,6 +4543,545 @@
     paintProjectProfile(content);
   }
 
+  // --- Domain profile — the framed shell's first (and so far only)
+  // consumer. Read/navigate only, no writes to Notion. Composes the
+  // work spine (projects grouped by status, reusing the Project profile's
+  // groupProjectTasksByStatus verbatim — it only ever groups by a record's
+  // .statusName, so a project record satisfies it exactly like a task
+  // record does), the Inbox/Admin catch-all's loose tasks, the tabbed
+  // reference shelf (reusing the Tag/Collection/Person trio's hybrid-load
+  // machinery), and the right rail's Progress/Activity/Dates. See
+  // RenitaOS-Conventions.md's "Domain profile — hybrid" +
+  // RenitaOS-Backend-Notes-Template.md §4 (catch-all project ids).
+  //
+  // Local-date helpers (no existing equivalent) — completion/due dates are
+  // date-only ISO strings, so every comparison below parses the Y-M-D
+  // components directly (like formatDateShort) rather than `new Date(iso)`,
+  // to avoid a local-timezone shift landing a date in the wrong week/bucket.
+  function parseLocalDate(iso) {
+    const [, y, m, d] = iso.match(/^(\d{4})-(\d{2})-(\d{2})/);
+    return new Date(Number(y), Number(m) - 1, Number(d));
+  }
+  function todayIsoLocal() {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  }
+  function startOfWeekSunday(d) {
+    const copy = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+    copy.setDate(copy.getDate() - copy.getDay());
+    return copy;
+  }
+  function formatMonthDay(d) {
+    const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    return `${MONTHS[d.getMonth()]} ${d.getDate()}`;
+  }
+  // "today" / "N days ago" / "N weeks ago", off the most recent
+  // last_edited_time across the domain's already-fetched projects+tasks —
+  // this is an absolute instant (unlike Completed/Due, which are date-only),
+  // so `new Date(iso)` is the right parse here, same as formatDateTime.
+  function formatRelativeDays(mostRecentIso) {
+    if (!mostRecentIso) return null;
+    const diffDays = Math.floor((Date.now() - new Date(mostRecentIso)) / 86400000);
+    if (diffDays <= 0) return 'today';
+    if (diffDays < 7) return `${diffDays} day${diffDays === 1 ? '' : 's'} ago`;
+    const weeks = Math.floor(diffDays / 7);
+    return `${weeks} week${weeks === 1 ? '' : 's'} ago`;
+  }
+
+  // Domain-level Progress aggregate (§5.4) — task-weighted sum(done)/sum(total)
+  // across every project in the domain, INCLUDING the catch-all (its loose
+  // tasks count toward the domain's progress even though its card is hidden
+  // from the spine). Never an average of the per-project percentages.
+  function computeDomainProgress(projects) {
+    let done = 0, total = 0;
+    projects.forEach((p) => {
+      if (typeof p.totalTasks === 'number') {
+        total += p.totalTasks;
+        done += (typeof p.doneTasks === 'number' ? p.doneTasks : 0);
+      }
+    });
+    return { done, total };
+  }
+
+  // Activity monitor (§7) — every signal reads off the same already-fetched
+  // projects+tasks arrays from loadDomainProfile, all keyed on the tasks'
+  // `Completed`/`Due Date`/statusName fields (never a separate query).
+  function computeDomainActivity(projects, tasks) {
+    const now = new Date();
+    const todayLocal = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const todayIso = todayIsoLocal();
+
+    const allTimes = [...projects.map((p) => p.lastEditedTime), ...tasks.map((t) => t.lastEditedTime)].filter(Boolean);
+    const mostRecent = allTimes.length ? allTimes.reduce((a, b) => (new Date(a) > new Date(b) ? a : b)) : null;
+    const pulseText = formatRelativeDays(mostRecent);
+
+    // Spark: 5 weeks, Sunday-start, oldest -> current (left -> right).
+    const thisWeekStart = startOfWeekSunday(todayLocal);
+    const weekBuckets = [];
+    for (let i = 4; i >= 0; i--) {
+      const start = new Date(thisWeekStart);
+      start.setDate(start.getDate() - i * 7);
+      weekBuckets.push({ start, count: 0, isCurrent: i === 0 });
+    }
+    tasks.forEach((t) => {
+      if (!t.completedDate || !t.completedDate.start) return;
+      const cd = parseLocalDate(t.completedDate.start);
+      const bucket = weekBuckets.find((w) => {
+        const end = new Date(w.start);
+        end.setDate(end.getDate() + 7);
+        return cd >= w.start && cd < end;
+      });
+      if (bucket) bucket.count += 1;
+    });
+    const maxCount = Math.max(1, ...weekBuckets.map((w) => w.count));
+    const spark = weekBuckets.map((w) => ({
+      pct: Math.round((w.count / maxCount) * 100),
+      isCurrent: w.isCurrent,
+      label: w.isCurrent ? `This week · ${w.count} completed` : `Week of ${formatMonthDay(w.start)} · ${w.count} completed`,
+    }));
+
+    const thirtyDaysAgo = new Date(todayLocal);
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+    const done30d = tasks.filter((t) => t.completedDate && t.completedDate.start && parseLocalDate(t.completedDate.start) >= thirtyDaysAgo).length;
+
+    const overdueCount = tasks.filter((t) => {
+      if (!t.dueDate || !t.dueDate.start) return false;
+      const isDone = (t.statusName || '').toLowerCase() === 'done';
+      return !isDone && t.dueDate.start < todayIso;
+    }).length;
+
+    // Stalled (§7): In Progress projects with zero completions in the last
+    // 14 days (the one tunable threshold). Paused/Done/Not Started never
+    // qualify — stalling is unintended, pausing is a choice.
+    const fourteenDaysAgo = new Date(todayLocal);
+    fourteenDaysAgo.setDate(fourteenDaysAgo.getDate() - 14);
+    const stalledCount = projects
+      .filter((p) => (p.statusName || '').toLowerCase() === 'in progress')
+      .filter((p) => !tasks.some((t) => (
+        t.projectId && normalizeDbId(t.projectId) === normalizeDbId(p.id)
+        && t.completedDate && t.completedDate.start
+        && parseLocalDate(t.completedDate.start) >= fourteenDaysAgo
+      )))
+      .length;
+
+    return { pulseText, spark, done30d, overdueCount, stalledCount };
+  }
+
+  // Notes' Domain field may be a relation or a select (getNotesDomainProp) —
+  // the reference shelf's Notes tab has to handle both, unlike Resources/
+  // Routines, which are always a plain relation to Domains.
+  async function getNotesDomainFilter(domainPageId, domainCode) {
+    const domainProp = await getNotesDomainProp(CONFIG.DB.NOTES);
+    if (!domainProp) return null;
+    if (domainProp.type === 'relation') return { property: domainProp.name, relation: { contains: domainPageId } };
+    return domainCode ? { property: domainProp.name, select: { equals: domainCode } } : null;
+  }
+
+  async function queryDomainNotesRecords(domainPageId, domainCode) {
+    const filter = await getNotesDomainFilter(domainPageId, domainCode);
+    if (!filter) return [];
+    const pages = await queryAllPages(CONFIG.DB.NOTES, filter);
+    const [titleProp, uniqueIdProp] = await Promise.all([titlePropertyName(CONFIG.DB.NOTES), uniqueIdPropertyName(CONFIG.DB.NOTES)]);
+    return pages.map((p) => {
+      const title = plainTitle(p, titleProp);
+      const uniqueIdVal = uniqueIdProp ? (p.properties[uniqueIdProp] || {}).unique_id : null;
+      const uniqueId = uniqueIdVal ? formatUniqueId(uniqueIdVal.prefix, uniqueIdVal.number) : null;
+      const types = ((p.properties[CONFIG.NOTES_PROP.TYPE] || {}).multi_select || []).map((o) => o.name);
+      return { id: p.id, title, uniqueId, types, route: 'note' };
+    });
+  }
+
+  // Reference shelf (§5.5) — Notes (default, eager, grouped by Type),
+  // Resources + Routines (lazy count, hydrate on open), Sessions (stubbed
+  // at 0, never queried — no session data flows until the logging
+  // Shortcut exists). Every shelf row belongs to this domain by
+  // construction, so its domain chip is always this domain's own color —
+  // resolved once here rather than per-row (resolveRowDomainChip has no
+  // 'resources'/'routines' case, so its default null is overridden below).
+  async function loadDomainShelf(domainPageId, domainMeta) {
+    const chip = { label: domainMeta.code, fill: domainMeta.fill, text: domainMeta.text };
+    const [notesRecords, notesTypeOrder, resourcesRelProp, routinesRelProp] = await Promise.all([
+      queryDomainNotesRecords(domainPageId, domainMeta.code),
+      getNotesTypeOrder(),
+      relationPropertyName(CONFIG.DB.RESOURCES, CONFIG.DB.DOMAINS),
+      relationPropertyName(CONFIG.DB.ROUTINES, CONFIG.DB.DOMAINS),
+    ]);
+    if (domainMeta.code) notesRecords.forEach((r) => { r.domainChip = chip; });
+
+    const [resourcesCount, routinesCount] = await Promise.all([
+      queryTabCount(REL_DB_META.resources, resourcesRelProp, domainPageId),
+      queryTabCount(REL_DB_META.routines, routinesRelProp, domainPageId),
+    ]);
+
+    return [
+      { key: 'notes', label: 'Notes', count: notesRecords.length, records: notesRecords, typeOrder: notesTypeOrder, hydrated: true, loading: false, error: null, relProp: null },
+      { key: 'resources', label: 'Resources', count: resourcesCount, records: null, typeOrder: null, hydrated: false, loading: false, error: null, relProp: resourcesRelProp },
+      { key: 'routines', label: 'Routines', count: routinesCount, records: null, typeOrder: null, hydrated: false, loading: false, error: null, relProp: routinesRelProp },
+      { key: 'sessions', label: 'Sessions', count: 0, records: [], typeOrder: null, hydrated: true, loading: false, error: null, relProp: null },
+    ];
+  }
+
+  async function loadDomainProfile(pageId) {
+    const domainMeta = DOMAIN_META.find((d) => normalizeDbId(d.pageId) === normalizeDbId(pageId)) || NO_DOMAIN_META;
+
+    const [
+      page, domainTitleProp, domainUniqueIdProp, projectsDomainsProp,
+      projStatusSchema, progressProp, tasksCountProp, doneCountProp,
+      tasksProjectsProp, projTitleProp, projUniqueIdProp,
+    ] = await Promise.all([
+      notionRequest(`/v1/pages/${pageId}`),
+      titlePropertyName(CONFIG.DB.DOMAINS),
+      uniqueIdPropertyName(CONFIG.DB.DOMAINS),
+      relationPropertyName(CONFIG.DB.PROJECTS, CONFIG.DB.DOMAINS),
+      getStatusSchema(CONFIG.DB.PROJECTS),
+      getRollupPropByKeyword(CONFIG.DB.PROJECTS, 'progress'),
+      getRollupPropByKeyword(CONFIG.DB.PROJECTS, 'tasks'),
+      // The completed-count rollup (build brief §5.2) — resolved by
+      // keyword like every other rollup here; degrades to null (falling
+      // back to progressFraction * totalTasks below) if the schema
+      // doesn't have it yet.
+      getRollupPropByKeyword(CONFIG.DB.PROJECTS, 'done'),
+      relationPropertyName(CONFIG.DB.TASKS, CONFIG.DB.PROJECTS),
+      titlePropertyName(CONFIG.DB.PROJECTS),
+      uniqueIdPropertyName(CONFIG.DB.PROJECTS),
+    ]);
+
+    const title = plainTitle(page, domainTitleProp);
+    const uniqueIdVal = domainUniqueIdProp ? (page.properties[domainUniqueIdProp] || {}).unique_id : null;
+    const uniqueId = uniqueIdVal ? formatUniqueId(uniqueIdVal.prefix, uniqueIdVal.number) : null;
+
+    const projectPages = await queryAllPages(CONFIG.DB.PROJECTS, { property: projectsDomainsProp, relation: { contains: pageId } });
+    const projects = projectPages.map((p) => {
+      const projTitle = plainTitle(p, projTitleProp);
+      const uv = projUniqueIdProp ? (p.properties[projUniqueIdProp] || {}).unique_id : null;
+      const projUniqueId = uv ? formatUniqueId(uv.prefix, uv.number) : null;
+      const statusProp = p.properties[projStatusSchema.name];
+      const statusName = (statusProp && statusProp.status && statusProp.status.name) || null;
+      const progressRaw = readRollupNumber(p, progressProp);
+      const totalRaw = readRollupNumber(p, tasksCountProp);
+      const doneRaw = readRollupNumber(p, doneCountProp);
+      const progressFraction = typeof progressRaw === 'number' ? (progressRaw > 1 ? progressRaw / 100 : progressRaw) : null;
+      const totalTasks = typeof totalRaw === 'number' ? totalRaw : null;
+      const doneTasks = typeof doneRaw === 'number'
+        ? doneRaw
+        : ((progressFraction != null && totalTasks != null) ? Math.round(progressFraction * totalTasks) : null);
+      return {
+        id: p.id, title: projTitle, uniqueId: projUniqueId, statusName,
+        lastEditedTime: p.last_edited_time,
+        progressFraction, totalTasks, doneTasks,
+        isCatchAll: !!(domainMeta.catchAllProjectId && normalizeDbId(p.id) === normalizeDbId(domainMeta.catchAllProjectId)),
+      };
+    });
+
+    const catchAll = projects.find((p) => p.isCatchAll) || null;
+    const projectIds = projects.map((p) => p.id);
+
+    // One OR-filtered query across every project in the domain powers four
+    // things at once (§5.3): Inbox/Admin's loose tasks, Done·30D, the
+    // activity spark, and stalled-project detection. Never a task-level
+    // Domain filter — a task's domain is a rollup through its project.
+    let tasks = [];
+    if (projectIds.length) {
+      const [taskTitleProp, taskUniqueIdProp, taskStatusSchema, completedDateProp] = await Promise.all([
+        titlePropertyName(CONFIG.DB.TASKS),
+        uniqueIdPropertyName(CONFIG.DB.TASKS),
+        getStatusSchema(CONFIG.DB.TASKS),
+        getDatePropByKeyword(CONFIG.DB.TASKS, 'completed'),
+      ]);
+      const orFilter = { or: projectIds.map((pid) => ({ property: tasksProjectsProp, relation: { contains: pid } })) };
+      const taskPages = await queryAllPages(CONFIG.DB.TASKS, orFilter);
+      tasks = taskPages.map((tp) => {
+        const taskTitle = plainTitle(tp, taskTitleProp);
+        const uv = taskUniqueIdProp ? (tp.properties[taskUniqueIdProp] || {}).unique_id : null;
+        const taskUniqueId = uv ? formatUniqueId(uv.prefix, uv.number) : null;
+        const statusProp = tp.properties[taskStatusSchema.name];
+        const statusName = (statusProp && statusProp.status && statusProp.status.name) || null;
+        const projRel = (tp.properties[tasksProjectsProp] || {}).relation || [];
+        const projectId = projRel[0] ? projRel[0].id : null;
+        const completedDate = completedDateProp ? ((tp.properties[completedDateProp] || {}).date || null) : null;
+        const dueDate = (tp.properties[CONFIG.TASKS_PROP.DUE_DATE] || {}).date || null;
+        return { id: tp.id, title: taskTitle, uniqueId: taskUniqueId, statusName, projectId, completedDate, dueDate, lastEditedTime: tp.last_edited_time };
+      });
+    }
+
+    const catchAllTasks = catchAll
+      ? tasks.filter((t) => t.projectId && normalizeDbId(t.projectId) === normalizeDbId(catchAll.id))
+      : [];
+
+    // Work spine (§5.2) excludes the catch-all — its tasks surface under
+    // Inbox/Admin instead, so it never double-counts as a spine card.
+    const spineProjects = projects.filter((p) => !p.isCatchAll);
+    const projectGroups = groupProjectTasksByStatus(spineProjects, projStatusSchema.options);
+
+    const progressAgg = computeDomainProgress(projects);
+    const activity = computeDomainActivity(projects, tasks);
+    const shelfTabs = await loadDomainShelf(pageId, domainMeta);
+
+    return {
+      id: page.id, title, uniqueId, domainMeta,
+      projectGroups, catchAllTasks, progressAgg, activity, shelfTabs,
+      createdTime: page.created_time, lastEditedTime: page.last_edited_time,
+    };
+  }
+
+  function renderDomainHeader(d) {
+    return `<div class="dmn-head">
+      <div class="dmn-idline">${d.uniqueId ? escapeHtml(d.uniqueId) : '—'}</div>
+      <div class="dmn-title-row">
+        <h1 class="dmn-title">${escapeHtml(d.title || 'Untitled')}</h1>
+        <span class="dmn-chip" style="background:${d.domainMeta.fill}" title="${escapeHtml(d.title || '')} domain color"></span>
+      </div>
+    </div>`;
+  }
+
+  function renderDomainProjectCard(p) {
+    const pct = (p.totalTasks && p.totalTasks > 0 && p.doneTasks != null) ? Math.max(0, Math.min(100, Math.round((p.doneTasks / p.totalTasks) * 100))) : 0;
+    const countLabel = p.totalTasks != null ? `${p.doneTasks != null ? p.doneTasks : '—'} / ${p.totalTasks} done` : 'No tasks yet';
+    return `<div class="dmn-proj" data-pf-nav="project/${escapeHtml(p.id)}">
+      <div class="dmn-pname">${escapeHtml(p.title || 'Untitled')}</div>
+      <div class="dmn-pmeta"><span class="dmn-count">${escapeHtml(countLabel)}</span><span class="dmn-bar"><i style="width:${pct}%"></i></span></div>
+    </div>`;
+  }
+
+  // Mirrors renderProjectStatusGroup's collapse shape (Status-collapse
+  // convention) — active groups (In Progress/Not Started) render open with
+  // a plain header; the rest collapse behind a toggle button, count in the
+  // header either way.
+  function renderDomainStatusGroup(group, collapsedStatus) {
+    const cardsHtml = group.records.map(renderDomainProjectCard).join('');
+    if (!group.collapsedDefault) {
+      return `<div class="dmn-status-hd">${escapeHtml(group.name)} <span class="dmn-ct">${group.records.length}</span></div>${cardsHtml}`;
+    }
+    const collapsed = collapsedStatus.has(group.key);
+    return `<button type="button" class="dmn-collapser" aria-expanded="${!collapsed}" data-dmn-status-toggle="${escapeHtml(group.key)}">
+        <svg class="dmn-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>
+        <span class="dmn-status-hd" style="margin:0">${escapeHtml(group.name)} <span class="dmn-ct">${group.records.length}</span></span>
+      </button>
+      <div class="dmn-collapse-body"${collapsed ? ' hidden' : ''}>${cardsHtml}</div>`;
+  }
+
+  function renderWorkSpine(groups, collapsedStatus) {
+    const body = groups.length
+      ? groups.map((g) => renderDomainStatusGroup(g, collapsedStatus)).join('')
+      : `<div class="dmn-empty">No projects in this domain yet.</div>`;
+    return `<section class="dmn-sec"><h2 class="dmn-sec-hd">Work</h2>${body}</section>`;
+  }
+
+  function renderDomainTaskCard(t) {
+    const dateLabel = t.dueDate && t.dueDate.start ? `Due ${formatDateShort(t.dueDate.start)}` : 'No date';
+    return `<div class="dmn-task" data-pf-nav="task/${escapeHtml(t.id)}">
+      <div class="dmn-top"><span class="dmn-box" aria-hidden="true"></span><span class="dmn-tname">${escapeHtml(t.title || 'Untitled')}</span></div>
+      <div class="dmn-tdate">${escapeHtml(dateLabel)}</div>
+    </div>`;
+  }
+
+  function renderInboxAdmin(tasks) {
+    const body = tasks.length
+      ? `<div class="dmn-task-grid">${tasks.map(renderDomainTaskCard).join('')}</div>`
+      : `<div class="dmn-empty">Nothing loose right now.</div>`;
+    return `<section class="dmn-sec"><h2 class="dmn-sec-hd">Inbox/Admin</h2>${body}</section>`;
+  }
+
+  // The shelf's tab chrome is its own dmn- styling (uppercase headings per
+  // the mock); the panel body underneath reuses the shipped
+  // renderRelationTabPanel/renderNotesTabGrouped/renderRelationRow wholesale
+  // (dense bordered rows, Notes grouped by Type) — the same component every
+  // other tabbed profile already uses, per the build brief's reuse list.
+  function renderDomainShelf(shelfTabs, activeTab) {
+    const tabsHtml = `<div class="dmn-tabs" role="tablist">${shelfTabs.map((t) => `
+        <button type="button" class="dmn-tab${t.key === activeTab ? ' active' : ''}" data-dmn-shelf-tab="${t.key}" role="tab" aria-selected="${t.key === activeTab}">
+          ${escapeHtml(t.label)}<span class="dmn-n">${t.count}</span>
+        </button>`).join('')}</div>`;
+    const activeTabObj = shelfTabs.find((t) => t.key === activeTab) || shelfTabs[0];
+    const panelHtml = renderRelationTabPanel(activeTabObj, 'Domain');
+    return `<section class="dmn-sec"><div class="dmn-divider"></div>${tabsHtml}${panelHtml}</section>`;
+  }
+
+  function renderCaptureAffordance() {
+    return `<a href="./capture.html" class="dmn-capture">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+      Capture
+    </a>`;
+  }
+
+  function renderProgressSection(agg) {
+    const pct = agg.total > 0 ? Math.max(0, Math.min(100, Math.round((agg.done / agg.total) * 100))) : 0;
+    return `<section class="dmn-prop-sec dmn-prop-sec--progress">
+      <h3>Progress</h3>
+      <div class="dmn-prog-num">${agg.done} of ${agg.total} done</div>
+      <div class="dmn-prog-bar"><i style="width:${pct}%"></i></div>
+    </section>`;
+  }
+
+  function renderActivitySection(a) {
+    const sparkHtml = a.spark.map((w) => `<i class="dmn-sbar${w.isCurrent ? ' dmn-sbar--now' : ''}" title="${escapeHtml(w.label)}" style="height:${w.pct}%"></i>`).join('');
+    const stalledHtml = a.stalledCount > 0
+      ? `<div class="dmn-kv alarm"><span class="k">Stalled projects</span><span class="v"><span class="dmn-flag">!</span>${a.stalledCount}</span></div>`
+      : `<div class="dmn-kv"><span class="k">Stalled projects</span><span class="v">0</span></div>`;
+    return `<section class="dmn-prop-sec dmn-prop-sec--activity">
+      <h3>Activity</h3>
+      <div class="dmn-pulse">${a.pulseText ? `Active ${escapeHtml(a.pulseText)}` : 'No activity yet'}</div>
+      <div class="dmn-spark">${sparkHtml}</div>
+      <div class="dmn-spark-cap">Tasks completed · last 5 weeks</div>
+      <div class="dmn-kv"><span class="k">Done · 30D</span><span class="v">${a.done30d}</span></div>
+      <div class="dmn-kv"><span class="k">Overdue Tasks</span><span class="v">${a.overdueCount}</span></div>
+      ${stalledHtml}
+    </section>`;
+  }
+
+  function renderDatesSection(d) {
+    return `<section class="dmn-prop-sec dmn-prop-sec--dates">
+      <h3>Dates</h3>
+      <div class="dmn-kv"><span class="k">Created</span><span class="v">${escapeHtml(formatDateTime(d.createdTime))}</span></div>
+      <div class="dmn-kv"><span class="k">Last edited</span><span class="v">${escapeHtml(formatDateTime(d.lastEditedTime))}</span></div>
+    </section>`;
+  }
+
+  const domainProfileState = { id: null, loading: false, error: null, data: null, collapsedStatus: new Set(), activeShelfTab: 'notes' };
+
+  // The framed shell's nav rail is static markup, built once and reused
+  // across every mount (only #dmnMain/#dmnProps repaint per Domain). Kept
+  // separate from the mobile bottom-bar nav in .shell — see the "Framed
+  // shell" CSS block for why the two can't just share one rail yet.
+  let framedMounted = false;
+  let dmnMain = null;
+  let dmnProps = null;
+  function ensureFramedShell() {
+    if (framedMounted) return;
+    framedRoot.innerHTML = `
+      <div class="dmn-inner"><div class="dmn-shell">
+        <div class="dmn-rail">
+          <div class="dmn-brand">RenitaOS</div>
+          <nav aria-label="Primary">
+            <a href="#/home"><svg class="dmn-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 11l9-8 9 8M5 9v11h14V9"/></svg>Home</a>
+            <a href="#/today"><svg class="dmn-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M3 10h18M8 2v4M16 2v4"/></svg>Today</a>
+            <a href="#/inbox"><svg class="dmn-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 12h5l2 3h4l2-3h5M4 5h16v14H4z"/></svg>Inbox <span class="dmn-n" id="dmnNavInboxCount">(…)</span></a>
+            <a href="#/explore"><svg class="dmn-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="11" cy="11" r="7"/><path d="M11 6l2.5 5L11 11l-5 2.5z" fill="currentColor" stroke="none"/></svg>Explore</a>
+            <a href="#/search"><svg class="dmn-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>Search</a>
+          </nav>
+        </div>
+        <div class="dmn-col" id="dmnMain"></div>
+        <aside class="dmn-props" id="dmnProps"></aside>
+      </div></div>
+    `;
+    dmnMain = document.getElementById('dmnMain');
+    dmnProps = document.getElementById('dmnProps');
+    framedMounted = true;
+  }
+
+  function paintDomainProfile() {
+    const s = domainProfileState;
+    if (s.loading) {
+      dmnMain.innerHTML = `<div class="dmn-status">Loading…</div>`;
+      dmnProps.innerHTML = renderCaptureAffordance();
+      return;
+    }
+    if (s.error) {
+      dmnMain.innerHTML = `<div class="dmn-status dmn-status--error">${escapeHtml(s.error)}</div>`;
+      dmnProps.innerHTML = renderCaptureAffordance();
+      return;
+    }
+    const d = s.data;
+    dmnMain.innerHTML = `
+      ${renderDomainHeader(d)}
+      ${renderWorkSpine(d.projectGroups, s.collapsedStatus)}
+      ${renderInboxAdmin(d.catchAllTasks)}
+      ${renderDomainShelf(d.shelfTabs, s.activeShelfTab)}
+    `;
+    dmnProps.innerHTML = `
+      ${renderCaptureAffordance()}
+      ${renderProgressSection(d.progressAgg)}
+      ${renderActivitySection(d.activity)}
+      ${renderDatesSection(d)}
+    `;
+  }
+
+  async function mountDomainProfile(id) {
+    const s = domainProfileState;
+    s.id = id;
+    s.loading = true;
+    s.error = null;
+    s.data = null;
+    s.collapsedStatus = new Set();
+    s.activeShelfTab = 'notes';
+    ensureFramedShell();
+    paintDomainProfile();
+    try {
+      const data = await loadDomainProfile(id);
+      if (s.id !== id) return; // route moved on while this was in flight
+      data.projectGroups.forEach((g) => { if (g.collapsedDefault) s.collapsedStatus.add(g.key); });
+      s.data = data;
+    } catch (err) {
+      console.error('Failed to load domain profile', err);
+      if (s.id !== id) return;
+      s.error = err.message || 'Could not load this domain — check the Worker.';
+    } finally {
+      if (s.id === id) {
+        s.loading = false;
+        paintDomainProfile();
+      }
+    }
+  }
+
+  function onDomainStatusToggle(key) {
+    const s = domainProfileState;
+    if (s.collapsedStatus.has(key)) s.collapsedStatus.delete(key);
+    else s.collapsedStatus.add(key);
+    paintDomainProfile();
+  }
+
+  // Mirrors onProjectTabClick/onRelationTabClick's hybrid-load shape: Notes
+  // is always pre-hydrated (the default tab), so only Resources/Routines
+  // ever actually take the lazy-fetch path; Sessions is already hydrated
+  // at 0 and never queried.
+  async function onDomainShelfTabClick(tabKey) {
+    const s = domainProfileState;
+    if (!s.data) return;
+    const id = s.id;
+    s.activeShelfTab = tabKey;
+    paintDomainProfile();
+    const tab = s.data.shelfTabs.find((t) => t.key === tabKey);
+    if (!tab || tab.hydrated || tab.loading) return;
+    if (tab.count === 0) {
+      tab.records = [];
+      tab.hydrated = true;
+      paintDomainProfile();
+      return;
+    }
+    tab.loading = true;
+    paintDomainProfile();
+    try {
+      const records = await queryTabRecords(tabKey, REL_DB_META[tabKey], tab.relProp, id);
+      const chip = { label: s.data.domainMeta.code, fill: s.data.domainMeta.fill, text: s.data.domainMeta.text };
+      records.forEach((r) => { r.domainChip = chip; });
+      if (s.id !== id) return;
+      tab.records = records;
+      tab.count = records.length;
+      tab.hydrated = true;
+    } catch (err) {
+      console.error('Failed to load domain shelf tab', tabKey, err);
+      if (s.id !== id) return;
+      tab.error = err.message || 'Could not load this list.';
+    } finally {
+      tab.loading = false;
+      if (s.id === id && s.activeShelfTab === tabKey) paintDomainProfile();
+    }
+  }
+
+  // Delegated once on #framedRoot (present from load, per its own comment
+  // in the body markup) — same data-pf-nav convention the rest of the app's
+  // profiles use, so rows rendered by the shared renderRelationRow/
+  // renderRelationTabPanel navigate correctly without any Domain-specific
+  // handling.
+  framedRoot.addEventListener('click', (e) => {
+    const navEl = e.target.closest('[data-pf-nav]');
+    if (navEl) { location.hash = `#/${navEl.dataset.pfNav}`; return; }
+    const shelfTabEl = e.target.closest('[data-dmn-shelf-tab]');
+    if (shelfTabEl) { onDomainShelfTabClick(shelfTabEl.dataset.dmnShelfTab); return; }
+    const statusToggleEl = e.target.closest('[data-dmn-status-toggle]');
+    if (statusToggleEl) onDomainStatusToggle(statusToggleEl.dataset.dmnStatusToggle);
+  });
+
   // Relation-pill label taps (any profile) navigate via the hash router,
   // regardless of which route is currently mounted — unlike the Triage
   // click delegation below, which is gated to the inbox route only. Tab
@@ -4390,6 +5154,12 @@
     // The Inbox-triage "N to Sort" pill doesn't belong on a record's own
     // profile (real or still-stubbed) — Home and Inbox keep it.
     inboxPill.classList.toggle('hidden', ENTITY_ROUTES.includes(route.name));
+    // Domain is the framed shell's first consumer (Addendum 2) — scoped to
+    // just this route for now, per the build brief's "do not destabilize
+    // the existing shell or the other routes." body.dmn-route swaps which
+    // of .shell / #framedRoot is visible (see the "Framed shell" CSS block);
+    // every other route keeps rendering into #content exactly as before.
+    document.body.classList.toggle('dmn-route', route.name === 'domain');
     if (route.name === 'inbox') {
       mountTriage(content);
     } else if (route.name === 'note') {
@@ -4398,6 +5168,8 @@
       mountTaskProfile(content, route.id);
     } else if (route.name === 'project') {
       mountProjectProfile(content, route.id);
+    } else if (route.name === 'domain') {
+      mountDomainProfile(route.id);
     } else if (route.name === 'tag' || route.name === 'collection' || route.name === 'person') {
       mountRelationProfile(content, route.name, route.id);
     } else if (ENTITY_ROUTES.includes(route.name)) {
