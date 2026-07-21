@@ -874,6 +874,11 @@
      body/tabs, reusing the existing .pf-pill--value markup unchanged
      (renderValuePill) — only the zone moved, same as every other pill. */
   .dmn-valuepills { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 20px; }
+  /* Mobile-only duplicate of the Dates rows, injected into this same row so
+     they can sit beside Type/Status/Priority (see the note/task/project
+     media-query rules below) — hidden here so desktop keeps the single
+     right-rail Dates section untouched. */
+  .dmn-datepills-inline { display: none; }
   .dmn-sec { margin-bottom: 28px; }
   .dmn-sec-hd { font-family: 'IBM Plex Sans', sans-serif; font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: oklch(0.55 0.012 75); margin: 0 0 10px; }
   .dmn-status { font-family: 'IBM Plex Sans', sans-serif; font-size: 14px; color: oklch(0.55 0.012 75); padding: 20px 2px; }
@@ -1084,38 +1089,35 @@
     body[data-route="note"] .dmn-valuepills,
     body[data-route="task"] .dmn-valuepills,
     body[data-route="project"] .dmn-valuepills { order: 4; }
-    body[data-route="note"] .dmn-prop-sec--dates,
-    body[data-route="task"] .dmn-prop-sec--dates,
-    body[data-route="project"] .dmn-prop-sec--dates { order: 5; }
     body[data-route="note"] .dmn-col .dmn-sec,
     body[data-route="task"] .dmn-col .dmn-sec,
-    body[data-route="project"] .dmn-col .dmn-sec { order: 6; }
+    body[data-route="project"] .dmn-col .dmn-sec { order: 5; }
     body[data-route="note"] .dmn-prop-sec--properties,
     body[data-route="task"] .dmn-prop-sec--properties,
-    body[data-route="project"] .dmn-prop-sec--properties { order: 7; }
+    body[data-route="project"] .dmn-prop-sec--properties { order: 6; }
     body[data-route="note"] .dmn-prop-sec--log,
     body[data-route="task"] .dmn-prop-sec--log,
-    body[data-route="project"] .dmn-prop-sec--log { order: 8; }
+    body[data-route="project"] .dmn-prop-sec--log { order: 7; }
 
-    /* Dates-as-pills: the stacked label/value .dmn-kv rows read fine in the
-       right rail, but sitting between the value pills and the body on
-       mobile they push the body down further than the space is worth.
-       Reusing .pf-pill's own chip look (no markup change — same .dmn-kv
-       spans, just restyled) keeps it to one compact row, matching the
-       Type/Status pills right above it. */
+    /* Dates-as-pills, merged into the value-pill row: no more standalone
+       Dates block or "Dates" heading on mobile — the same .dmn-kv markup
+       (rendered twice: once here, once in the untouched desktop rail via
+       render*DateRows) now sits inline with Type/Status/Priority. The right
+       rail's own Dates section is hidden here since its content already
+       shows up above. .dmn-datepills-inline is display:none by default
+       (see the base rule below this media query) so this only takes effect
+       on these three mobile routes; display:contents lets its .dmn-kv
+       children join .dmn-valuepills's own flex-wrap row directly instead of
+       being boxed inside another nested container. */
     body[data-route="note"] .dmn-prop-sec--dates,
     body[data-route="task"] .dmn-prop-sec--dates,
-    body[data-route="project"] .dmn-prop-sec--dates {
-      display: flex; flex-wrap: wrap; align-items: center; gap: 8px;
-    }
-    body[data-route="note"] .dmn-prop-sec--dates h3,
-    body[data-route="task"] .dmn-prop-sec--dates h3,
-    body[data-route="project"] .dmn-prop-sec--dates h3 {
-      flex: 0 0 100%; margin: 0 0 2px;
-    }
-    body[data-route="note"] .dmn-prop-sec--dates .dmn-kv,
-    body[data-route="task"] .dmn-prop-sec--dates .dmn-kv,
-    body[data-route="project"] .dmn-prop-sec--dates .dmn-kv {
+    body[data-route="project"] .dmn-prop-sec--dates { display: none; }
+    body[data-route="note"] .dmn-datepills-inline,
+    body[data-route="task"] .dmn-datepills-inline,
+    body[data-route="project"] .dmn-datepills-inline { display: contents; }
+    body[data-route="note"] .dmn-valuepills .dmn-kv,
+    body[data-route="task"] .dmn-valuepills .dmn-kv,
+    body[data-route="project"] .dmn-valuepills .dmn-kv {
       display: inline-flex; align-items: center; gap: 6px; width: auto;
       padding: 6px 12px; border-radius: var(--radius-sm);
       background: var(--surface-soft); font-size: 12px; font-weight: 600;
@@ -3601,10 +3603,16 @@
   }
 
   // DATES — meaningful user dates only; Created/Last edited moved to Log.
+  // Rows extracted from the section wrapper so the exact same markup can
+  // also be dropped into the mobile value-pill row (see renderValuePillRow's
+  // caller in paintNoteProfile) without duplicating the date logic itself.
+  function renderNoteDateRows(n) {
+    return `<div class="dmn-kv"><span class="k">Date</span><span class="v">${n.date && n.date.start ? '🗓 ' + escapeHtml(formatDateShort(n.date.start)) : '—'}</span></div>`;
+  }
   function renderNoteDates(n) {
     return `<section class="dmn-prop-sec dmn-prop-sec--dates">
       <h3>Dates</h3>
-      <div class="dmn-kv"><span class="k">Date</span><span class="v">${n.date && n.date.start ? '🗓 ' + escapeHtml(formatDateShort(n.date.start)) : '—'}</span></div>
+      ${renderNoteDateRows(n)}
     </section>`;
   }
 
@@ -3761,11 +3769,17 @@
   }
 
   // DATES — meaningful user dates only; Created/Last edited moved to Log.
+  // Rows extracted from the section wrapper so the exact same markup can
+  // also be dropped into the mobile value-pill row (see renderValuePillRow's
+  // caller in paintTaskProfile) without duplicating the date logic itself.
+  function renderTaskDateRows(t) {
+    return `<div class="dmn-kv"><span class="k">Due Date</span><span class="v">${t.dueDate && t.dueDate.start ? '🗓 ' + escapeHtml(formatDateShort(t.dueDate.start)) : '—'}</span></div>
+      <div class="dmn-kv"><span class="k">Do Date</span><span class="v">${t.doDate && t.doDate.start ? '🗓 ' + escapeHtml(formatDateShort(t.doDate.start)) : '—'}</span></div>`;
+  }
   function renderTaskDates(t) {
     return `<section class="dmn-prop-sec dmn-prop-sec--dates">
       <h3>Dates</h3>
-      <div class="dmn-kv"><span class="k">Due Date</span><span class="v">${t.dueDate && t.dueDate.start ? '🗓 ' + escapeHtml(formatDateShort(t.dueDate.start)) : '—'}</span></div>
-      <div class="dmn-kv"><span class="k">Do Date</span><span class="v">${t.doDate && t.doDate.start ? '🗓 ' + escapeHtml(formatDateShort(t.doDate.start)) : '—'}</span></div>
+      ${renderTaskDateRows(t)}
     </section>`;
   }
 
@@ -3829,7 +3843,7 @@
     }
     const n = noteProfileState.data;
     const bodyHtml = n.body ? `<div class="pf-body">${escapeHtml(n.body)}</div>` : `<div class="pf-body pf-body--empty">(empty)</div>`;
-    dmnMain.innerHTML = `${renderNoteHeader(n)}${renderValuePillRow(renderNoteValuePills(n))}<section class="dmn-sec">${bodyHtml}</section>`;
+    dmnMain.innerHTML = `${renderNoteHeader(n)}${renderValuePillRow(renderNoteValuePills(n) + `<span class="dmn-datepills-inline">${renderNoteDateRows(n)}</span>`)}<section class="dmn-sec">${bodyHtml}</section>`;
     dmnProps.innerHTML = `${renderCaptureAffordance()}${renderNoteDates(n)}${renderNoteProperties(n)}${renderNoteLog(n)}`;
   }
 
@@ -3871,7 +3885,7 @@
     }
     const t = taskProfileState.data;
     const bodyHtml = t.body ? `<div class="pf-body">${escapeHtml(t.body)}</div>` : `<div class="pf-body pf-body--empty">(empty)</div>`;
-    dmnMain.innerHTML = `${renderTaskHeader(t)}${renderValuePillRow(renderTaskValuePills(t))}<section class="dmn-sec">${bodyHtml}</section>`;
+    dmnMain.innerHTML = `${renderTaskHeader(t)}${renderValuePillRow(renderTaskValuePills(t) + `<span class="dmn-datepills-inline">${renderTaskDateRows(t)}</span>`)}<section class="dmn-sec">${bodyHtml}</section>`;
     dmnProps.innerHTML = `${renderCaptureAffordance()}${renderTaskDates(t)}${renderTaskProperties(t)}${renderTaskLog(t)}`;
   }
 
@@ -4675,16 +4689,22 @@
   }
 
   // DATES — meaningful user dates only; Created/Last edited moved to Log.
-  function renderProjectDates(p) {
+  // Rows extracted from the section wrapper so the exact same markup can
+  // also be dropped into the mobile value-pill row (see renderValuePillRow's
+  // caller in paintProjectProfile) without duplicating the date logic itself.
+  function renderProjectDateRows(p) {
     const contextRow = projectContextualDateRow(p);
     const contextRowHtml = contextRow
       ? `<div class="dmn-kv"><span class="k">${escapeHtml(contextRow.label)}</span><span class="v">${contextRow.date && contextRow.date.start ? '🗓 ' + escapeHtml(formatDateShort(contextRow.date.start)) : '—'}</span></div>`
       : '';
+    return `<div class="dmn-kv"><span class="k">Start Date</span><span class="v">${p.startDate && p.startDate.start ? '🗓 ' + escapeHtml(formatDateShort(p.startDate.start)) : '—'}</span></div>
+      <div class="dmn-kv"><span class="k">Target Deadline</span><span class="v">${p.deadline && p.deadline.start ? '🗓 ' + escapeHtml(formatDateShort(p.deadline.start)) : '—'}</span></div>
+      ${contextRowHtml}`;
+  }
+  function renderProjectDates(p) {
     return `<section class="dmn-prop-sec dmn-prop-sec--dates">
       <h3>Dates</h3>
-      <div class="dmn-kv"><span class="k">Start Date</span><span class="v">${p.startDate && p.startDate.start ? '🗓 ' + escapeHtml(formatDateShort(p.startDate.start)) : '—'}</span></div>
-      <div class="dmn-kv"><span class="k">Target Deadline</span><span class="v">${p.deadline && p.deadline.start ? '🗓 ' + escapeHtml(formatDateShort(p.deadline.start)) : '—'}</span></div>
-      ${contextRowHtml}
+      ${renderProjectDateRows(p)}
     </section>`;
   }
 
@@ -4749,7 +4769,7 @@
       ? renderProjectTasksTabPanel(activeTab, s.collapsedStatus)
       : renderRelationTabPanel(activeTab, 'Project');
 
-    dmnMain.innerHTML = `${renderProjectHeader(p)}${renderValuePillRow(renderProjectValuePills(p))}<section class="dmn-sec">${tabsHtml}${panelHtml}</section>`;
+    dmnMain.innerHTML = `${renderProjectHeader(p)}${renderValuePillRow(renderProjectValuePills(p) + `<span class="dmn-datepills-inline">${renderProjectDateRows(p)}</span>`)}<section class="dmn-sec">${tabsHtml}${panelHtml}</section>`;
     dmnProps.innerHTML = `${renderCaptureAffordance()}${renderProjectProgressRail(p)}${renderProjectDates(p)}${renderProjectProperties(p)}${renderProjectLog(p)}`;
   }
 
