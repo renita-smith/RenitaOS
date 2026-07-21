@@ -1004,18 +1004,51 @@
     margin-right: 6px; vertical-align: middle;
   }
 
-  /* ---- Mobile: single column. Right-rail hierarchy pass order: Capture,
-     Progress, Activity (Domain only), Dates (meaningful dates), Properties
-     (relations), [main column], Log (Created/Last edited — pinned last,
-     same trailing spot "Dates" held before it was split/renamed). ---- */
+  /* ---- Mobile: single column. Nav becomes a fixed bottom tab bar (mobile
+     fixes pass) instead of the horizontally-scrolling top strip — the same
+     "fixed, safe-area-aware, evenly distributed" shape as the old shell's
+     .shell-nav bottom bar, restyled to the framed tokens. Section order:
+     Capture, Progress, Activity (Domain only), [main column: header + value
+     pills + body/tabs], Dates (meaningful dates), Properties (relations),
+     Log (Created/Last edited — pinned last). The record leads on Note/
+     Task/Project (main column sorts ahead of Dates/Properties); Domain has
+     neither section to reorder around, so its own Progress/Activity-above-
+     the-work-spine arrangement is unchanged. ---- */
   @media (max-width: 820px) {
     .dmn-inner { margin: 0; border-radius: 0; min-height: 100vh; }
-    .dmn-shell { display: flex; flex-direction: column; gap: 20px; padding: 16px 16px 48px; }
+    .dmn-shell {
+      display: flex; flex-direction: column; gap: 20px;
+      /* Bottom padding clears the fixed tab bar (measured ~76px tall:
+         1px border + 6px+6px padding + 20px icon + 2px gap + ~13px label
+         line-height) with room to spare, plus the home indicator /
+         gesture-nav safe area on notched phones (already inside the bar's
+         own padding, so this doesn't need to double it). */
+      padding: 16px 16px calc(92px + env(safe-area-inset-bottom));
+    }
 
-    .dmn-rail { order: 0; position: static; display: flex; align-items: center; gap: 4px; overflow-x: auto; padding-bottom: 4px; }
+    /* Fixed bottom tab bar — all five items always visible, evenly
+       distributed, icon above a short label (the compact shape that
+       reliably fits five tabs on a phone width without clipping). */
+    .dmn-rail {
+      order: 0;
+      /* top:auto explicitly clears the desktop rule's top:24px — top/bottom
+         cascade independently per-property, so left unset here it would
+         otherwise still win and pin this to the top of the viewport
+         instead of the bottom. */
+      position: fixed; top: auto; left: 0; right: 0; bottom: 0; z-index: 20;
+      background: #F6F2E9;
+      border-top: 1px solid #DED8CA;
+      padding: 6px 4px max(6px, env(safe-area-inset-bottom));
+    }
     .dmn-brand { display: none; }
-    .dmn-rail nav { flex-direction: row; gap: 2px; }
-    .dmn-rail a .dmn-n { margin-left: 5px; }
+    .dmn-rail nav { flex-direction: row; justify-content: space-around; gap: 0; }
+    .dmn-rail a {
+      flex-direction: column; flex: 1; min-width: 0;
+      gap: 2px; padding: 4px 2px; border-radius: 8px;
+      font-size: 10px; text-align: center;
+    }
+    .dmn-rail a .dmn-ic { width: 20px; height: 20px; margin: 0 auto; }
+    .dmn-rail a .dmn-n { margin-left: 0; font-size: 9px; }
 
     /* Flatten the rail's own children into the shell's flex flow so each
        section can be placed independently around the main column
@@ -1024,9 +1057,9 @@
     .dmn-capture { order: 1; }
     .dmn-prop-sec--progress { order: 2; }
     .dmn-prop-sec--activity { order: 3; }
-    .dmn-prop-sec--dates { order: 4; }
-    .dmn-prop-sec--properties { order: 5; }
-    .dmn-col { order: 6; }
+    .dmn-col { order: 4; }
+    .dmn-prop-sec--dates { order: 5; }
+    .dmn-prop-sec--properties { order: 6; }
     .dmn-prop-sec--log { order: 7; }
 
     .dmn-task-grid { grid-template-columns: 1fr; }
