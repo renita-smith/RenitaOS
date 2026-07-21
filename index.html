@@ -1089,15 +1089,21 @@
     body[data-route="note"] .dmn-valuepills,
     body[data-route="task"] .dmn-valuepills,
     body[data-route="project"] .dmn-valuepills { order: 4; }
+    /* Project only: Progress moves from before the header (shared rule
+       above, order 2 — fine for Domain, which has no pills/body ahead of
+       it) to between the pills and the Tasks/Notes tabs panel, so it reads
+       as "here's what you're looking at, then how far along it is, then
+       the list itself" instead of leading with a bare progress bar. */
+    body[data-route="project"] .dmn-prop-sec--progress { order: 5; }
     body[data-route="note"] .dmn-col .dmn-sec,
     body[data-route="task"] .dmn-col .dmn-sec,
-    body[data-route="project"] .dmn-col .dmn-sec { order: 5; }
+    body[data-route="project"] .dmn-col .dmn-sec { order: 6; }
     body[data-route="note"] .dmn-prop-sec--properties,
     body[data-route="task"] .dmn-prop-sec--properties,
-    body[data-route="project"] .dmn-prop-sec--properties { order: 6; }
+    body[data-route="project"] .dmn-prop-sec--properties { order: 7; }
     body[data-route="note"] .dmn-prop-sec--log,
     body[data-route="task"] .dmn-prop-sec--log,
-    body[data-route="project"] .dmn-prop-sec--log { order: 7; }
+    body[data-route="project"] .dmn-prop-sec--log { order: 8; }
 
     /* Dates-as-pills, merged into the value-pill row: no more standalone
        Dates block or "Dates" heading on mobile — the same .dmn-kv markup
