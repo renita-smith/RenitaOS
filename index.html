@@ -1096,6 +1096,30 @@
     body[data-route="note"] .dmn-prop-sec--log,
     body[data-route="task"] .dmn-prop-sec--log,
     body[data-route="project"] .dmn-prop-sec--log { order: 8; }
+
+    /* Dates-as-pills: the stacked label/value .dmn-kv rows read fine in the
+       right rail, but sitting between the value pills and the body on
+       mobile they push the body down further than the space is worth.
+       Reusing .pf-pill's own chip look (no markup change — same .dmn-kv
+       spans, just restyled) keeps it to one compact row, matching the
+       Type/Status pills right above it. */
+    body[data-route="note"] .dmn-prop-sec--dates,
+    body[data-route="task"] .dmn-prop-sec--dates,
+    body[data-route="project"] .dmn-prop-sec--dates {
+      display: flex; flex-wrap: wrap; align-items: center; gap: 8px;
+    }
+    body[data-route="note"] .dmn-prop-sec--dates h3,
+    body[data-route="task"] .dmn-prop-sec--dates h3,
+    body[data-route="project"] .dmn-prop-sec--dates h3 {
+      flex: 0 0 100%; margin: 0 0 2px;
+    }
+    body[data-route="note"] .dmn-prop-sec--dates .dmn-kv,
+    body[data-route="task"] .dmn-prop-sec--dates .dmn-kv,
+    body[data-route="project"] .dmn-prop-sec--dates .dmn-kv {
+      display: inline-flex; align-items: center; gap: 6px; width: auto;
+      padding: 6px 12px; border-radius: var(--radius-sm);
+      background: var(--surface-soft); font-size: 12px; font-weight: 600;
+    }
   }
 </style>
 </head>
