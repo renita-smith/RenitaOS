@@ -1064,22 +1064,38 @@
 
     .dmn-task-grid { grid-template-columns: 1fr; }
 
-    /* Note-only: Dates sits between the value-pill row and the body,
-       instead of after it — Properties/Log stay below the body, unchanged.
-       Scoped to this one route via body[data-route="note"] (set in the
-       router) so the shared .dmn-col/.dmn-prop-sec--* order rules above
-       stay exactly as they are for every other profile. .dmn-col becomes
-       display:contents here (same "escape into the flex flow" technique
-       .dmn-props already uses) so its own children — the header, the value
-       pills, and the body's .dmn-sec — can each take an independent order
-       alongside Dates instead of moving as one fixed block. */
-    body[data-route="note"] .dmn-col { display: contents; }
-    body[data-route="note"] .dmn-head { order: 4; }
-    body[data-route="note"] .dmn-valuepills { order: 4; }
-    body[data-route="note"] .dmn-prop-sec--dates { order: 5; }
-    body[data-route="note"] .dmn-col .dmn-sec { order: 6; }
-    body[data-route="note"] .dmn-prop-sec--properties { order: 7; }
-    body[data-route="note"] .dmn-prop-sec--log { order: 8; }
+    /* Note/Task/Project only: Dates sits between the value-pill row and the
+       body, instead of after it — Progress (Project only, order 2) and
+       Properties/Log stay exactly where they were, below the body.
+       Scoped to these routes via body[data-route] (set in the router) so
+       the shared .dmn-col/.dmn-prop-sec--* order rules above stay exactly
+       as they are for every other profile (Domain/Tag/Collection/Person).
+       .dmn-col becomes display:contents here (same "escape into the flex
+       flow" technique .dmn-props already uses) so its own children — the
+       header, the value pills, and the body's .dmn-sec — can each take an
+       independent order alongside Dates instead of moving as one fixed
+       block. */
+    body[data-route="note"] .dmn-col,
+    body[data-route="task"] .dmn-col,
+    body[data-route="project"] .dmn-col { display: contents; }
+    body[data-route="note"] .dmn-head,
+    body[data-route="task"] .dmn-head,
+    body[data-route="project"] .dmn-head,
+    body[data-route="note"] .dmn-valuepills,
+    body[data-route="task"] .dmn-valuepills,
+    body[data-route="project"] .dmn-valuepills { order: 4; }
+    body[data-route="note"] .dmn-prop-sec--dates,
+    body[data-route="task"] .dmn-prop-sec--dates,
+    body[data-route="project"] .dmn-prop-sec--dates { order: 5; }
+    body[data-route="note"] .dmn-col .dmn-sec,
+    body[data-route="task"] .dmn-col .dmn-sec,
+    body[data-route="project"] .dmn-col .dmn-sec { order: 6; }
+    body[data-route="note"] .dmn-prop-sec--properties,
+    body[data-route="task"] .dmn-prop-sec--properties,
+    body[data-route="project"] .dmn-prop-sec--properties { order: 7; }
+    body[data-route="note"] .dmn-prop-sec--log,
+    body[data-route="task"] .dmn-prop-sec--log,
+    body[data-route="project"] .dmn-prop-sec--log { order: 8; }
   }
 </style>
 </head>
