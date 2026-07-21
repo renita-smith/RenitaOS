@@ -1063,6 +1063,23 @@
     .dmn-prop-sec--log { order: 7; }
 
     .dmn-task-grid { grid-template-columns: 1fr; }
+
+    /* Note-only: Dates sits between the value-pill row and the body,
+       instead of after it — Properties/Log stay below the body, unchanged.
+       Scoped to this one route via body[data-route="note"] (set in the
+       router) so the shared .dmn-col/.dmn-prop-sec--* order rules above
+       stay exactly as they are for every other profile. .dmn-col becomes
+       display:contents here (same "escape into the flex flow" technique
+       .dmn-props already uses) so its own children — the header, the value
+       pills, and the body's .dmn-sec — can each take an independent order
+       alongside Dates instead of moving as one fixed block. */
+    body[data-route="note"] .dmn-col { display: contents; }
+    body[data-route="note"] .dmn-head { order: 4; }
+    body[data-route="note"] .dmn-valuepills { order: 4; }
+    body[data-route="note"] .dmn-prop-sec--dates { order: 5; }
+    body[data-route="note"] .dmn-col .dmn-sec { order: 6; }
+    body[data-route="note"] .dmn-prop-sec--properties { order: 7; }
+    body[data-route="note"] .dmn-prop-sec--log { order: 8; }
   }
 </style>
 </head>
@@ -5434,6 +5451,11 @@
     // block); Home and Inbox are explicitly out of scope for panel-wrapping
     // this sprint and keep rendering into #content exactly as before.
     document.body.classList.toggle('dmn-route', ENTITY_ROUTES.includes(route.name));
+    // Lets a profile-specific mobile CSS override target just its own
+    // route (e.g. Note's "Dates above the body" reorder below) without
+    // touching the shared .dmn-col/.dmn-prop-sec--* rules every other
+    // profile also uses.
+    document.body.dataset.route = route.name;
     if (route.name === 'inbox') {
       mountTriage(content);
     } else if (route.name === 'note') {
