@@ -869,6 +869,11 @@
 
   /* ---- Main column ---- */
   .dmn-col { min-width: 0; }
+  /* Right-rail hierarchy pass — the record's classification-only value
+     pills (Type/Status/Priority) sit here, between the header and the
+     body/tabs, reusing the existing .pf-pill--value markup unchanged
+     (renderValuePill) — only the zone moved, same as every other pill. */
+  .dmn-valuepills { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 20px; }
   .dmn-sec { margin-bottom: 28px; }
   .dmn-sec-hd { font-family: 'IBM Plex Sans', sans-serif; font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: oklch(0.55 0.012 75); margin: 0 0 10px; }
   .dmn-status { font-family: 'IBM Plex Sans', sans-serif; font-size: 14px; color: oklch(0.55 0.012 75); padding: 20px 2px; }
@@ -999,11 +1004,10 @@
     margin-right: 6px; vertical-align: middle;
   }
 
-  /* ---- Mobile: single column. Domain's order = Capture, Progress,
-     Activity, Work, Inbox/Admin, Shelf, Dates (build brief §2 + §6).
-     Every other framed profile follows the same "metadata rail trails the
-     main content" pattern: Capture, Progress, [main column], Dates,
-     Properties. ---- */
+  /* ---- Mobile: single column. Right-rail hierarchy pass order: Capture,
+     Progress, Activity (Domain only), Dates (meaningful dates), Properties
+     (relations), [main column], Log (Created/Last edited — pinned last,
+     same trailing spot "Dates" held before it was split/renamed). ---- */
   @media (max-width: 820px) {
     .dmn-inner { margin: 0; border-radius: 0; min-height: 100vh; }
     .dmn-shell { display: flex; flex-direction: column; gap: 20px; padding: 16px 16px 48px; }
@@ -1013,17 +1017,17 @@
     .dmn-rail nav { flex-direction: row; gap: 2px; }
     .dmn-rail a .dmn-n { margin-left: 5px; }
 
-    /* Flatten the rail's own children into the shell's flex flow so
-       Progress/Activity/Dates/Properties can be placed independently
-       around the main column (Addendum 2's "display: contents" mobile
-       technique). */
+    /* Flatten the rail's own children into the shell's flex flow so each
+       section can be placed independently around the main column
+       (Addendum 2's "display: contents" mobile technique). */
     .dmn-props { display: contents; }
     .dmn-capture { order: 1; }
     .dmn-prop-sec--progress { order: 2; }
     .dmn-prop-sec--activity { order: 3; }
-    .dmn-col { order: 4; }
-    .dmn-prop-sec--dates { order: 5; }
-    .dmn-prop-sec--properties { order: 6; }
+    .dmn-prop-sec--dates { order: 4; }
+    .dmn-prop-sec--properties { order: 5; }
+    .dmn-col { order: 6; }
+    .dmn-prop-sec--log { order: 7; }
 
     .dmn-task-grid { grid-template-columns: 1fr; }
   }
@@ -3473,6 +3477,15 @@
     return `<div class="dmn-prop-row"><div class="dmn-prop-label">${escapeHtml(label)}</div><div class="dmn-prop-value">${innerHtml}</div></div>`;
   }
 
+  // Right-rail hierarchy pass — the classification-only value pills
+  // (Type/Status/Priority) now render here, in the main column between the
+  // header and the body/tabs, instead of inside the right rail's Properties
+  // list. `pillsHtml` is built from the unchanged renderValuePill; omitted
+  // entirely when empty (Tag/Person/Domain carry no value pills).
+  function renderValuePillRow(pillsHtml) {
+    return pillsHtml ? `<div class="dmn-valuepills">${pillsHtml}</div>` : '';
+  }
+
   // Notes are cross-cutting (many domains/projects can share one note), so
   // there's no structural parent for a breadcrumb path — just the note's
   // own unique-id handle ("NOTE-247"), read-only, flat.
@@ -3483,21 +3496,42 @@
     </div>`;
   }
 
+  // Right-rail hierarchy pass — Type/Status move to the main column's
+  // value-pill row; this stays exactly the same renderValuePill markup,
+  // just relocated (see renderValuePillRow's caller in paintNoteProfile).
+  function renderNoteValuePills(n) {
+    const typeHtml = n.types.length
+      ? n.types.map((t) => {
+          const { icon, name } = splitTrailingEmoji(t);
+          return renderValuePill(`${icon ? `<span class="pf-pill-icon">${escapeHtml(icon)}</span>` : ''}${escapeHtml(name)}`);
+        }).join('')
+      : renderValuePill('No type');
+    const statusHtml = renderValuePill(n.statusName ? escapeHtml(n.statusName) : 'No status');
+    return typeHtml + statusHtml;
+  }
+
+  // DATES — meaningful user dates only; Created/Last edited moved to Log.
   function renderNoteDates(n) {
     return `<section class="dmn-prop-sec dmn-prop-sec--dates">
       <h3>Dates</h3>
       <div class="dmn-kv"><span class="k">Date</span><span class="v">${n.date && n.date.start ? '🗓 ' + escapeHtml(formatDateShort(n.date.start)) : '—'}</span></div>
+    </section>`;
+  }
+
+  function renderNoteLog(n) {
+    return `<section class="dmn-prop-sec dmn-prop-sec--log">
+      <h3>Log</h3>
       <div class="dmn-kv"><span class="k">Created</span><span class="v">${escapeHtml(formatDateTime(n.createdTime))}</span></div>
       <div class="dmn-kv"><span class="k">Last edited</span><span class="v">${escapeHtml(formatDateTime(n.lastEditedTime))}</span></div>
     </section>`;
   }
 
-  // Framed-Layout Retrofit §4 — Note's right-rail Properties, in the
-  // brief's stated order: Domain, Type, Status, People, Tags, Collections,
-  // Project, Resources. All eight always show a row — populated ones as
-  // solid, navigable pills; empty ones as a labeled ghost slot (read-side
-  // only, no add action yet) — so the field frame reads complete either
-  // way, same rule the old pf-pillrow followed.
+  // Right-rail hierarchy pass — Note's Properties is now relations only
+  // (Type/Status moved to the main-column pill row): Domain, People, Tags,
+  // Collections, Project, Resources. All six always show a row — populated
+  // ones as solid, navigable pills; empty ones as a labeled ghost slot
+  // (read-side only, no add action yet) — so the field frame reads
+  // complete either way, same rule the old pf-pillrow followed.
   function renderNoteProperties(n) {
     // pageId in DOMAIN_META is stored dashless (copied from a Notion URL);
     // the Notion API always returns relation ids WITH dashes — normalizeDbId
@@ -3515,13 +3549,6 @@
           styleAttr: domainMeta ? `background:${domainMeta.fill};color:${domainMeta.text};` : '',
         })
       : renderGhostPill('Domain');
-    const typeHtml = n.types.length
-      ? n.types.map((t) => {
-          const { icon, name } = splitTrailingEmoji(t);
-          return renderValuePill(`${icon ? `<span class="pf-pill-icon">${escapeHtml(icon)}</span>` : ''}${escapeHtml(name)}`);
-        }).join('')
-      : renderValuePill('No type');
-    const statusHtml = renderValuePill(n.statusName ? escapeHtml(n.statusName) : 'No status');
     const peopleHtml = n.people.length
       ? n.people.map((p) => renderRelPill({ label: p.name, icon: renderChipIcon(n.icons.people), navId: p.id, navRoute: 'person' })).join('')
       : renderGhostPill('Person');
@@ -3543,8 +3570,6 @@
     return `<section class="dmn-prop-sec dmn-prop-sec--properties">
       <h3>Properties</h3>
       ${renderPropRow('Domain', domainHtml)}
-      ${renderPropRow('Type', typeHtml)}
-      ${renderPropRow('Status', statusHtml)}
       ${renderPropRow('People', peopleHtml)}
       ${renderPropRow('Tags', tagsHtml)}
       ${renderPropRow('Collections', collectionsHtml)}
@@ -3634,19 +3659,38 @@
     </div>`;
   }
 
+  // Right-rail hierarchy pass — Status/Priority move to the main column's
+  // value-pill row; unchanged renderValuePill markup, just relocated.
+  // Priority stays plain text here (not stars) — same as before this pass,
+  // Task's own Priority pill never used renderPriorityValue (only Project's
+  // does); preserved rather than "fixed" since this slice is a pure reorg.
+  function renderTaskValuePills(t) {
+    const statusHtml = renderValuePill(t.statusName ? escapeHtml(t.statusName) : 'No status');
+    const priorityHtml = renderValuePill(t.priorityName ? escapeHtml(t.priorityName) : 'No priority');
+    return statusHtml + priorityHtml;
+  }
+
+  // DATES — meaningful user dates only; Created/Last edited moved to Log.
   function renderTaskDates(t) {
     return `<section class="dmn-prop-sec dmn-prop-sec--dates">
       <h3>Dates</h3>
       <div class="dmn-kv"><span class="k">Due Date</span><span class="v">${t.dueDate && t.dueDate.start ? '🗓 ' + escapeHtml(formatDateShort(t.dueDate.start)) : '—'}</span></div>
       <div class="dmn-kv"><span class="k">Do Date</span><span class="v">${t.doDate && t.doDate.start ? '🗓 ' + escapeHtml(formatDateShort(t.doDate.start)) : '—'}</span></div>
+    </section>`;
+  }
+
+  function renderTaskLog(t) {
+    return `<section class="dmn-prop-sec dmn-prop-sec--log">
+      <h3>Log</h3>
       <div class="dmn-kv"><span class="k">Created</span><span class="v">${escapeHtml(formatDateTime(t.createdTime))}</span></div>
       <div class="dmn-kv"><span class="k">Last edited</span><span class="v">${escapeHtml(formatDateTime(t.lastEditedTime))}</span></div>
     </section>`;
   }
 
-  // Framed-Layout Retrofit §4 — Task's right-rail Properties: Domain
-  // [read-only — no caret, it's a rollup through the project], Project,
-  // For/People, Status, Priority [stars].
+  // Right-rail hierarchy pass — Task's Properties is now relations only
+  // (Status/Priority moved to the main-column pill row): Domain [read-only
+  // — no caret, it's a rollup through the project], Project, People
+  // (field label renamed from "For" per this pass's spec).
   function renderTaskProperties(t) {
     const domainMeta = t.domainId
       ? (DOMAIN_META.find((d) => normalizeDbId(d.pageId) === normalizeDbId(t.domainId)) || NO_DOMAIN_META)
@@ -3667,25 +3711,16 @@
     const projectsHtml = t.projects.length
       ? t.projects.map((p) => renderRelPill({ label: p.name, icon: renderChipIcon(t.icons.projects), navId: p.id, navRoute: 'project' })).join('')
       : renderGhostPill('Project');
-    // Tasks have no Tags relation — Projects/People ("For") are the only
-    // other relation pills, per the profile spec.
+    // Tasks have no Tags relation — Projects/People are the only other
+    // relation pills, per the profile spec ("People" label, was "For").
     const peopleHtml = t.people.length
       ? t.people.map((p) => renderRelPill({ label: p.name, icon: renderChipIcon(t.icons.people), navId: p.id, navRoute: 'person' })).join('')
-      : renderGhostPill('For');
-    const statusHtml = renderValuePill(t.statusName ? escapeHtml(t.statusName) : 'No status');
-    // Priority displays as stars per RenitaOS-Conventions.md's pill rules
-    // ("Priority displays as stars rather than a color") — rendered
-    // verbatim from the live option value, never a guessed numeric-to-star
-    // mapping, so it already reads as stars if that's how the option is
-    // configured in Notion.
-    const priorityHtml = renderValuePill(t.priorityName ? escapeHtml(t.priorityName) : 'No priority');
+      : renderGhostPill('People');
     return `<section class="dmn-prop-sec dmn-prop-sec--properties">
       <h3>Properties</h3>
       ${domainRow}
       ${renderPropRow('Project', projectsHtml)}
-      ${renderPropRow('For', peopleHtml)}
-      ${renderPropRow('Status', statusHtml)}
-      ${renderPropRow('Priority', priorityHtml)}
+      ${renderPropRow('People', peopleHtml)}
     </section>`;
   }
 
@@ -3704,8 +3739,8 @@
     }
     const n = noteProfileState.data;
     const bodyHtml = n.body ? `<div class="pf-body">${escapeHtml(n.body)}</div>` : `<div class="pf-body pf-body--empty">(empty)</div>`;
-    dmnMain.innerHTML = `${renderNoteHeader(n)}<section class="dmn-sec">${bodyHtml}</section>`;
-    dmnProps.innerHTML = `${renderCaptureAffordance()}${renderNoteDates(n)}${renderNoteProperties(n)}`;
+    dmnMain.innerHTML = `${renderNoteHeader(n)}${renderValuePillRow(renderNoteValuePills(n))}<section class="dmn-sec">${bodyHtml}</section>`;
+    dmnProps.innerHTML = `${renderCaptureAffordance()}${renderNoteDates(n)}${renderNoteProperties(n)}${renderNoteLog(n)}`;
   }
 
   async function mountNoteProfile(id) {
@@ -3746,8 +3781,8 @@
     }
     const t = taskProfileState.data;
     const bodyHtml = t.body ? `<div class="pf-body">${escapeHtml(t.body)}</div>` : `<div class="pf-body pf-body--empty">(empty)</div>`;
-    dmnMain.innerHTML = `${renderTaskHeader(t)}<section class="dmn-sec">${bodyHtml}</section>`;
-    dmnProps.innerHTML = `${renderCaptureAffordance()}${renderTaskDates(t)}${renderTaskProperties(t)}`;
+    dmnMain.innerHTML = `${renderTaskHeader(t)}${renderValuePillRow(renderTaskValuePills(t))}<section class="dmn-sec">${bodyHtml}</section>`;
+    dmnProps.innerHTML = `${renderCaptureAffordance()}${renderTaskDates(t)}${renderTaskProperties(t)}${renderTaskLog(t)}`;
   }
 
   async function mountTaskProfile(id) {
@@ -3966,14 +4001,23 @@
   // rather than breaking the whole profile.
   async function loadRelationProfileBase(entityKey, pageId) {
     const consumer = RELATION_PROFILE_CONSUMERS[entityKey];
-    const [page, titleProp, uniqueIdProp] = await Promise.all([
+    // Collection's Type value pill (right-rail hierarchy pass) — resolved
+    // by keyword, same principle as every other select property in this
+    // file, never hardcoded. getSchema is memoized, so this piggybacks on
+    // the same schema fetch titlePropertyName/uniqueIdPropertyName already
+    // trigger below — no additional network round-trip. Tag/Person never
+    // resolve this (no value pills, per spec), regardless of whether their
+    // own databases happen to have a similarly-named property.
+    const [page, titleProp, uniqueIdProp, typeProp] = await Promise.all([
       notionRequest(`/v1/pages/${pageId}`),
       titlePropertyName(consumer.dbId),
       uniqueIdPropertyName(consumer.dbId),
+      entityKey === 'collection' ? getSelectPropByKeyword(consumer.dbId, 'type') : Promise.resolve(null),
     ]);
     const title = plainTitle(page, titleProp);
     const uniqueIdVal = uniqueIdProp ? (page.properties[uniqueIdProp] || {}).unique_id : null;
     const uniqueId = uniqueIdVal ? formatUniqueId(uniqueIdVal.prefix, uniqueIdVal.number) : null;
+    const typeName = typeProp ? (((page.properties[typeProp] || {}).select || {}).name || null) : null;
 
     const tabKeys = RELATION_TAB_SETS[entityKey];
     const tabs = await Promise.all(tabKeys.map(async (tabKey, idx) => {
@@ -3998,9 +4042,10 @@
 
     // created_time/last_edited_time were already sitting on the fetched
     // page object — surfaced here (no new query) for the framed shell's
-    // right-rail Dates section, which this trio didn't have before.
+    // right-rail Log section, which this trio didn't have before.
     return {
       id: page.id, title, uniqueId, consumerLabel: consumer.label, tabs,
+      typeName, hasTypeProp: !!typeProp,
       createdTime: page.created_time, lastEditedTime: page.last_edited_time,
     };
   }
@@ -4063,24 +4108,33 @@
     </div>`;
   }
 
-  // Thin right rail (Framed-Layout Retrofit §4) — Dates only; no Properties
-  // section, since none of the three currently resolve any property beyond
-  // what the tabs already carry (loaders are unchanged this sprint — "sparse
-  // rails are fine," per the brief, "the frame already handles this on
-  // Domain"). Tag's Notes-tab count is already-loaded data (no new query),
-  // surfaced here as a Progress-less "Total Notes" stat.
-  function renderRelationDates(state) {
-    const d = state.data;
-    let totalNotesRow = '';
-    if (state.entityKey === 'tag') {
-      const notesTab = d.tabs.find((t) => t.key === 'notes');
-      if (notesTab) totalNotesRow = `<div class="dmn-kv"><span class="k">Total Notes</span><span class="v">${notesTab.count}</span></div>`;
-    }
-    return `<section class="dmn-prop-sec dmn-prop-sec--dates">
-      <h3>Dates</h3>
+  // Right-rail hierarchy pass — the only value pill any of this trio ever
+  // carries is Collection's Type (resolved in loadRelationProfileBase by
+  // keyword; Tag/Person never resolve it, per spec, regardless of their own
+  // schema). Omitted entirely — not even a "No type" fallback — when the
+  // Collections database doesn't have a Type property at all, vs. shown
+  // with the usual fallback when the property exists but this page's value
+  // doesn't.
+  function renderRelationValuePills(d) {
+    if (!d.hasTypeProp) return '';
+    return renderValuePill(d.typeName ? escapeHtml(d.typeName) : 'No type');
+  }
+
+  // No Dates section for this trio — none of the three currently resolve
+  // a meaningful user-facing date (loaders are unchanged this sprint).
+  // Properties is relations-only and only present when there's something
+  // to show — "sparse rails are fine," per the brief, "the frame already
+  // handles this on Domain" — so this trio's own Properties stays empty
+  // until a relation-style field is added for one of them.
+  function renderRelationProperties() {
+    return '';
+  }
+
+  function renderRelationLog(d) {
+    return `<section class="dmn-prop-sec dmn-prop-sec--log">
+      <h3>Log</h3>
       <div class="dmn-kv"><span class="k">Created</span><span class="v">${escapeHtml(formatDateTime(d.createdTime))}</span></div>
       <div class="dmn-kv"><span class="k">Last edited</span><span class="v">${escapeHtml(formatDateTime(d.lastEditedTime))}</span></div>
-      ${totalNotesRow}
     </section>`;
   }
 
@@ -4110,8 +4164,8 @@
     const activeTab = d.tabs.find((t) => t.key === s.activeTab) || d.tabs[0];
     const panelHtml = renderRelationTabPanel(activeTab, d.consumerLabel);
 
-    dmnMain.innerHTML = `${renderRelationHeader(d)}<section class="dmn-sec">${tabsHtml}${panelHtml}</section>`;
-    dmnProps.innerHTML = `${renderCaptureAffordance()}${renderRelationDates(s)}`;
+    dmnMain.innerHTML = `${renderRelationHeader(d)}${renderValuePillRow(renderRelationValuePills(d))}<section class="dmn-sec">${tabsHtml}${panelHtml}</section>`;
+    dmnProps.innerHTML = `${renderCaptureAffordance()}${renderRelationProperties()}${renderRelationLog(d)}`;
   }
 
   async function mountRelationProfile(entityKey, id) {
@@ -4522,6 +4576,15 @@
     </section>`;
   }
 
+  // Right-rail hierarchy pass — Status/Priority move to the main column's
+  // value-pill row; unchanged renderValuePill/renderPriorityValue markup.
+  function renderProjectValuePills(p) {
+    const statusHtml = renderValuePill(p.statusName ? escapeHtml(p.statusName) : 'No status');
+    const priorityHtml = renderValuePill(renderPriorityValue(p.priorityName));
+    return statusHtml + priorityHtml;
+  }
+
+  // DATES — meaningful user dates only; Created/Last edited moved to Log.
   function renderProjectDates(p) {
     const contextRow = projectContextualDateRow(p);
     const contextRowHtml = contextRow
@@ -4532,11 +4595,20 @@
       <div class="dmn-kv"><span class="k">Start Date</span><span class="v">${p.startDate && p.startDate.start ? '🗓 ' + escapeHtml(formatDateShort(p.startDate.start)) : '—'}</span></div>
       <div class="dmn-kv"><span class="k">Target Deadline</span><span class="v">${p.deadline && p.deadline.start ? '🗓 ' + escapeHtml(formatDateShort(p.deadline.start)) : '—'}</span></div>
       ${contextRowHtml}
+    </section>`;
+  }
+
+  function renderProjectLog(p) {
+    return `<section class="dmn-prop-sec dmn-prop-sec--log">
+      <h3>Log</h3>
       <div class="dmn-kv"><span class="k">Created</span><span class="v">${escapeHtml(formatDateTime(p.createdTime))}</span></div>
       <div class="dmn-kv"><span class="k">Last edited</span><span class="v">${escapeHtml(formatDateTime(p.lastEditedTime))}</span></div>
     </section>`;
   }
 
+  // Right-rail hierarchy pass — Project's Properties is now relations only
+  // (Priority/Status moved to the main-column pill row): Domain, People,
+  // Collections.
   function renderProjectProperties(p) {
     const domainMeta = p.domainId
       ? (DOMAIN_META.find((d) => normalizeDbId(d.pageId) === normalizeDbId(p.domainId)) || NO_DOMAIN_META)
@@ -4548,8 +4620,6 @@
           styleAttr: domainMeta ? `background:${domainMeta.fill};color:${domainMeta.text};` : '',
         })
       : renderGhostPill('Domain');
-    const priorityHtml = renderValuePill(renderPriorityValue(p.priorityName));
-    const statusHtml = renderValuePill(p.statusName ? escapeHtml(p.statusName) : 'No status');
     const peopleHtml = p.people.length
       ? p.people.map((pp) => renderRelPill({ label: pp.name, icon: renderChipIcon(p.icons.people), navId: pp.id, navRoute: 'person' })).join('')
       : renderGhostPill('Person');
@@ -4559,8 +4629,6 @@
     return `<section class="dmn-prop-sec dmn-prop-sec--properties">
       <h3>Properties</h3>
       ${renderPropRow('Domain', domainHtml)}
-      ${renderPropRow('Priority', priorityHtml)}
-      ${renderPropRow('Status', statusHtml)}
       ${renderPropRow('People', peopleHtml)}
       ${renderPropRow('Collections', collectionsHtml)}
     </section>`;
@@ -4591,8 +4659,8 @@
       ? renderProjectTasksTabPanel(activeTab, s.collapsedStatus)
       : renderRelationTabPanel(activeTab, 'Project');
 
-    dmnMain.innerHTML = `${renderProjectHeader(p)}<section class="dmn-sec">${tabsHtml}${panelHtml}</section>`;
-    dmnProps.innerHTML = `${renderCaptureAffordance()}${renderProjectProgressRail(p)}${renderProjectDates(p)}${renderProjectProperties(p)}`;
+    dmnMain.innerHTML = `${renderProjectHeader(p)}${renderValuePillRow(renderProjectValuePills(p))}<section class="dmn-sec">${tabsHtml}${panelHtml}</section>`;
+    dmnProps.innerHTML = `${renderCaptureAffordance()}${renderProjectProgressRail(p)}${renderProjectDates(p)}${renderProjectProperties(p)}${renderProjectLog(p)}`;
   }
 
   async function mountProjectProfile(id) {
@@ -5068,9 +5136,11 @@
     </section>`;
   }
 
-  function renderDatesSection(d) {
-    return `<section class="dmn-prop-sec dmn-prop-sec--dates">
-      <h3>Dates</h3>
+  // Right-rail hierarchy pass — renamed from "Dates" to "Log" (Domain has
+  // no other meaningful user date to warrant a separate Dates section).
+  function renderLogSection(d) {
+    return `<section class="dmn-prop-sec dmn-prop-sec--log">
+      <h3>Log</h3>
       <div class="dmn-kv"><span class="k">Created</span><span class="v">${escapeHtml(formatDateTime(d.createdTime))}</span></div>
       <div class="dmn-kv"><span class="k">Last edited</span><span class="v">${escapeHtml(formatDateTime(d.lastEditedTime))}</span></div>
     </section>`;
@@ -5132,7 +5202,7 @@
       ${renderCaptureAffordance()}
       ${renderProgressSection(d.progressAgg)}
       ${renderActivitySection(d.activity)}
-      ${renderDatesSection(d)}
+      ${renderLogSection(d)}
     `;
   }
 
