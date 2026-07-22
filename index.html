@@ -982,8 +982,13 @@
   .dmn-proj {
     background: #E7ECD6; border-radius: 12px;
     padding: 14px 16px; margin-bottom: 10px; cursor: pointer;
-    border: 1px solid transparent;
+    border: 1px solid transparent; position: relative;
   }
+  /* Mass-select checkbox (Step E carry-over) — corner badge, same
+     placement convention as .tg-open-record/.tg-check elsewhere, since
+     .dmn-proj (unlike .dmn-task's flex .dmn-top) has no existing row to
+     drop it inline into without disturbing the title/progress layout. */
+  .dmn-proj > .tg-checkbox { position: absolute; top: 14px; right: 14px; }
   .dmn-proj:hover { border-color: #DBE2C1; }
   .dmn-proj .dmn-pname { font-family: 'Newsreader', serif; font-size: 16px; }
   .dmn-proj .dmn-pmeta { display: flex; align-items: center; gap: 10px; margin-top: 8px; }
@@ -1010,6 +1015,12 @@
   }
   .dmn-task .dmn-tname { font-family: 'Newsreader', serif; font-size: 15px; line-height: 1.25; }
   .dmn-task .dmn-tdate { margin-top: auto; font-family: 'IBM Plex Sans', sans-serif; font-size: 12px; color: oklch(0.55 0.012 75); }
+  /* Inline Status+Priority pills (Step E) — compact variant of .pf-pill,
+     small enough to sit inside a two-column near-square card without
+     crowding the title/date. */
+  .dmn-card-pills { display: flex; flex-wrap: wrap; gap: 5px; margin: 8px 0 0; }
+  .dmn-card-pill { font-size: 10px; padding: 3px 8px; cursor: pointer; }
+  .dmn-card-pill:hover { background: var(--tg-sage-deep, #DBE2C1); }
 
   /* Reference shelf — tabbed. Tab headings uppercase (Addendum 2's mock);
      the tab panel body itself reuses the shipped .pf-tab-panel/.pf-row-list/
@@ -3922,9 +3933,25 @@
   // only — §5.5's create-new is never offered for Domain/Collections/
   // Resources) and appends it to that database's cached pool so it's
   // immediately searchable/linkable without a re-fetch.
+  // §5.8 — a new record's page icon mirrors its own database's icon,
+  // the same "category marker" every relation pill of that type already
+  // renders app-wide (renderChipIcon/getDatabaseIcon) — reusing that,
+  // rather than a second hardcoded glyph table, is the one source of
+  // truth the brief asks for. A database icon can be an emoji OR an
+  // uploaded/external image; either shape maps onto Notion's page-icon
+  // field. Notes are never passed through this — no icon, per §5.8.
+  function pageIconPayload(dbIcon) {
+    if (!dbIcon) return null;
+    if (dbIcon.kind === 'emoji') return { type: 'emoji', emoji: dbIcon.value };
+    return { type: 'external', external: { url: dbIcon.value } };
+  }
+
   async function pfeCreateAndLink(databaseId, name) {
-    const titleProp = await titlePropertyName(databaseId);
-    const page = await notionRequest('/v1/pages', { method: 'POST', body: { parent: { database_id: databaseId }, properties: titlePropertyPatch(titleProp, name) } });
+    const [titleProp, dbIcon] = await Promise.all([titlePropertyName(databaseId), getDatabaseIcon(databaseId)]);
+    const body = { parent: { database_id: databaseId }, properties: titlePropertyPatch(titleProp, name) };
+    const icon = pageIconPayload(dbIcon);
+    if (icon) body.icon = icon;
+    const page = await notionRequest('/v1/pages', { method: 'POST', body });
     const entry = { id: page.id, name };
     const c = pfeLookupCache.get(databaseId);
     if (c && c.loaded) c.entries.push(entry);
@@ -5317,7 +5344,7 @@
     return pages.length;
   }
 
-  async function queryProjectTaskRecords(relProp, pageId) {
+  async function queryProjectTaskRecords(relProp, pageId, priorityProp) {
     const pages = await queryAllPages(CONFIG.DB.TASKS, { property: relProp, relation: { contains: pageId } });
     const [titleProp, uniqueIdProp, statusSchema] = await Promise.all([
       titlePropertyName(CONFIG.DB.TASKS),
@@ -5331,7 +5358,11 @@
       const statusProp = p.properties[statusSchema.name];
       const statusName = (statusProp && statusProp.status && statusProp.status.name) || null;
       const due = (p.properties[CONFIG.TASKS_PROP.DUE_DATE] || {}).date || null;
-      return { id: p.id, title: taskTitle, uniqueId, statusName, due };
+      // Inline Status+Priority pills (Step E) — Priority read alongside
+      // Status so the card can offer both without a per-card fetch.
+      const priorityProp2 = priorityProp ? p.properties[priorityProp] : null;
+      const priorityName = (priorityProp2 && priorityProp2.select && priorityProp2.select.name) || null;
+      return { id: p.id, title: taskTitle, uniqueId, statusName, priorityName, due };
     });
   }
 
@@ -5376,14 +5407,17 @@
   // count query up front and hydrates lazily on first open, exactly like
   // loadRelationProfileBase's non-default tabs above.
   async function loadProjectTabs(pageId, tasksProjectsProp, notesProjectsProp) {
-    const [tasksStatusSchema, tasksRecords, notesCount] = await Promise.all([
+    const tasksPriorityProp = await getTasksPriorityProp(CONFIG.DB.TASKS);
+    const [tasksStatusSchema, tasksRecords, notesCount, priorityOptions] = await Promise.all([
       getStatusSchema(CONFIG.DB.TASKS),
-      queryProjectTaskRecords(tasksProjectsProp, pageId),
+      queryProjectTaskRecords(tasksProjectsProp, pageId, tasksPriorityProp),
       queryTabCount(REL_DB_META.notes, notesProjectsProp, pageId),
+      getSelectOptions(CONFIG.DB.TASKS, tasksPriorityProp),
     ]);
     const tasksTab = {
       key: 'tasks', label: 'Tasks', count: tasksRecords.length,
       records: tasksRecords, statusOptions: tasksStatusSchema.options,
+      priorityPropName: tasksPriorityProp, priorityOptions,
       hydrated: true, loading: false, error: null,
     };
     const notesTab = {
@@ -5402,17 +5436,36 @@
   // The checkbox is carved out of the card's own data-pf-nav click area
   // (Step E carry-over) — tapping it writes completion (Status=Done +
   // Completed=today, reversible) instead of navigating to the task.
-  function renderProjectTaskCard(r) {
+  // ---- Mass-select (Step E carry-over) — Project's Tasks tab, and
+  // Domain's Inbox/Admin tasks + work-spine project cards. Reuses Inbox's
+  // own select-mode CSS/markup vocabulary (.tg-checkbox/.tg-bulk-bar/
+  // .tg-bulk-actions/.tg-bulk-btn), under new data attributes since
+  // framedRoot's click handler is a separate delegation scope from
+  // Inbox's own #content one. Bulk writes are a plain sequential
+  // for-await loop, same "throttled sequential" shape every Inbox bulk
+  // action already uses — never Promise.all.
+  function renderMassSelectToggle(scope, selecting) {
+    return `<button type="button" class="tg-btn-select${selecting ? ' on' : ''}" data-pfe-toggle-select="${scope}">${selecting ? 'Done' : 'Select'}</button>`;
+  }
+  function renderPfeSelectCheckbox(id, kind, selectedSet) {
+    const checked = selectedSet.has(id);
+    return `<div class="tg-checkbox${checked ? ' checked' : ''}" data-pfe-select-card="${escapeHtml(id)}" data-pfe-select-kind="${kind}">${checked ? '✓' : ''}</div>`;
+  }
+
+  function renderProjectTaskCard(r, statusOptions, priorityOptions) {
     const isDone = (r.statusName || '').toLowerCase() === 'done';
     const dateLabel = r.due && r.due.start ? `Due ${formatDateShort(r.due.start)}` : 'No date';
+    const s = projectProfileState;
+    const checkboxHtml = s.selecting ? renderPfeSelectCheckbox(r.id, 'project-task', s.selected) : '';
     return `<div class="dmn-task" data-pf-nav="task/${escapeHtml(r.id)}">
-      <div class="dmn-top"><span class="dmn-box${isDone ? ' dmn-box--checked' : ''}" data-pfe-task-toggle="${escapeHtml(r.id)}" data-pfe-task-done="${isDone}" role="checkbox" aria-checked="${isDone}">${isDone ? '✓' : ''}</span><span class="dmn-tname">${escapeHtml(r.title || 'Untitled')}</span></div>
+      <div class="dmn-top">${checkboxHtml}<span class="dmn-box${isDone ? ' dmn-box--checked' : ''}" data-pfe-task-toggle="${escapeHtml(r.id)}" data-pfe-task-done="${isDone}" role="checkbox" aria-checked="${isDone}">${isDone ? '✓' : ''}</span><span class="dmn-tname">${escapeHtml(r.title || 'Untitled')}</span></div>
+      ${renderPfeCardValuePills(r, statusOptions, priorityOptions)}
       <div class="dmn-tdate">${escapeHtml(dateLabel)}</div>
     </div>`;
   }
 
-  function renderProjectStatusGroup(group, collapsedStatus) {
-    const gridHtml = `<div class="dmn-task-grid">${group.records.map(renderProjectTaskCard).join('')}</div>`;
+  function renderProjectStatusGroup(group, collapsedStatus, statusOptions, priorityOptions) {
+    const gridHtml = `<div class="dmn-task-grid">${group.records.map((r) => renderProjectTaskCard(r, statusOptions, priorityOptions)).join('')}</div>`;
     if (!group.collapsedDefault) {
       return `<div class="dmn-status-hd">${escapeHtml(group.name)} <span class="dmn-ct">${group.records.length}</span></div>${gridHtml}`;
     }
@@ -5432,8 +5485,34 @@
     // Progress moved out to the right rail (renderProjectProgressRail) —
     // no longer shown inline above the task groups.
     const groups = groupProjectTasksByStatus(tab.records, tab.statusOptions);
-    const groupsHtml = groups.map((g) => renderProjectStatusGroup(g, collapsedStatus)).join('');
-    return `<div class="pf-tab-panel">${countHtml}<div class="pf-status-group-list">${groupsHtml}</div></div>`;
+    const groupsHtml = groups.map((g) => renderProjectStatusGroup(g, collapsedStatus, tab.statusOptions, tab.priorityOptions)).join('');
+    return `<div class="pf-tab-panel">${countHtml}<div class="pf-status-group-list">${groupsHtml}</div>${renderProjectBulkBar()}</div>`;
+  }
+
+  // Bulk Status popover — a plain option list (no current-value highlight,
+  // since a bulk action applies one value across a mixed-status
+  // selection) with its own data-pfe-bulk-opt attribute, distinct from
+  // the single-record renderPfeSelectPopover's data-pfe-opt.
+  function renderPfeBulkStatusPopover(statusOptions) {
+    const rows = (statusOptions || []).map((o) => `<div class="tg-pop-opt" data-pfe-bulk-opt="${escapeHtml(o.name)}">${escapeHtml(o.name)}</div>`).join('');
+    return `<div class="tg-popover"><div class="tg-pop-label">Status</div><div class="tg-pop-list">${rows}</div></div>`;
+  }
+
+  function renderProjectBulkBar() {
+    const s = projectProfileState;
+    if (!s.selecting) return '';
+    const count = s.selected.size;
+    const tasksTab = s.data.tabs.find((t) => t.key === 'tasks');
+    const actions = [{ key: 'status', label: 'Status' }, { key: 'delete', label: 'Delete' }];
+    const btnsHtml = actions.map((a) => `
+      <div class="tg-pop-wrap tg-bulk-wrap">
+        <button type="button" class="tg-bulk-btn" data-pfe-bulk-action="${a.key}"${count === 0 || pfeState.busy ? ' disabled' : ''}>${a.label}</button>
+        ${s.bulkPopover === a.key && a.key === 'status' ? renderPfeBulkStatusPopover(tasksTab && tasksTab.statusOptions) : ''}
+      </div>`).join('');
+    return `<div class="tg-bulk-bar">
+      <div class="tg-bulk-cnt">${count} selected</div>
+      <div class="tg-bulk-actions">${btnsHtml}</div>
+    </div>`;
   }
 
   function renderProjectHeader(p) {
@@ -5572,7 +5651,11 @@
     </section>`;
   }
 
-  const projectProfileState = { id: null, loading: false, error: null, data: null, activeTab: 'tasks', collapsedStatus: new Set() };
+  const projectProfileState = {
+    id: null, loading: false, error: null, data: null, activeTab: 'tasks', collapsedStatus: new Set(),
+    // Mass-select (Step E carry-over) — Tasks tab only.
+    selecting: false, selected: new Set(), bulkPopover: null,
+  };
 
   function paintProjectProfile() {
     const s = projectProfileState;
@@ -5600,7 +5683,7 @@
     // Create-in-context (§5.6) — "+ New Task", pre-filled with this
     // project's relation, only on the Tasks tab (the tab it populates).
     const createTaskHtml = activeTab.key === 'tasks'
-      ? `<button type="button" class="pfe-create-context" data-pfe-create-context="project:task">+ New Task</button>`
+      ? `<button type="button" class="pfe-create-context" data-pfe-create-context="project:task">+ New Task</button>${renderMassSelectToggle('project', s.selecting)}`
       : '';
     dmnMain.innerHTML = `${renderProjectHeader(p)}${renderValuePillRow(renderProjectValuePills(p) + `<span class="dmn-datepills-inline">${renderProjectDateRows(p)}</span>`)}<section class="dmn-sec">${tabsHtml}${createTaskHtml}${panelHtml}</section>${renderPfeToast()}`;
     dmnProps.innerHTML = `${renderCaptureAffordance()}${renderProjectProgressRail(p)}${renderProjectDates(p)}${renderProjectProperties(p)}${renderProjectLog(p)}`;
@@ -5614,6 +5697,9 @@
     s.data = null;
     s.activeTab = 'tasks';
     s.collapsedStatus = new Set();
+    s.selecting = false;
+    s.selected = new Set();
+    s.bulkPopover = null;
     ensureFramedShell();
     paintProjectProfile();
     try {
@@ -6048,6 +6134,246 @@
     }
   });
 
+  // Finds a task-grid record by id in whichever profile is currently
+  // mounted (Project's Tasks tab or Domain's Inbox/Admin grid — the two
+  // places a task-grid card renders) and mutates it in place, mirroring
+  // applyTaskCardCompletionToggle's own lookup.
+  function pfeUpdateCardRecordEverywhere(taskId, mutate) {
+    const route = currentRoute();
+    if (route === 'project' && projectProfileState.data) {
+      const tab = projectProfileState.data.tabs.find((t) => t.key === 'tasks');
+      const rec = tab && tab.records.find((r) => r.id === taskId);
+      if (rec) mutate(rec);
+    } else if (route === 'domain' && domainProfileState.data) {
+      const rec = domainProfileState.data.catchAllTasks.find((t) => t.id === taskId);
+      if (rec) mutate(rec);
+    }
+  }
+
+  // --- Inline Status+Priority pills on task-grid cards (Project's Tasks
+  // tab, Domain's Inbox/Admin, per Step E) — a lightweight parallel to
+  // pfeState.popover, since a card isn't the mounted Task profile: popover
+  // identity is (taskId, field), and writes go straight to Notion by task
+  // id (mirroring applyTaskCardCompletionToggle) rather than through a
+  // mounted profile's own state.
+  const pfeCardPopover = { taskId: null, field: null };
+  function pfeCardOpenFor(taskId, field) {
+    return pfeCardPopover.taskId === taskId && pfeCardPopover.field === field;
+  }
+  function pfeToggleCardPopover(taskId, field) {
+    if (pfeCardOpenFor(taskId, field)) { pfeCardPopover.taskId = null; pfeCardPopover.field = null; }
+    else { pfeCardPopover.taskId = taskId; pfeCardPopover.field = field; }
+    paintActiveProfile();
+  }
+  function renderPfeCardSelectPopover(taskId, options, currentValue, opts = {}) {
+    const rows = (options || []).map((o) => `<div class="tg-pop-opt${o.name === currentValue ? ' on' : ''}" data-pfe-card-opt="${escapeHtml(o.name)}" data-pfe-card-id="${escapeHtml(taskId)}">${escapeHtml(o.name)}</div>`).join('');
+    const clearHtml = opts.clearable ? `<div class="tg-pop-opt tg-pop-opt--clear" data-pfe-card-clear="true" data-pfe-card-id="${escapeHtml(taskId)}">Clear</div>` : '';
+    return `<div class="tg-popover">${opts.label ? `<div class="tg-pop-label">${escapeHtml(opts.label)}</div>` : ''}<div class="tg-pop-list">${rows}</div>${clearHtml}</div>`;
+  }
+  // `priorityOptions` is null when the tab/card context hasn't resolved a
+  // Priority property at all (never rendered in that case, same
+  // degrade-gracefully rule every other optional property follows here).
+  function renderPfeCardValuePills(r, statusOptions, priorityOptions) {
+    const statusPop = pfeCardOpenFor(r.id, 'status') ? renderPfeCardSelectPopover(r.id, statusOptions, r.statusName, { label: 'Status' }) : '';
+    const statusHtml = `<span class="tg-pop-wrap"><span class="pf-pill pf-pill--value dmn-card-pill" data-pfe-card-action="status" data-pfe-card-id="${escapeHtml(r.id)}">${escapeHtml(r.statusName || 'No status')}</span>${statusPop}</span>`;
+    let priorityHtml = '';
+    if (priorityOptions && priorityOptions.length) {
+      const priorityPop = pfeCardOpenFor(r.id, 'priority') ? renderPfeCardSelectPopover(r.id, priorityOptions, r.priorityName, { label: 'Priority', clearable: !!r.priorityName }) : '';
+      priorityHtml = `<span class="tg-pop-wrap"><span class="pf-pill pf-pill--value dmn-card-pill" data-pfe-card-action="priority" data-pfe-card-id="${escapeHtml(r.id)}">${escapeHtml(r.priorityName || 'No priority')}</span>${priorityPop}</span>`;
+    }
+    return `<div class="dmn-card-pills">${statusHtml}${priorityHtml}</div>`;
+  }
+
+  const applyTaskCardStatusEdit = withPfeBusy(async (taskId, value) => {
+    try {
+      const statusSchema = await getStatusSchema(CONFIG.DB.TASKS);
+      const resolved = await resolveOptionValue(CONFIG.DB.TASKS, statusSchema.name, value);
+      const props = { ...statusPropertyPatch(statusSchema.name, resolved) };
+      // Status-transition side effect (§8) — same compound write every
+      // other Done-transition entry point makes.
+      if (resolved.toLowerCase() === 'done') {
+        const completedProp = await getDatePropByKeyword(CONFIG.DB.TASKS, 'completed');
+        if (completedProp) Object.assign(props, datePropertyPatch(completedProp, todayIsoLocal()));
+      }
+      await patchProperties(taskId, props);
+      pfeUpdateCardRecordEverywhere(taskId, (rec) => { rec.statusName = resolved; });
+      pfeCardPopover.taskId = null; pfeCardPopover.field = null;
+      paintActiveProfile();
+    } catch (err) {
+      console.error('Failed to update Status', err);
+      showPfeToast(err.message || 'Could not update Status — try again.');
+    }
+  });
+
+  const applyTaskCardPriorityEdit = withPfeBusy(async (taskId, value, clear) => {
+    try {
+      const priorityProp = await getTasksPriorityProp(CONFIG.DB.TASKS);
+      if (!priorityProp) return;
+      const resolved = clear ? null : await resolveOptionValue(CONFIG.DB.TASKS, priorityProp, value);
+      await patchProperties(taskId, selectPropertyPatch(priorityProp, resolved));
+      pfeUpdateCardRecordEverywhere(taskId, (rec) => { rec.priorityName = resolved; });
+      pfeCardPopover.taskId = null; pfeCardPopover.field = null;
+      paintActiveProfile();
+    } catch (err) {
+      console.error('Failed to update Priority', err);
+      showPfeToast(err.message || 'Could not update Priority — try again.');
+    }
+  });
+
+  function applyPfeCardOptionSelect(taskId, value) {
+    if (pfeCardPopover.field === 'status') return applyTaskCardStatusEdit(taskId, value);
+    if (pfeCardPopover.field === 'priority') return applyTaskCardPriorityEdit(taskId, value, false);
+  }
+
+  // --- Mass-select bulk actions — Project's Tasks tab. Sequential
+  // (throttled, per §14's checklist), never Promise.all — same shape
+  // every Inbox bulk action already uses.
+  function finishProjectBulkAction(message) {
+    const s = projectProfileState;
+    s.selected = new Set();
+    s.bulkPopover = null;
+    showPfeToast(message);
+  }
+  const applyProjectBulkStatus = withPfeBusy(async (value) => {
+    const s = projectProfileState;
+    const ids = [...s.selected];
+    if (!ids.length) return;
+    try {
+      const statusSchema = await getStatusSchema(CONFIG.DB.TASKS);
+      const resolved = await resolveOptionValue(CONFIG.DB.TASKS, statusSchema.name, value);
+      const completedProp = resolved.toLowerCase() === 'done' ? await getDatePropByKeyword(CONFIG.DB.TASKS, 'completed') : null;
+      for (const id of ids) {
+        const props = { ...statusPropertyPatch(statusSchema.name, resolved) };
+        if (completedProp) Object.assign(props, datePropertyPatch(completedProp, todayIsoLocal()));
+        // eslint-disable-next-line no-await-in-loop
+        await patchProperties(id, props);
+        const tab = s.data.tabs.find((t) => t.key === 'tasks');
+        const rec = tab && tab.records.find((r) => r.id === id);
+        if (rec) rec.statusName = resolved;
+      }
+      finishProjectBulkAction(`${ids.length} updated`);
+      paintActiveProfile();
+    } catch (err) {
+      console.error('Bulk Status failed', err);
+      showPfeToast(err.message || 'Could not update all selected — try again.');
+    }
+  });
+  const applyProjectBulkDelete = withPfeBusy(async () => {
+    const s = projectProfileState;
+    const ids = [...s.selected];
+    if (!ids.length) return;
+    try {
+      for (const id of ids) {
+        // eslint-disable-next-line no-await-in-loop
+        await notionRequest(`/v1/pages/${id}`, { method: 'PATCH', body: { archived: true } });
+      }
+      const tab = s.data.tabs.find((t) => t.key === 'tasks');
+      if (tab) {
+        const deleted = new Set(ids);
+        tab.records = tab.records.filter((r) => !deleted.has(r.id));
+        tab.count = tab.records.length;
+      }
+      finishProjectBulkAction(`${ids.length} deleted`);
+      paintActiveProfile();
+    } catch (err) {
+      console.error('Bulk delete failed', err);
+      showPfeToast(err.message || 'Could not delete all selected — try again.');
+    }
+  });
+
+  // --- Mass-select bulk actions — Domain's Inbox/Admin tasks and
+  // work-spine project cards. Two independent selections/actions (a task
+  // write and a project write are different Notion targets), same
+  // sequential-throttled shape as Project's bulk actions above.
+  function finishDomainBulkAction(kind, message) {
+    const s = domainProfileState;
+    if (kind === 'task') s.selectedTasks = new Set();
+    else s.selectedProjects = new Set();
+    s.bulkPopover = null;
+    showPfeToast(message);
+  }
+  const applyDomainBulkTaskStatus = withPfeBusy(async (value) => {
+    const s = domainProfileState;
+    const ids = [...s.selectedTasks];
+    if (!ids.length) return;
+    try {
+      const statusSchema = await getStatusSchema(CONFIG.DB.TASKS);
+      const resolved = await resolveOptionValue(CONFIG.DB.TASKS, statusSchema.name, value);
+      const completedProp = resolved.toLowerCase() === 'done' ? await getDatePropByKeyword(CONFIG.DB.TASKS, 'completed') : null;
+      for (const id of ids) {
+        const props = { ...statusPropertyPatch(statusSchema.name, resolved) };
+        if (completedProp) Object.assign(props, datePropertyPatch(completedProp, todayIsoLocal()));
+        // eslint-disable-next-line no-await-in-loop
+        await patchProperties(id, props);
+        const rec = s.data.catchAllTasks.find((t) => t.id === id);
+        if (rec) rec.statusName = resolved;
+      }
+      finishDomainBulkAction('task', `${ids.length} updated`);
+      paintActiveProfile();
+    } catch (err) {
+      console.error('Bulk Status failed', err);
+      showPfeToast(err.message || 'Could not update all selected — try again.');
+    }
+  });
+  const applyDomainBulkTaskDelete = withPfeBusy(async () => {
+    const s = domainProfileState;
+    const ids = [...s.selectedTasks];
+    if (!ids.length) return;
+    try {
+      for (const id of ids) {
+        // eslint-disable-next-line no-await-in-loop
+        await notionRequest(`/v1/pages/${id}`, { method: 'PATCH', body: { archived: true } });
+      }
+      const deleted = new Set(ids);
+      s.data.catchAllTasks = s.data.catchAllTasks.filter((t) => !deleted.has(t.id));
+      finishDomainBulkAction('task', `${ids.length} deleted`);
+      paintActiveProfile();
+    } catch (err) {
+      console.error('Bulk delete failed', err);
+      showPfeToast(err.message || 'Could not delete all selected — try again.');
+    }
+  });
+  const applyDomainBulkProjectStatus = withPfeBusy(async (value) => {
+    const s = domainProfileState;
+    const ids = [...s.selectedProjects];
+    if (!ids.length) return;
+    try {
+      const statusSchema = await getStatusSchema(CONFIG.DB.PROJECTS);
+      const resolved = await resolveOptionValue(CONFIG.DB.PROJECTS, statusSchema.name, value);
+      for (const id of ids) {
+        // eslint-disable-next-line no-await-in-loop
+        await patchProperties(id, statusPropertyPatch(statusSchema.name, resolved));
+        s.data.projectGroups.forEach((g) => {
+          const rec = g.records.find((r) => r.id === id);
+          if (rec) rec.statusName = resolved;
+        });
+      }
+      finishDomainBulkAction('project', `${ids.length} updated`);
+      paintActiveProfile();
+    } catch (err) {
+      console.error('Bulk Status failed', err);
+      showPfeToast(err.message || 'Could not update all selected — try again.');
+    }
+  });
+  const applyDomainBulkProjectDelete = withPfeBusy(async () => {
+    const s = domainProfileState;
+    const ids = [...s.selectedProjects];
+    if (!ids.length) return;
+    try {
+      for (const id of ids) {
+        // eslint-disable-next-line no-await-in-loop
+        await notionRequest(`/v1/pages/${id}`, { method: 'PATCH', body: { archived: true } });
+      }
+      const deleted = new Set(ids);
+      s.data.projectGroups.forEach((g) => { g.records = g.records.filter((r) => !deleted.has(r.id)); });
+      finishDomainBulkAction('project', `${ids.length} deleted`);
+      paintActiveProfile();
+    } catch (err) {
+      console.error('Bulk delete failed', err);
+      showPfeToast(err.message || 'Could not delete all selected — try again.');
+    }
+  });
+
   // --- Note: Status, Type (multi-select), Date, title ---------------------
   const applyNoteStatusEdit = withPfeBusy(async (value) => {
     const s = noteProfileState;
@@ -6333,21 +6659,25 @@
         const p = s.data.header;
         const name = window.prompt('New task title:');
         if (!name || !name.trim()) return;
-        const [titleProp, statusTarget] = await Promise.all([
+        const [titleProp, statusTarget, taskIcon] = await Promise.all([
           titlePropertyName(CONFIG.DB.TASKS),
           getInboxStatusFilter(CONFIG.DB.TASKS),
+          getDatabaseIcon(CONFIG.DB.TASKS),
         ]);
         const body = {
           ...titlePropertyPatch(titleProp, name.trim()),
           ...statusPropertyPatch(statusTarget.name, statusTarget.value),
           [p.tasksProjectsProp]: { relation: [{ id: p.id }] },
         };
-        await notionRequest('/v1/pages', { method: 'POST', body: { parent: { database_id: CONFIG.DB.TASKS }, properties: body } });
+        const createBody = { parent: { database_id: CONFIG.DB.TASKS }, properties: body };
+        const taskIconPayload = pageIconPayload(taskIcon);
+        if (taskIconPayload) createBody.icon = taskIconPayload;
+        await notionRequest('/v1/pages', { method: 'POST', body: createBody });
         showPfeToast('Task created.');
         const tab = s.data.tabs.find((t) => t.key === 'tasks');
         if (tab) {
           const [records, statusSchema] = await Promise.all([
-            queryProjectTaskRecords(p.tasksProjectsProp, p.id),
+            queryProjectTaskRecords(p.tasksProjectsProp, p.id, tab.priorityPropName),
             getStatusSchema(CONFIG.DB.TASKS),
           ]);
           tab.records = records;
@@ -6362,12 +6692,16 @@
         if (!s.data) return;
         const name = window.prompt('New project title:');
         if (!name || !name.trim()) return;
-        const [titleProp, domainRelProp] = await Promise.all([
+        const [titleProp, domainRelProp, projectIcon] = await Promise.all([
           titlePropertyName(CONFIG.DB.PROJECTS),
           relationPropertyName(CONFIG.DB.PROJECTS, CONFIG.DB.DOMAINS),
+          getDatabaseIcon(CONFIG.DB.PROJECTS),
         ]);
         const body = { ...titlePropertyPatch(titleProp, name.trim()), [domainRelProp]: { relation: [{ id: s.id }] } };
-        await notionRequest('/v1/pages', { method: 'POST', body: { parent: { database_id: CONFIG.DB.PROJECTS }, properties: body } });
+        const createBody = { parent: { database_id: CONFIG.DB.PROJECTS }, properties: body };
+        const projectIconPayload = pageIconPayload(projectIcon);
+        if (projectIconPayload) createBody.icon = projectIconPayload;
+        await notionRequest('/v1/pages', { method: 'POST', body: createBody });
         showPfeToast('Project created.');
         // Reload the whole Domain profile — simplest way to get the new
         // project correctly grouped into the work spine by its status.
@@ -6381,17 +6715,21 @@
         if (!name || !name.trim()) return;
         const meta = DOMAIN_META.find((d) => normalizeDbId(d.pageId) === normalizeDbId(s.id));
         if (!meta) return;
-        const [titleProp, statusTarget, tasksProjectsProp] = await Promise.all([
+        const [titleProp, statusTarget, tasksProjectsProp, taskIcon] = await Promise.all([
           titlePropertyName(CONFIG.DB.TASKS),
           getInboxStatusFilter(CONFIG.DB.TASKS),
           relationPropertyName(CONFIG.DB.TASKS, CONFIG.DB.PROJECTS),
+          getDatabaseIcon(CONFIG.DB.TASKS),
         ]);
         const body = {
           ...titlePropertyPatch(titleProp, name.trim()),
           ...statusPropertyPatch(statusTarget.name, statusTarget.value),
           [tasksProjectsProp]: { relation: [{ id: meta.catchAllProjectId }] },
         };
-        await notionRequest('/v1/pages', { method: 'POST', body: { parent: { database_id: CONFIG.DB.TASKS }, properties: body } });
+        const createBody = { parent: { database_id: CONFIG.DB.TASKS }, properties: body };
+        const taskIconPayload = pageIconPayload(taskIcon);
+        if (taskIconPayload) createBody.icon = taskIconPayload;
+        await notionRequest('/v1/pages', { method: 'POST', body: createBody });
         showPfeToast('Task created.');
         mountDomainProfile(s.id);
         return;
@@ -6640,13 +6978,18 @@
     // activity spark, and stalled-project detection. Never a task-level
     // Domain filter — a task's domain is a rollup through its project.
     let tasks = [];
+    let tasksPriorityOptions = [];
+    let tasksStatusOptions = [];
     if (projectIds.length) {
-      const [taskTitleProp, taskUniqueIdProp, taskStatusSchema, completedDateProp] = await Promise.all([
+      const [taskTitleProp, taskUniqueIdProp, taskStatusSchema, completedDateProp, tasksPriorityProp] = await Promise.all([
         titlePropertyName(CONFIG.DB.TASKS),
         uniqueIdPropertyName(CONFIG.DB.TASKS),
         getStatusSchema(CONFIG.DB.TASKS),
         getDatePropByKeyword(CONFIG.DB.TASKS, 'completed'),
+        getTasksPriorityProp(CONFIG.DB.TASKS),
       ]);
+      tasksPriorityOptions = await getSelectOptions(CONFIG.DB.TASKS, tasksPriorityProp);
+      tasksStatusOptions = taskStatusSchema.options;
       const orFilter = { or: projectIds.map((pid) => ({ property: tasksProjectsProp, relation: { contains: pid } })) };
       const taskPages = await queryAllPages(CONFIG.DB.TASKS, orFilter);
       tasks = taskPages.map((tp) => {
@@ -6655,11 +6998,14 @@
         const taskUniqueId = uv ? formatUniqueId(uv.prefix, uv.number) : null;
         const statusProp = tp.properties[taskStatusSchema.name];
         const statusName = (statusProp && statusProp.status && statusProp.status.name) || null;
+        // Inline Status+Priority pills (Step E).
+        const priorityPropVal = tasksPriorityProp ? tp.properties[tasksPriorityProp] : null;
+        const priorityName = (priorityPropVal && priorityPropVal.select && priorityPropVal.select.name) || null;
         const projRel = (tp.properties[tasksProjectsProp] || {}).relation || [];
         const projectId = projRel[0] ? projRel[0].id : null;
         const completedDate = completedDateProp ? ((tp.properties[completedDateProp] || {}).date || null) : null;
         const dueDate = (tp.properties[CONFIG.TASKS_PROP.DUE_DATE] || {}).date || null;
-        return { id: tp.id, title: taskTitle, uniqueId: taskUniqueId, statusName, projectId, completedDate, dueDate, lastEditedTime: tp.last_edited_time };
+        return { id: tp.id, title: taskTitle, uniqueId: taskUniqueId, statusName, priorityName, projectId, completedDate, dueDate, lastEditedTime: tp.last_edited_time };
       });
     }
 
@@ -6679,6 +7025,7 @@
     return {
       id: page.id, title, uniqueId, domainMeta,
       projectGroups, catchAllTasks, progressAgg, activity, shelfTabs,
+      tasksStatusOptions, tasksPriorityOptions, projectsStatusOptions: projStatusSchema.options,
       createdTime: page.created_time, lastEditedTime: page.last_edited_time,
     };
   }
@@ -6696,7 +7043,10 @@
   function renderDomainProjectCard(p) {
     const pct = (p.totalTasks && p.totalTasks > 0 && p.doneTasks != null) ? Math.max(0, Math.min(100, Math.round((p.doneTasks / p.totalTasks) * 100))) : 0;
     const countLabel = p.totalTasks != null ? `${p.doneTasks != null ? p.doneTasks : '—'} / ${p.totalTasks} done` : 'No tasks yet';
+    const s = domainProfileState;
+    const checkboxHtml = s.selecting ? renderPfeSelectCheckbox(p.id, 'domain-project', s.selectedProjects) : '';
     return `<div class="dmn-proj" data-pf-nav="project/${escapeHtml(p.id)}">
+      ${checkboxHtml}
       <div class="dmn-pname">${escapeHtml(p.title || 'Untitled')}</div>
       <div class="dmn-pmeta"><span class="dmn-count">${escapeHtml(countLabel)}</span><span class="dmn-bar"><i style="width:${pct}%"></i></span></div>
     </div>`;
@@ -6726,25 +7076,62 @@
     const body = groups.length
       ? groups.map((g) => renderDomainStatusGroup(g, collapsedStatus)).join('')
       : `<div class="dmn-empty">No projects in this domain yet.</div>`;
-    return `<section class="dmn-sec"><h2 class="dmn-sec-hd">Work</h2><button type="button" class="pfe-create-context" data-pfe-create-context="domain:project">+ New Project</button>${body}</section>`;
+    const s = domainProfileState;
+    return `<section class="dmn-sec"><h2 class="dmn-sec-hd">Work</h2><button type="button" class="pfe-create-context" data-pfe-create-context="domain:project">+ New Project</button>${renderMassSelectToggle('domain', s.selecting)}${body}${renderDomainProjectBulkBar()}</section>`;
   }
 
   // Checkbox carved out of the card's click area, same as Project's Tasks
   // tab (renderProjectTaskCard) — completion-writable this slice.
-  function renderDomainTaskCard(t) {
+  function renderDomainTaskCard(t, statusOptions, priorityOptions) {
     const isDone = (t.statusName || '').toLowerCase() === 'done';
     const dateLabel = t.dueDate && t.dueDate.start ? `Due ${formatDateShort(t.dueDate.start)}` : 'No date';
+    const s = domainProfileState;
+    const checkboxHtml = s.selecting ? renderPfeSelectCheckbox(t.id, 'domain-task', s.selectedTasks) : '';
     return `<div class="dmn-task" data-pf-nav="task/${escapeHtml(t.id)}">
-      <div class="dmn-top"><span class="dmn-box${isDone ? ' dmn-box--checked' : ''}" data-pfe-task-toggle="${escapeHtml(t.id)}" data-pfe-task-done="${isDone}" role="checkbox" aria-checked="${isDone}">${isDone ? '✓' : ''}</span><span class="dmn-tname">${escapeHtml(t.title || 'Untitled')}</span></div>
+      <div class="dmn-top">${checkboxHtml}<span class="dmn-box${isDone ? ' dmn-box--checked' : ''}" data-pfe-task-toggle="${escapeHtml(t.id)}" data-pfe-task-done="${isDone}" role="checkbox" aria-checked="${isDone}">${isDone ? '✓' : ''}</span><span class="dmn-tname">${escapeHtml(t.title || 'Untitled')}</span></div>
+      ${renderPfeCardValuePills(t, statusOptions, priorityOptions)}
       <div class="dmn-tdate">${escapeHtml(dateLabel)}</div>
     </div>`;
   }
 
-  function renderInboxAdmin(tasks) {
+  function renderInboxAdmin(tasks, statusOptions, priorityOptions) {
     const body = tasks.length
-      ? `<div class="dmn-task-grid">${tasks.map(renderDomainTaskCard).join('')}</div>`
+      ? `<div class="dmn-task-grid">${tasks.map((t) => renderDomainTaskCard(t, statusOptions, priorityOptions)).join('')}</div>`
       : `<div class="dmn-empty">Nothing loose right now.</div>`;
-    return `<section class="dmn-sec"><h2 class="dmn-sec-hd">Inbox/Admin</h2><button type="button" class="pfe-create-context" data-pfe-create-context="domain:task">+ New Task</button>${body}</section>`;
+    return `<section class="dmn-sec"><h2 class="dmn-sec-hd">Inbox/Admin</h2><button type="button" class="pfe-create-context" data-pfe-create-context="domain:task">+ New Task</button>${body}${renderDomainTaskBulkBar()}</section>`;
+  }
+
+  // Two independent bulk bars (tasks vs projects are different Notion
+  // writes) sharing the one "Select" mode toggle in renderWorkSpine.
+  function renderDomainTaskBulkBar() {
+    const s = domainProfileState;
+    if (!s.selecting || s.selectedTasks.size === 0) return '';
+    const count = s.selectedTasks.size;
+    const actions = [{ key: 'task-status', label: 'Status' }, { key: 'task-delete', label: 'Delete' }];
+    const btnsHtml = actions.map((a) => `
+      <div class="tg-pop-wrap tg-bulk-wrap">
+        <button type="button" class="tg-bulk-btn" data-pfe-bulk-action="${a.key}"${pfeState.busy ? ' disabled' : ''}>${a.label}</button>
+        ${s.bulkPopover === a.key && a.key === 'task-status' ? renderPfeBulkStatusPopover(s.data.tasksStatusOptions) : ''}
+      </div>`).join('');
+    return `<div class="tg-bulk-bar">
+      <div class="tg-bulk-cnt">${count} task${count === 1 ? '' : 's'} selected</div>
+      <div class="tg-bulk-actions">${btnsHtml}</div>
+    </div>`;
+  }
+  function renderDomainProjectBulkBar() {
+    const s = domainProfileState;
+    if (!s.selecting || s.selectedProjects.size === 0) return '';
+    const count = s.selectedProjects.size;
+    const actions = [{ key: 'project-status', label: 'Status' }, { key: 'project-delete', label: 'Delete' }];
+    const btnsHtml = actions.map((a) => `
+      <div class="tg-pop-wrap tg-bulk-wrap">
+        <button type="button" class="tg-bulk-btn" data-pfe-bulk-action="${a.key}"${pfeState.busy ? ' disabled' : ''}>${a.label}</button>
+        ${s.bulkPopover === a.key && a.key === 'project-status' ? renderPfeBulkStatusPopover(s.data.projectsStatusOptions) : ''}
+      </div>`).join('');
+    return `<div class="tg-bulk-bar">
+      <div class="tg-bulk-cnt">${count} project${count === 1 ? '' : 's'} selected</div>
+      <div class="tg-bulk-actions">${btnsHtml}</div>
+    </div>`;
   }
 
   // The shelf's tab chrome is its own dmn- styling (uppercase headings per
@@ -6813,7 +7200,14 @@
     </section>`;
   }
 
-  const domainProfileState = { id: null, loading: false, error: null, data: null, collapsedStatus: new Set(), activeShelfTab: 'notes' };
+  const domainProfileState = {
+    id: null, loading: false, error: null, data: null, collapsedStatus: new Set(), activeShelfTab: 'notes',
+    // Mass-select (Step E carry-over) — Inbox/Admin tasks and work-spine
+    // project cards select independently (a task bulk action and a
+    // project bulk action are different Notion writes), but share one
+    // "Select" mode toggle.
+    selecting: false, selectedTasks: new Set(), selectedProjects: new Set(), bulkPopover: null,
+  };
 
   // The framed shell's nav rail is static markup, built once and reused
   // across every framed profile's mount (only #dmnMain/#dmnProps repaint
@@ -6862,7 +7256,7 @@
     dmnMain.innerHTML = `
       ${renderDomainHeader(d)}
       ${renderWorkSpine(d.projectGroups, s.collapsedStatus)}
-      ${renderInboxAdmin(d.catchAllTasks)}
+      ${renderInboxAdmin(d.catchAllTasks, d.tasksStatusOptions, d.tasksPriorityOptions)}
       ${renderDomainShelf(d.shelfTabs, s.activeShelfTab)}
       ${renderPfeToast()}
     `;
@@ -6882,6 +7276,10 @@
     s.data = null;
     s.collapsedStatus = new Set();
     s.activeShelfTab = 'notes';
+    s.selecting = false;
+    s.selectedTasks = new Set();
+    s.selectedProjects = new Set();
+    s.bulkPopover = null;
     ensureFramedShell();
     paintDomainProfile();
     try {
@@ -7002,6 +7400,81 @@
       if (!pfeState.busy) applyTaskCardCompletionToggle(taskToggleEl.dataset.pfeTaskToggle, taskToggleEl.dataset.pfeTaskDone);
       return;
     }
+    // Inline Status+Priority pills on task-grid cards — checked before
+    // data-pf-nav for the same reason as the checkbox above (the pill
+    // sits inside a card that also carries the card's own nav route).
+    const cardPillTrigger = e.target.closest('[data-pfe-card-action]');
+    if (cardPillTrigger) {
+      e.stopPropagation();
+      if (pfeState.busy) return;
+      pfeToggleCardPopover(cardPillTrigger.dataset.pfeCardId, cardPillTrigger.dataset.pfeCardAction);
+      return;
+    }
+    const cardOpt = e.target.closest('[data-pfe-card-opt]');
+    if (cardOpt) { e.stopPropagation(); if (!pfeState.busy) applyPfeCardOptionSelect(cardOpt.dataset.pfeCardId, cardOpt.dataset.pfeCardOpt); return; }
+    const cardClear = e.target.closest('[data-pfe-card-clear]');
+    if (cardClear) { e.stopPropagation(); if (!pfeState.busy) applyTaskCardPriorityEdit(cardClear.dataset.pfeCardId, null, true); return; }
+    // Mass-select (Step E carry-over) — toggle/checkbox/bulk-action clicks
+    // sit inside cards and bulk bars that also carry data-pf-nav, so these
+    // must claim the click before the generic nav/action checks below.
+    const selectToggleEl = e.target.closest('[data-pfe-toggle-select]');
+    if (selectToggleEl) {
+      e.stopPropagation();
+      const scope = selectToggleEl.dataset.pfeToggleSelect;
+      if (scope === 'project') {
+        const s = projectProfileState;
+        s.selecting = !s.selecting;
+        s.selected = new Set();
+        s.bulkPopover = null;
+      } else if (scope === 'domain') {
+        const s = domainProfileState;
+        s.selecting = !s.selecting;
+        s.selectedTasks = new Set();
+        s.selectedProjects = new Set();
+        s.bulkPopover = null;
+      }
+      paintActiveProfile();
+      return;
+    }
+    const selectCardEl = e.target.closest('[data-pfe-select-card]');
+    if (selectCardEl) {
+      e.stopPropagation();
+      const id = selectCardEl.dataset.pfeSelectCard;
+      const kind = selectCardEl.dataset.pfeSelectKind;
+      const set = kind === 'project-task' ? projectProfileState.selected
+        : kind === 'domain-task' ? domainProfileState.selectedTasks
+        : kind === 'domain-project' ? domainProfileState.selectedProjects
+        : null;
+      if (set) {
+        if (set.has(id)) set.delete(id); else set.add(id);
+        paintActiveProfile();
+      }
+      return;
+    }
+    const bulkActionEl = e.target.closest('[data-pfe-bulk-action]');
+    if (bulkActionEl) {
+      e.stopPropagation();
+      if (pfeState.busy) return;
+      const key = bulkActionEl.dataset.pfeBulkAction;
+      if (key === 'delete') { applyProjectBulkDelete(); return; }
+      if (key === 'task-delete') { applyDomainBulkTaskDelete(); return; }
+      if (key === 'project-delete') { applyDomainBulkProjectDelete(); return; }
+      const scopeState = (key === 'status') ? projectProfileState : domainProfileState;
+      scopeState.bulkPopover = scopeState.bulkPopover === key ? null : key;
+      paintActiveProfile();
+      return;
+    }
+    const bulkOptEl = e.target.closest('[data-pfe-bulk-opt]');
+    if (bulkOptEl) {
+      e.stopPropagation();
+      if (pfeState.busy) return;
+      const value = bulkOptEl.dataset.pfeBulkOpt;
+      const key = projectProfileState.bulkPopover || domainProfileState.bulkPopover;
+      if (key === 'status') applyProjectBulkStatus(value);
+      else if (key === 'task-status') applyDomainBulkTaskStatus(value);
+      else if (key === 'project-status') applyDomainBulkProjectStatus(value);
+      return;
+    }
     const pfeTrigger = e.target.closest('[data-pfe-action]');
     if (pfeTrigger) {
       e.stopPropagation();
@@ -7050,7 +7523,13 @@
 
     // Click anywhere else dismisses an open picker or inline title edit —
     // same "full-card backdrop" convention Inbox's own popovers use.
-    if (pfeState.popover) { pfeState.popover = null; paintActiveProfile(); }
+    if (pfeState.popover || pfeCardPopover.taskId || projectProfileState.bulkPopover || domainProfileState.bulkPopover) {
+      pfeState.popover = null;
+      pfeCardPopover.taskId = null; pfeCardPopover.field = null;
+      projectProfileState.bulkPopover = null;
+      domainProfileState.bulkPopover = null;
+      paintActiveProfile();
+    }
   });
 
   // Typing in a relation-field filter input updates only the matches/
@@ -7145,6 +7624,7 @@
     // profile mounts next.
     pfeState.popover = null;
     pfeState.query = '';
+    pfeCardPopover.taskId = null; pfeCardPopover.field = null;
     const route = parseRoute();
     document.querySelectorAll('.nav-btn').forEach((btn) => {
       btn.classList.toggle('active', btn.dataset.route === route.name);
