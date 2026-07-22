@@ -249,6 +249,16 @@
 
   .tg-track-head { display: flex; align-items: baseline; justify-content: space-between; padding: 14px 2px 8px; }
 
+  /* §5.7 domainless-project safety net — sits above the Notes/Tasks
+     toggle so it's visible regardless of track, since it's neither a
+     Note nor a Task bin. */
+  .tg-domainless-sec { margin-top: 16px; flex-shrink: 0; }
+  .tg-domainless-card {
+    display: flex; align-items: center; justify-content: space-between; gap: 10px;
+    padding: 10px 2px; border-bottom: 1px solid var(--hairline);
+  }
+  .tg-domainless-name { font-family: 'Newsreader', serif; font-size: 15px; color: var(--text); }
+
   /* Bins — shared shape for both Note-type and Task/domain bins. Mobile
      gets its own dedicated pane (see .tg-layout below, mirroring the
      original pre-chip-row bin list), so the chip row can safely flex to
@@ -639,12 +649,71 @@
      and unfilled so it visibly reads as "nothing here yet" rather than a
      real value. */
   .pf-pill--ghost { background: transparent; color: var(--muted-text); border: 1px dashed var(--faint-text); }
-  /* Rendered but inert this slice — the caret's picker attaches next
-     slice, per the two-hit-area relation-pill design in
-     RenitaOS-Conventions.md. */
+  .pf-pill--ghost[data-pfe-action] { cursor: pointer; }
+  .pf-pill--ghost[data-pfe-action]:hover { border-color: var(--muted-text); color: var(--text); }
   .pf-pill-caret { opacity: .5; font-size: 9px; margin-left: 2px; }
+  .pf-pill-caret[data-pfe-action] { cursor: pointer; padding: 2px; }
+  .pf-pill-caret[data-pfe-action]:hover { opacity: .9; }
+  .pf-pill--value[data-pfe-action] { cursor: pointer; }
+  .pf-pill--value[data-pfe-action]:hover { background: var(--tg-sage-deep, #DBE2C1); }
   .pf-pill-icon { display: inline-flex; align-items: center; font-size: 12px; line-height: 1; }
   .pf-pill-divider { width: 1px; height: 20px; background: var(--hairline); margin: 0 6px; flex-shrink: 0; }
+
+  /* Edit-slice additions ---------------------------------------------- */
+  .pfe-toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); z-index: 70; }
+  .pfe-date-trigger { cursor: pointer; }
+  .pfe-date-trigger:hover { text-decoration: underline; text-underline-offset: 3px; text-decoration-color: var(--muted-text); }
+  /* Inline title editing (Note/Task/Project hero) — swaps the <h1> for a
+     borderless input matching its serif voice, so it reads like the same
+     text becoming editable rather than a different control appearing. */
+  .dmn-title-input {
+    font-family: 'Newsreader', serif; font-size: inherit; line-height: inherit; color: var(--text);
+    background: oklch(0.97 0.005 75); border: none; border-radius: var(--radius-sm);
+    padding: 2px 8px; width: 100%; outline: none; box-shadow: inset 0 0 0 1.5px var(--muted-text);
+  }
+  .dmn-title-edit-trigger { cursor: pointer; }
+  .dmn-title-edit-trigger:hover { text-decoration: underline; text-decoration-color: var(--faint-text); text-underline-offset: 4px; }
+  /* Project's Archived/Focus checkboxes + the Pause Details field, in the
+     right rail's Properties section — same .dmn-kv row shape the Dates
+     section already uses, plus a small tappable box. */
+  .pfe-check-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 5px 0; font-size: 13px; }
+  .pfe-check-row .k { color: oklch(0.55 0.012 75); }
+  .pfe-checkbox {
+    width: 16px; height: 16px; border-radius: 3px; cursor: pointer;
+    background: #fff; box-shadow: inset 0 0 0 1.5px oklch(0.75 0.012 75);
+    color: #fff; display: flex; align-items: center; justify-content: center; font-size: 10px; flex-shrink: 0;
+  }
+  .pfe-checkbox--checked { background: var(--text); box-shadow: inset 0 0 0 1.5px var(--text); }
+  .pfe-pausedetails { margin-top: 8px; }
+  .pfe-pausedetails textarea {
+    width: 100%; min-height: 72px; resize: vertical; font-family: inherit; font-size: 13px;
+    color: var(--text); background: oklch(0.97 0.005 75); border: none; border-radius: var(--radius-sm);
+    padding: 8px 10px; outline: none; box-sizing: border-box;
+  }
+  .pfe-pausedetails-save {
+    margin-top: 6px; font-size: 11px; font-weight: 600; padding: 5px 11px; border-radius: var(--radius-sm);
+    border: none; background: var(--surface-soft); color: var(--text); cursor: pointer;
+  }
+  .pfe-pausedetails-save:disabled { opacity: .5; cursor: not-allowed; }
+  /* Create-in-context affordance (Domain -> +New Project, Project -> +New
+     Task) — a dashed pill matching the ghost-pill vocabulary, but as its
+     own standalone row rather than attached to any one field. */
+  .pfe-create-context {
+    display: inline-flex; align-items: center; gap: 6px; margin: 4px 0 16px;
+    padding: 8px 14px; border-radius: var(--radius-sm); font-size: 12px; font-weight: 600;
+    color: var(--muted-text); background: transparent; border: 1.5px dashed var(--faint-text); cursor: pointer;
+  }
+  .pfe-create-context:hover { color: var(--text); border-color: var(--muted-text); }
+  /* Task completion checkbox — writable this slice (was render-only). The
+     hit area is exactly the box, never the title, so tapping the title
+     text still just... does nothing on Task (no inline title edit
+     trigger overlaps it; see the title-edit trigger's own narrower span). */
+  .dmn-hero-checkbox { cursor: pointer; }
+  /* Project's task-grid checkbox (.dmn-box, shared by Project's Tasks tab
+     and Domain's Inbox/Admin grid) — completion-writable this slice,
+     carved out of the card's own data-pf-nav click area (Step E carry-
+     over) so tapping it toggles Done instead of navigating. */
+  .dmn-box[data-pfe-action] { cursor: pointer; }
 
   .pf-meta-grid {
     display: grid; grid-template-columns: 1fr; gap: 18px; align-items: center;
@@ -1368,6 +1437,146 @@
     return entry ? entry[0] : null;
   }
 
+  // Generic keyword resolvers for text/checkbox properties — same principle
+  // as getTasksPriorityProp/getSelectPropByKeyword (type match first,
+  // keyword second, never a hardcoded emoji-prefixed name). Used by the
+  // edit slice for Pause Details (rich_text) and Archived/Focus (checkbox).
+  async function getTextPropByKeyword(databaseId, keyword) {
+    const db = await getSchema(databaseId);
+    const target = keyword.toLowerCase();
+    const entry = Object.entries(db.properties).find(
+      ([name, prop]) => prop.type === 'rich_text' && name.toLowerCase().includes(target)
+    );
+    return entry ? entry[0] : null;
+  }
+  async function getCheckboxPropByKeyword(databaseId, keyword) {
+    const db = await getSchema(databaseId);
+    const target = keyword.toLowerCase();
+    const entry = Object.entries(db.properties).find(
+      ([name, prop]) => prop.type === 'checkbox' && name.toLowerCase().includes(target)
+    );
+    return entry ? entry[0] : null;
+  }
+
+  // ==========================================================================
+  // Shared write layer (RenitaOS Edit Slice build brief) — every value-pill,
+  // relation, date, checkbox, title, and create-record write in the edit
+  // slice routes through this block. Building it once here (rather than a
+  // bespoke fetch(PATCH…) per profile handler) is the slice's one structural
+  // bet: the exact-option-string failure and the relation-clobber failure
+  // each get solved once, not re-solved per profile (brief §1).
+  // ==========================================================================
+
+  // --- §5 resolveOptionValue — the single choke point for every Status/
+  // Priority/Type(/any select-shaped) write. Given a desired human value,
+  // returns the EXACT stored option string (never echoes the caller's
+  // input) or throws — a miss never falls through to a raw/guessed string,
+  // which would otherwise have Notion silently create a duplicate option
+  // instead of tagging the existing one. Generalizes findStatusOption/
+  // getMultiSelectOptions's matching rule (exact, then case-insensitive,
+  // then emoji/whitespace-normalized) across all three select-shaped
+  // property types (`status`, `select`, `multi_select` all expose their
+  // live options the same way: `prop[prop.type].options`).
+  function normalizeOptionValue(str) {
+    return (str || '').replace(/[^\p{L}\p{N}\s]/gu, '').replace(/\s+/g, ' ').trim().toLowerCase();
+  }
+  async function resolveOptionValue(databaseId, propertyName, desiredValue) {
+    const matchIn = (db) => {
+      const prop = db.properties[propertyName];
+      if (!prop) return null;
+      const options = (prop[prop.type] && prop[prop.type].options) || [];
+      const exact = options.find((o) => o.name === desiredValue);
+      if (exact) return exact.name;
+      const ci = options.find((o) => o.name.toLowerCase() === desiredValue.toLowerCase());
+      if (ci) return ci.name;
+      const norm = normalizeOptionValue(desiredValue);
+      const fuzzy = options.find((o) => normalizeOptionValue(o.name) === norm);
+      return fuzzy ? fuzzy.name : null;
+    };
+    let resolved = matchIn(await getSchema(databaseId));
+    if (resolved) return resolved;
+    // Miss — re-retrieve the schema once (the option may have just been
+    // added in Notion) and re-match before giving up. Still missing throws
+    // a labeled error; callers toast it and abort the write (never send
+    // desiredValue itself to Notion).
+    schemaCache.delete(databaseId);
+    statusSchemaCache.delete(databaseId);
+    resolved = matchIn(await getSchema(databaseId));
+    if (resolved) return resolved;
+    throw new Error(`No "${desiredValue}" option found on "${propertyName}" for database ${databaseId} — check the Notion schema.`);
+  }
+
+  // --- §6 relation & multi-select read-modify-write. Notion replaces the
+  // WHOLE array on a relation PATCH, and a page's own inline
+  // properties[name].relation array truncates past 25 members — so any
+  // add/remove must read the CURRENT full set via the paginated
+  // property-item endpoint (GET /pages/{id}/properties/{property_id},
+  // following has_more/next_cursor), never the inline array, before writing
+  // the full new set back. (multi_select is exempt from this truncation —
+  // Notion returns it complete on the page object — so Type toggling stays
+  // on the simpler page-object read the existing Inbox code already uses.)
+  async function readRelationIds(pageId, databaseId, propertyName) {
+    const db = await getSchema(databaseId);
+    const propId = db.properties[propertyName] && db.properties[propertyName].id;
+    if (!propId) throw new Error(`No "${propertyName}" property id resolved for database ${databaseId}`);
+    const ids = [];
+    let cursor;
+    do {
+      const qs = cursor ? `?start_cursor=${encodeURIComponent(cursor)}` : '';
+      // eslint-disable-next-line no-await-in-loop
+      const page = await notionRequest(`/v1/pages/${pageId}/properties/${propId}${qs}`, { method: 'GET' });
+      (page.results || []).forEach((r) => { if (r.relation && r.relation.id) ids.push(r.relation.id); });
+      cursor = page.has_more ? page.next_cursor : undefined;
+    } while (cursor);
+    return ids;
+  }
+  function writeRelationIds(pageId, propertyName, ids) {
+    return notionRequest(`/v1/pages/${pageId}`, { method: 'PATCH', body: { properties: { [propertyName]: { relation: ids.map((id) => ({ id })) } } } });
+  }
+  async function addRelationMember(pageId, databaseId, propertyName, memberId) {
+    const current = await readRelationIds(pageId, databaseId, propertyName);
+    if (current.includes(memberId)) return current;
+    const next = [...current, memberId];
+    await writeRelationIds(pageId, propertyName, next);
+    return next;
+  }
+  async function removeRelationMember(pageId, databaseId, propertyName, memberId) {
+    const current = await readRelationIds(pageId, databaseId, propertyName);
+    const next = current.filter((id) => id !== memberId);
+    await writeRelationIds(pageId, propertyName, next);
+    return next;
+  }
+  // Single-value relations (Domain, a task's one Project) are still
+  // array writes underneath — one element, or [] to clear — never a bare
+  // object write. No read-modify-write needed here since the whole field
+  // is always meant to hold exactly one member (or none).
+  function setRelationSingle(pageId, propertyName, memberId) {
+    return writeRelationIds(pageId, propertyName, memberId ? [memberId] : []);
+  }
+
+  // --- §7 dates — local YYYY-MM-DD only, never toISOString() (a UTC shift
+  // lands "today" on yesterday west of Greenwich). A native <input
+  // type="date"> already yields a local YYYY-MM-DD string verbatim, so
+  // those values pass straight through untouched; todayIsoLocal() (defined
+  // further down, hoisted within this closure) is the one other source of
+  // an app-generated date stamp (status-transition writes, §8).
+
+  // --- §4 property serialization — one shape-builder per Notion property
+  // type, composable into a single compound PATCH (e.g. a completion write
+  // is Status + Completed in one request). Every builder returns a
+  // {[propName]: {...}} fragment; spread several together into one
+  // `properties` object rather than firing multiple PATCHes.
+  function statusPropertyPatch(name, value) { return { [name]: { status: { name: value } } }; }
+  function selectPropertyPatch(name, value) { return { [name]: value ? { select: { name: value } } : { select: null } }; }
+  function multiSelectPropertyPatch(name, values) { return { [name]: { multi_select: values.map((v) => ({ name: v })) } }; }
+  function datePropertyPatch(name, iso) { return { [name]: iso ? { date: { start: iso } } : { date: null } }; }
+  function checkboxPropertyPatch(name, value) { return { [name]: { checkbox: !!value } }; }
+  function richTextPropertyPatch(name, text) { return { [name]: { rich_text: text ? [{ type: 'text', text: { content: text } }] : [] } }; }
+  function titlePropertyPatch(name, text) { return { [name]: { title: [{ type: 'text', text: { content: text || '' } }] } }; }
+  function patchProperties(pageId, properties) {
+    return notionRequest(`/v1/pages/${pageId}`, { method: 'PATCH', body: { properties } });
+  }
+
   // A Notion page's `icon` field is either an emoji or an uploaded/external
   // image — normalize both into one shape the chip renderer can switch on,
   // or null when the record has no icon set (falls back to the plain chip).
@@ -1641,6 +1850,11 @@
     const peoplePagesPromise = queryAllPages(CONFIG.DB.PEOPLE);
     const projectPagesPromise = queryAllPages(CONFIG.DB.PROJECTS);
     const domainPagesPromise = queryAllPages(CONFIG.DB.DOMAINS);
+    // §5.7 domainless-project safety net — Archived resolved here (not
+    // reused from getProjectCheckboxProps, which is edit-slice-only and
+    // lives further down this file) so this section stays independent of
+    // the Project profile's own load path.
+    const projectsArchivedPropPromise = getCheckboxPropByKeyword(CONFIG.DB.PROJECTS, 'archived');
     // These two alone have a real dependency (the exact {name, value} the
     // query filter is built from) — each chains off only its OWN filter
     // promise, so it still starts the instant that filter resolves rather
@@ -1661,13 +1875,25 @@
       tagTitleProp, peopleTitleProp, projectTitleProp, domainTitleProp,
       tagsDbIcon, peopleDbIcon, projectsDbIcon, domainsDbIcon,
       tagPages, peoplePages, projectPages, domainPages, notePages, taskPages,
+      projectsArchivedProp,
     ] = await Promise.all([
       notesFilterPromise, tasksFilterPromise, notesStatusSchemaPromise, tasksStatusSchemaPromise, notesTypeOptionsPromise, notesDomainPropPromise,
       notesTagsPropPromise, notesPeoplePropPromise, tasksProjectsPropPromise, tasksTitlePropPromise, projectsDomainsPropPromise,
       tagTitlePropPromise, peopleTitlePropPromise, projectTitlePropPromise, domainTitlePropPromise,
       tagsDbIconPromise, peopleDbIconPromise, projectsDbIconPromise, domainsDbIconPromise,
       tagPagesPromise, peoplePagesPromise, projectPagesPromise, domainPagesPromise, notePagesPromise, taskPagesPromise,
+      projectsArchivedPropPromise,
     ]);
+
+    // §5.7 — a Project with no Domain (e.g. created inline from a
+    // relation picker) resurfaces here until a Domain is assigned, so it
+    // can never get permanently lost. Reuses the projectPages/
+    // projectsDomainsProp already fetched above — no extra query.
+    const domainlessProjects = projectPages
+      .filter((p) => ((p.properties[projectsDomainsProp] || {}).relation || []).length === 0)
+      .filter((p) => !(projectsArchivedProp && (p.properties[projectsArchivedProp] || {}).checkbox))
+      .map((p) => ({ id: p.id, name: plainTitle(p, projectTitleProp) }))
+      .filter((p) => p.name);
 
     const tagList = tagPages.map((p) => ({ id: p.id, name: plainTitle(p, tagTitleProp) })).filter((t) => t.name);
     const tagById = new Map(tagList.map((t) => [t.id, t.name]));
@@ -1763,6 +1989,7 @@
       icons: { tags: tagsDbIcon, people: peopleDbIcon, projects: projectsDbIcon, domains: domainsDbIcon },
       statusOptions: { notes: notesStatusSchema.options, tasks: tasksStatusSchema.options },
       typeOptions: notesTypeOptions.map((o) => o.name),
+      domainlessProjects,
     };
   }
 
@@ -1842,6 +2069,32 @@
   // separate tile grid — one chip vocabulary, laid out by plain flex-wrap,
   // which is why no per-breakpoint override is needed: the same rule wraps
   // to few wide rows on desktop or many narrow ones on mobile.
+  // §5.7 — a project with no Domain resurfaces here, regardless of the
+  // Notes/Tasks track toggle, until a Domain is assigned. Reuses the
+  // shared popover plumbing (popoverOpenFor/handlePopoverSelect) via the
+  // 'domainless' field key, same as every other Inbox chip.
+  function renderDomainlessProjectsSection(data) {
+    const projects = data.domainlessProjects || [];
+    if (!projects.length) return '';
+    const cardsHtml = projects.map((p) => {
+      const opts = DOMAIN_META.map((d) => `<div class="tg-type-opt" data-pop-value="${d.code}" style="background:${d.fill};color:${d.text};">${d.code}</div>`).join('');
+      const pop = popoverOpenFor(p.id, 'domainless')
+        ? `<div class="tg-popover"><div class="tg-pop-label">Assign a Domain</div><div class="tg-type-strip">${opts}</div></div>`
+        : '';
+      return `<div class="tg-domainless-card">
+        <span class="tg-domainless-name">${escapeHtml(p.name)}</span>
+        <div class="tg-pop-wrap">
+          <div class="tg-ghost" data-chip-action="domainless" data-card-id="${escapeHtml(p.id)}">+ Domain</div>
+          ${pop}
+        </div>
+      </div>`;
+    }).join('');
+    return `<div class="tg-domainless-sec">
+      <div class="tg-eyebrow">Projects needing a Domain · ${projects.length}</div>
+      ${cardsHtml}
+    </div>`;
+  }
+
   function renderOverview(data) {
     const total = data.notesCards.length + data.tasksCards.length;
     const { track, openBin } = triageState;
@@ -1873,6 +2126,7 @@
         <div class="serif tg-ov-title">INBOX</div>
         <div class="tg-ov-sub">${total} waiting · One bin at a time.</div>
       </div>
+      ${renderDomainlessProjectsSection(data)}
       <div class="tg-seg">
         <button type="button" data-track="notes" class="${track === 'notes' ? 'on' : ''}">Notes</button>
         <button type="button" data-track="tasks" class="${track === 'tasks' ? 'on' : ''}">Tasks</button>
@@ -2727,6 +2981,29 @@
     if (field === 'status') return applyTaskStatus(cardId, value);
     if (field === 'date') return applyNoteDate(cardId, value);
     if (field === 'notedomain') return isClear ? applyNoteClearDomain(cardId) : applyNoteSetDomain(cardId, value);
+    if (field === 'domainless') return applyProjectAssignDomain(cardId, value);
+  }
+
+  // §5.7 domainless-project safety net — assigning a Domain here is the
+  // only "processing" a bare project needs; it leaves this list the
+  // moment the write lands (never re-queried — the in-memory list is
+  // simply filtered down, same pattern Refresh/bulk-status use elsewhere
+  // in this file).
+  function applyProjectAssignDomain(projectId, domainCode) {
+    return withBusy(async () => {
+      const meta = DOMAIN_META.find((d) => d.code === domainCode);
+      if (!meta) return;
+      try {
+        const relProp = triageState.data.schema.projectsDomainsProp;
+        await notionRequest(`/v1/pages/${projectId}`, { method: 'PATCH', body: { properties: { [relProp]: { relation: [{ id: meta.pageId }] } } } });
+        triageState.data.domainlessProjects = triageState.data.domainlessProjects.filter((p) => p.id !== projectId);
+        triageState.popover = null;
+        paintTriage();
+      } catch (err) {
+        console.error('Failed to assign Domain', err);
+        showTriageToast(err.message || 'Could not assign Domain — try again.');
+      }
+    });
   }
 
   // --- Select mode / bulk actions ------------------------------------------
@@ -3452,12 +3729,242 @@
     return { projects, domainId };
   }
 
+  // ==========================================================================
+  // Profile edit state (RenitaOS Edit Slice) — one shared popover/busy/toast
+  // state for whichever entity profile (Note/Task/Project/Domain) is
+  // currently mounted, mirroring triageState's popover/busy/toast plumbing
+  // but scoped to the framed shell rather than Inbox. `popover` identifies
+  // which field's picker is open ({ entity, field }) so one trigger shape
+  // (a pill/ghost's data-pfe-action opening a .tg-pop-wrap's .tg-popover)
+  // works the same across every profile and every field.
+  // ==========================================================================
+  const pfeState = { popover: null, query: '', busy: false, toast: null };
+  let pfeToastTimer = null;
+
+  function pfeOpenFor(entity, field) {
+    return !!(pfeState.popover && pfeState.popover.entity === entity && pfeState.popover.field === field);
+  }
+
+  // Repaints whichever profile is currently mounted — every apply* function
+  // below calls this after a write lands (or fails) rather than each
+  // profile wiring its own repaint, since the picker markup/handlers are
+  // shared across Note/Task/Project/Domain.
+  function paintActiveProfile() {
+    const name = currentRoute().name;
+    if (name === 'note') paintNoteProfile();
+    else if (name === 'task') paintTaskProfile();
+    else if (name === 'project') paintProjectProfile();
+    else if (name === 'domain') paintDomainProfile();
+  }
+
+  function showPfeToast(message) {
+    pfeState.toast = message;
+    paintActiveProfile();
+    clearTimeout(pfeToastTimer);
+    pfeToastTimer = setTimeout(() => { pfeState.toast = null; paintActiveProfile(); }, 3200);
+  }
+
+  function renderPfeToast() {
+    return pfeState.toast ? `<div class="tg-toast pfe-toast">${escapeHtml(pfeState.toast)}</div>` : '';
+  }
+
+  // Every write handler wraps in this — a second tap while a write is in
+  // flight is a no-op rather than a race, same guarantee withBusy gives
+  // Inbox's writes.
+  function withPfeBusy(fn) {
+    return async (...args) => {
+      if (pfeState.busy) return;
+      pfeState.busy = true;
+      try {
+        await fn(...args);
+      } finally {
+        pfeState.busy = false;
+      }
+    };
+  }
+
+  // --- Near-match suggestion (§5.5) — mirrors js/similarity.js verbatim
+  // (duplicated inline rather than imported, same reasoning as the
+  // schema.js mirror above: this file stays a single self-contained
+  // classic <script>, not an ES module tree). Threshold scales with word
+  // length so short tags/names don't over-suggest.
+  function pfeLevenshtein(a, b) {
+    const m = a.length, n = b.length;
+    if (m === 0) return n;
+    if (n === 0) return m;
+    let prev = new Array(n + 1);
+    let curr = new Array(n + 1);
+    for (let j = 0; j <= n; j++) prev[j] = j;
+    for (let i = 1; i <= m; i++) {
+      curr[0] = i;
+      for (let j = 1; j <= n; j++) {
+        const cost = a[i - 1] === b[j - 1] ? 0 : 1;
+        curr[j] = Math.min(curr[j - 1] + 1, prev[j] + 1, prev[j - 1] + cost);
+      }
+      [prev, curr] = [curr, prev];
+    }
+    return prev[n];
+  }
+  function pfeThresholdFor(len) {
+    if (len <= 3) return 0;
+    if (len <= 6) return 1;
+    return 2;
+  }
+  // Finds the closest {id,name} candidate to `value` that isn't an exact
+  // (case-insensitive) match — returns the candidate object, or null if
+  // nothing is close enough.
+  function pfeFindNearMatch(value, candidates) {
+    const query = value.toLowerCase();
+    let best = null;
+    let bestDist = Infinity;
+    for (const candidate of candidates) {
+      const c = candidate.name.toLowerCase();
+      if (c === query) continue;
+      const threshold = pfeThresholdFor(Math.max(query.length, c.length));
+      if (threshold === 0) continue;
+      if (Math.abs(c.length - query.length) > threshold) continue;
+      const dist = pfeLevenshtein(query, c);
+      if (dist <= threshold && dist < bestDist) { best = candidate; bestDist = dist; }
+    }
+    return best;
+  }
+
+  // --- Lookup pool (§5.5 create-new + relation pickers) — a lazily-loaded,
+  // cached {id,name}[] list per lookup database (Tags/People/Projects and
+  // the link-existing-only Domain/Collections/Resources), used to search
+  // and — for Tags/People/Projects only — create a new record inline.
+  // Mirrors js/cache.js's LookupCache, scoped per-database rather than to
+  // three fixed fields, since the edit slice's picker spans more relation
+  // categories than Capture's three symbol lookups did.
+  const pfeLookupCache = new Map();
+  function pfeLookupPool(databaseId) {
+    const c = pfeLookupCache.get(databaseId);
+    return c && c.loaded ? c.entries : null;
+  }
+  function ensurePfeLookupLoaded(databaseId) {
+    let c = pfeLookupCache.get(databaseId);
+    if (c && (c.loaded || c.loading)) return c.loaded ? Promise.resolve() : c.loading;
+    c = { loaded: false, loading: null, entries: [] };
+    pfeLookupCache.set(databaseId, c);
+    c.loading = (async () => {
+      const titleProp = await titlePropertyName(databaseId);
+      const pages = await queryAllPages(databaseId);
+      c.entries = pages.map((p) => ({ id: p.id, name: plainTitle(p, titleProp) })).filter((e) => e.name);
+      c.loaded = true;
+    })();
+    return c.loading;
+  }
+  // Creates a brand-new record in a lookup database (Tags/People/Projects
+  // only — §5.5's create-new is never offered for Domain/Collections/
+  // Resources) and appends it to that database's cached pool so it's
+  // immediately searchable/linkable without a re-fetch.
+  async function pfeCreateAndLink(databaseId, name) {
+    const titleProp = await titlePropertyName(databaseId);
+    const page = await notionRequest('/v1/pages', { method: 'POST', body: { parent: { database_id: databaseId }, properties: titlePropertyPatch(titleProp, name) } });
+    const entry = { id: page.id, name };
+    const c = pfeLookupCache.get(databaseId);
+    if (c && c.loaded) c.entries.push(entry);
+    return entry;
+  }
+
+  // --- Generic relation-field popover — shared by every relation field
+  // across Note/Task/Project (Domain, Project, People, Tags, Collections,
+  // Resources). `ctx` describes the field being edited:
+  //   { entity, field, label, members: [{id,name}], targetDbId, single,
+  //     allowCreate }
+  // `members` is the field's CURRENT value (already resolved by the
+  // profile loader); picking/creating/removing here writes through
+  // addRelationMember/removeRelationMember/setRelationSingle (§6 paginated
+  // read-modify-write) via the apply function the caller wires up, never a
+  // bespoke inline PATCH.
+  // The query-dependent part (matches/near-match/create row) — pulled out
+  // so typing can re-render just this, in place, instead of the whole
+  // popover (mirrors Inbox's own renderTagPopoverDynamic: replacing the
+  // <input> itself on every keystroke races its own refocus and can drop
+  // characters). `currentIds` excludes already-linked members from the
+  // match list; `pool` is null while the lookup database is still loading.
+  function renderPfeRelationDynamic(pool, currentIds, allowCreate, label) {
+    const q = (pfeState.query || '').trim();
+    const ql = q.toLowerCase();
+    if (!pool) return `<div class="tg-pop-list"><div class="tg-pop-opt" style="cursor:default;">Loading…</div></div>`;
+    const currentSet = new Set(currentIds);
+    const matches = pool.filter((e) => !currentSet.has(e.id) && e.name.toLowerCase().includes(ql));
+    const optsHtml = matches.slice(0, 40).map((e) => `<div class="tg-pop-opt" data-pfe-pick="${escapeHtml(e.id)}">${escapeHtml(e.name)}</div>`).join('');
+    const exact = q && pool.some((e) => e.name.toLowerCase() === ql);
+    const near = !exact && q ? pfeFindNearMatch(q, pool) : null;
+    const nearHtml = near ? `<div class="tg-pop-opt tg-pop-opt--create" data-pfe-pick="${escapeHtml(near.id)}">Did you mean "${escapeHtml(near.name)}"?</div>` : '';
+    const createHtml = allowCreate && q && !exact && !near
+      ? `<div class="tg-pop-opt tg-pop-opt--create" data-pfe-create="${escapeHtml(q)}">+ Create "${escapeHtml(q)}"</div>`
+      : '';
+    return `${nearHtml}${createHtml}<div class="tg-pop-list">${optsHtml}</div>`;
+  }
+
+  function renderPfeRelationPopover(ctx) {
+    const currentHtml = ctx.members.length
+      ? `<div class="tg-pop-current">${ctx.members.map((m) => `<span class="tg-pop-pill">${escapeHtml(m.name)}<span class="x" data-pfe-remove="${escapeHtml(m.id)}">×</span></span>`).join('')}</div>`
+      : '';
+    const pool = pfeLookupPool(ctx.targetDbId);
+    const dynamicHtml = renderPfeRelationDynamic(pool, ctx.members.map((m) => m.id), ctx.allowCreate, ctx.label);
+    const clearHtml = ctx.members.length
+      ? `<div class="tg-pop-opt tg-pop-opt--clear" data-pfe-clear="true">${ctx.single ? 'Remove' : 'Clear all'}</div>`
+      : '';
+    return `<div class="tg-popover">
+      ${currentHtml}
+      <input type="text" class="tg-pop-input" data-pfe-filter placeholder="Filter${ctx.allowCreate ? ' or create' : ''} ${escapeHtml(ctx.label.toLowerCase())}…" value="${escapeHtml(pfeState.query || '')}">
+      <div class="tg-pop-dynamic">${dynamicHtml}</div>
+      ${clearHtml}
+    </div>`;
+  }
+
+  // --- Generic value-pill popover (Status/Priority — any select-shaped
+  // property with a fixed, mutually-exclusive option list). `options` is
+  // the live list from getStatusSchema/getSelectOptions; the write itself
+  // still routes each selection through resolveOptionValue (never trusts
+  // this list's casing directly), matching §5's contract.
+  function renderPfeSelectPopover(options, currentValue, opts = {}) {
+    const rows = (options || []).map((o) => `<div class="tg-pop-opt${o.name === currentValue ? ' on' : ''}" data-pfe-opt="${escapeHtml(o.name)}">${escapeHtml(o.name)}</div>`).join('');
+    const clearHtml = opts.clearable ? `<div class="tg-pop-opt tg-pop-opt--clear" data-pfe-clear="true">Clear</div>` : '';
+    return `<div class="tg-popover">${opts.label ? `<div class="tg-pop-label">${escapeHtml(opts.label)}</div>` : ''}<div class="tg-pop-list">${rows}</div>${clearHtml}</div>`;
+  }
+
+  // --- Generic editable-date row (§7) — a native <input type="date">
+  // inside a small popover, opened by tapping the date's own display
+  // value. The input already yields a local YYYY-MM-DD string verbatim
+  // (never toISOString()), so it passes straight through to the write.
+  function renderPfeDatePopover(iso) {
+    const clearHtml = iso ? `<div class="tg-pop-opt tg-pop-opt--clear" data-pfe-clear="true">Clear date</div>` : '';
+    return `<div class="tg-popover">
+      <input type="date" class="tg-pop-date" data-pfe-date-input value="${iso ? escapeHtml(iso) : ''}">
+      ${clearHtml}
+    </div>`;
+  }
+  function renderPfeDateRow(label, dateObj, entity, field) {
+    const iso = dateObj && dateObj.start ? dateObj.start : null;
+    const display = iso ? '🗓 ' + escapeHtml(formatDateShort(iso)) : '—';
+    const trigger = `<span class="v pfe-date-trigger" data-pfe-action="${entity}:${field}">${display}</span>`;
+    const pop = pfeOpenFor(entity, field) ? renderPfeDatePopover(iso) : '';
+    return `<div class="dmn-kv"><span class="k">${escapeHtml(label)}</span><span class="tg-pop-wrap">${trigger}${pop}</span></div>`;
+  }
+
+  // --- Inline title editing (§9) — a hand-typed/edited title persists
+  // forever (nothing overwrites it); this is purely the write-side
+  // (empty->auto-fill happens at creation, see createTaskInProject/
+  // createProjectInDomain below). Empty input falls back to "Untitled"
+  // rather than writing a blank title, matching the auto-titler's own
+  // empty-body fallback.
+  function renderEditableTitleHtml(entity, title) {
+    return pfeOpenFor(entity, 'title')
+      ? `<input type="text" class="dmn-title-input" data-pfe-title-input value="${escapeHtml(title || '')}" autofocus>`
+      : `<h1 class="dmn-title dmn-title-edit-trigger" data-pfe-action="${entity}:title" title="Tap to rename">${escapeHtml(title || 'Untitled')}</h1>`;
+  }
+
   async function loadNoteProfile(pageId) {
     const page = await notionRequest(`/v1/pages/${pageId}`);
 
     const [
       notesTitleProp, notesStatusSchema, notesDomainProp, notesUniqueIdProp,
       notesProjectsProp, notesPeopleProp, notesTagsProp, notesCollectionsProp, notesResourcesProp,
+      notesTypeOptions,
     ] = await Promise.all([
       titlePropertyName(CONFIG.DB.NOTES),
       getStatusSchema(CONFIG.DB.NOTES),
@@ -3468,6 +3975,7 @@
       relationPropertyName(CONFIG.DB.NOTES, CONFIG.DB.TAGS),
       relationPropertyName(CONFIG.DB.NOTES, CONFIG.DB.COLLECTIONS),
       relationPropertyName(CONFIG.DB.NOTES, CONFIG.DB.RESOURCES),
+      getMultiSelectOptions(CONFIG.DB.NOTES, CONFIG.NOTES_PROP.TYPE),
     ]);
 
     const title = plainTitle(page, notesTitleProp);
@@ -3536,43 +4044,65 @@
       body,
       createdTime: page.created_time,
       lastEditedTime: page.last_edited_time,
+      // Edit slice — resolved property names + the Domain field's actual
+      // shape (relation vs. select, per getNotesDomainProp), so every
+      // write below routes through resolveOptionValue/the relation helper
+      // instead of re-resolving (or hardcoding) anything.
+      statusPropName: notesStatusSchema.name, statusOptions: notesStatusSchema.options,
+      typeOptions: notesTypeOptions,
+      domainProp: notesDomainProp,
+      projectsPropName: notesProjectsProp, peoplePropName: notesPeopleProp,
+      tagsPropName: notesTagsProp, collectionsPropName: notesCollectionsProp, resourcesPropName: notesResourcesProp,
     };
   }
 
-  // A relation pill's LABEL is the only navigable hit area this slice — the
-  // caret renders (so the two-hit-area shape is already in place for next
-  // slice's picker) but has no handler yet. Domain is the only category
-  // that ever carries a styleAttr (its earth tone); everything else stays
-  // plain olive-on-sage via .pf-pill's own default. `caret: false` opts a
-  // pill out of the caret entirely (not just inert) — Task's Domain pill,
-  // whose value is read-only always (a rollup through its project, never
+  // A relation pill's LABEL is the navigable hit area; the caret (when
+  // `editKey` is given) opens that field's shared picker (§ Pills — "Every
+  // pill is tappable... tapping the label navigates, tapping the trailing
+  // caret/chevron opens the picker"). Domain is the only category that
+  // ever carries a styleAttr (its earth tone); everything else stays plain
+  // olive-on-sage via .pf-pill's own default. `caret: false` opts a pill
+  // out of the caret entirely (not just inert) — Task's Domain pill, whose
+  // value is read-only always (a rollup through its project, never
   // directly editable), is the one deliberate use of this.
-  function renderRelPill({ label, icon, navId, navRoute, styleAttr, caret = true }) {
+  function renderRelPill({ label, icon, navId, navRoute, styleAttr, caret = true, editKey }) {
     const styleAttrHtml = styleAttr ? ` style="${styleAttr}"` : '';
     if (!navId || !navRoute) {
-      return `<span class="pf-pill"${styleAttrHtml}>${icon || ''}${escapeHtml(label)}</span>`;
+      // No drill-through route (Resources, this slice) — the whole pill
+      // becomes the tap target for its picker instead of a caret, since
+      // there's no separate navigate affordance to carve the caret out of.
+      return `<span class="pf-pill"${styleAttrHtml}${editKey ? ` data-pfe-action="${escapeHtml(editKey)}"` : ''}>${icon || ''}${escapeHtml(label)}</span>`;
     }
-    const caretHtml = caret ? '<span class="pf-pill-caret" aria-hidden="true">⌄</span>' : '';
+    const caretHtml = caret
+      ? `<span class="pf-pill-caret"${editKey ? ` data-pfe-action="${escapeHtml(editKey)}"` : ''} aria-hidden="true">⌄</span>`
+      : '';
     return `<span class="pf-pill pf-pill--rel"${styleAttrHtml}><span class="pf-pill-label" data-pf-nav="${navRoute}/${escapeHtml(navId)}">${icon || ''}${escapeHtml(label)}</span>${caretHtml}</span>`;
   }
 
-  function renderValuePill(innerHtml) {
-    return `<span class="pf-pill pf-pill--value">${innerHtml}</span>`;
+  // `editKey`, when given, makes the whole pill the tap target that opens
+  // its picker (Status/Priority/Type — "no destination exists, so the
+  // whole pill opens its picker").
+  function renderValuePill(innerHtml, editKey) {
+    return `<span class="pf-pill pf-pill--value"${editKey ? ` data-pfe-action="${escapeHtml(editKey)}"` : ''}>${innerHtml}</span>`;
   }
 
   // The labeled empty-slot pill for a relation field with nothing linked
-  // yet — read-side only, no tap action (see .pf-pill--ghost).
-  function renderGhostPill(fieldLabel) {
-    return `<span class="pf-pill pf-pill--ghost">+ ${escapeHtml(fieldLabel)}</span>`;
+  // yet. Read-only (no editKey) when the field has no edit affordance this
+  // slice; otherwise the whole ghost is the tap target that opens the
+  // field's shared picker (populated relation pills open the same picker
+  // via their caret, so a ghost and a caret are the field's two possible
+  // "open the picker" shapes, never both at once on one field).
+  function renderGhostPill(fieldLabel, editKey) {
+    return `<span class="pf-pill pf-pill--ghost"${editKey ? ` data-pfe-action="${escapeHtml(editKey)}"` : ''}>+ ${escapeHtml(fieldLabel)}</span>`;
   }
 
   // One row of the framed shell's right-rail Properties list (Addendum 2)
   // — shared by every retrofitted profile (Note/Task/Project). `innerHtml`
   // is whatever pill markup renderRelPill/renderGhostPill/renderValuePill
-  // already produce; this only supplies the label + row chrome, replacing
-  // the old pf-pillrow's flat row.
-  function renderPropRow(label, innerHtml) {
-    return `<div class="dmn-prop-row"><div class="dmn-prop-label">${escapeHtml(label)}</div><div class="dmn-prop-value">${innerHtml}</div></div>`;
+  // already produce; `popoverHtml` (optional) is that field's open picker,
+  // rendered inside the same .tg-pop-wrap so it anchors to this row.
+  function renderPropRow(label, innerHtml, popoverHtml) {
+    return `<div class="dmn-prop-row"><div class="dmn-prop-label">${escapeHtml(label)}</div><div class="dmn-prop-value tg-pop-wrap">${innerHtml}${popoverHtml || ''}</div></div>`;
   }
 
   // Right-rail hierarchy pass — the classification-only value pills
@@ -3590,22 +4120,36 @@
   function renderNoteHeader(n) {
     return `<div class="dmn-head">
       <div class="dmn-idline"><span class="dmn-crumb-id">${n.uniqueId ? escapeHtml(n.uniqueId) : '—'}</span></div>
-      <div class="dmn-title-row"><h1 class="dmn-title">${escapeHtml(n.title || 'Untitled')}</h1></div>
+      <div class="dmn-title-row">${renderEditableTitleHtml('note', n.title)}</div>
     </div>`;
+  }
+
+  // Type's toggle-strip popover (§6 — multi_select, tap to add/remove,
+  // FULL resulting array on write) — same shape as Inbox's own Type
+  // popover (renderTypePopover), reused here rather than re-derived.
+  function renderPfeTypePopover(n) {
+    const current = new Set(n.types);
+    const opts = (n.typeOptions || []).map((o) => {
+      const { icon, name } = splitTrailingEmoji(o.name);
+      return `<div class="tg-type-opt${current.has(o.name) ? ' on' : ''}" data-pfe-opt="${escapeHtml(o.name)}">${renderChipIcon(icon ? { kind: 'emoji', value: icon } : null)}${escapeHtml(name)}</div>`;
+    }).join('');
+    return `<div class="tg-popover"><div class="tg-pop-label">Type — tap to add or remove</div><div class="tg-type-strip">${opts}</div></div>`;
   }
 
   // Right-rail hierarchy pass — Type/Status move to the main column's
   // value-pill row; this stays exactly the same renderValuePill markup,
   // just relocated (see renderValuePillRow's caller in paintNoteProfile).
   function renderNoteValuePills(n) {
+    const typePop = pfeOpenFor('note', 'type') ? renderPfeTypePopover(n) : '';
     const typeHtml = n.types.length
       ? n.types.map((t) => {
           const { icon, name } = splitTrailingEmoji(t);
-          return renderValuePill(`${icon ? `<span class="pf-pill-icon">${escapeHtml(icon)}</span>` : ''}${escapeHtml(name)}`);
+          return renderValuePill(`${icon ? `<span class="pf-pill-icon">${escapeHtml(icon)}</span>` : ''}${escapeHtml(name)}`, 'note:type');
         }).join('')
-      : renderValuePill('No type');
-    const statusHtml = renderValuePill(n.statusName ? escapeHtml(n.statusName) : 'No status');
-    return typeHtml + statusHtml;
+      : renderValuePill('No type', 'note:type');
+    const statusPop = pfeOpenFor('note', 'status') ? renderPfeSelectPopover(n.statusOptions, n.statusName, { label: 'Status' }) : '';
+    const statusHtml = renderValuePill(n.statusName ? escapeHtml(n.statusName) : 'No status', 'note:status');
+    return `<span class="tg-pop-wrap">${typeHtml}${typePop}</span><span class="tg-pop-wrap">${statusHtml}${statusPop}</span>`;
   }
 
   // DATES — meaningful user dates only; Created/Last edited moved to Log.
@@ -3613,7 +4157,7 @@
   // also be dropped into the mobile value-pill row (see renderValuePillRow's
   // caller in paintNoteProfile) without duplicating the date logic itself.
   function renderNoteDateRows(n) {
-    return `<div class="dmn-kv"><span class="k">Date</span><span class="v">${n.date && n.date.start ? '🗓 ' + escapeHtml(formatDateShort(n.date.start)) : '—'}</span></div>`;
+    return renderPfeDateRow('Date', n.date, 'note', 'date');
   }
   function renderNoteDates(n) {
     return `<section class="dmn-prop-sec dmn-prop-sec--dates">
@@ -3651,35 +4195,78 @@
           label: n.domainName, icon: renderChipIcon(n.icons.domains),
           navId: n.domainId, navRoute: 'domain',
           styleAttr: domainMeta ? `background:${domainMeta.fill};color:${domainMeta.text};` : '',
+          editKey: n.domainProp ? 'note:domain' : undefined,
         })
-      : renderGhostPill('Domain');
+      : renderGhostPill('Domain', n.domainProp ? 'note:domain' : undefined);
+    const domainPop = n.domainProp && pfeOpenFor('note', 'domain') ? renderPfeRelationPopover({
+      entity: 'note', field: 'domain', label: 'Domain',
+      members: n.domainId ? [{ id: n.domainId, name: n.domainName }] : (n.domainName ? [{ id: n.domainName, name: n.domainName }] : []),
+      targetDbId: CONFIG.DB.DOMAINS, single: true, allowCreate: false,
+    }) : '';
+
+    const peoplePop = pfeOpenFor('note', 'people') ? renderPfeRelationPopover({
+      entity: 'note', field: 'people', label: 'Person',
+      members: n.people, targetDbId: CONFIG.DB.PEOPLE, single: false, allowCreate: true,
+    }) : '';
     const peopleHtml = n.people.length
-      ? n.people.map((p) => renderRelPill({ label: p.name, icon: renderChipIcon(n.icons.people), navId: p.id, navRoute: 'person' })).join('')
-      : renderGhostPill('Person');
+      ? n.people.map((p) => renderRelPill({ label: p.name, icon: renderChipIcon(n.icons.people), navId: p.id, navRoute: 'person', editKey: 'note:people' })).join('')
+      : renderGhostPill('Person', 'note:people');
+
+    const tagsPop = pfeOpenFor('note', 'tags') ? renderPfeRelationPopover({
+      entity: 'note', field: 'tags', label: 'Tag',
+      members: n.tags, targetDbId: CONFIG.DB.TAGS, single: false, allowCreate: true,
+    }) : '';
     const tagsHtml = n.tags.length
-      ? n.tags.map((t) => renderRelPill({ label: t.name, icon: renderChipIcon(n.icons.tags), navId: t.id, navRoute: 'tag' })).join('')
-      : renderGhostPill('Tag');
+      ? n.tags.map((t) => renderRelPill({ label: t.name, icon: renderChipIcon(n.icons.tags), navId: t.id, navRoute: 'tag', editKey: 'note:tags' })).join('')
+      : renderGhostPill('Tag', 'note:tags');
+
+    const collectionsPop = pfeOpenFor('note', 'collections') ? renderPfeRelationPopover({
+      entity: 'note', field: 'collections', label: 'Collection',
+      members: n.collections, targetDbId: CONFIG.DB.COLLECTIONS, single: false, allowCreate: false,
+    }) : '';
     const collectionsHtml = n.collections.length
-      ? n.collections.map((c) => renderRelPill({ label: c.name, icon: renderChipIcon(n.icons.collections), navId: c.id, navRoute: 'collection' })).join('')
-      : renderGhostPill('Collection');
+      ? n.collections.map((c) => renderRelPill({ label: c.name, icon: renderChipIcon(n.icons.collections), navId: c.id, navRoute: 'collection', editKey: 'note:collections' })).join('')
+      : renderGhostPill('Collection', 'note:collections');
+
+    const projectsPop = pfeOpenFor('note', 'projects') ? renderPfeRelationPopover({
+      entity: 'note', field: 'projects', label: 'Project',
+      members: n.projects, targetDbId: CONFIG.DB.PROJECTS, single: false, allowCreate: true,
+    }) : '';
     const projectsHtml = n.projects.length
-      ? n.projects.map((p) => renderRelPill({ label: p.name, icon: renderChipIcon(n.icons.projects), navId: p.id, navRoute: 'project' })).join('')
-      : renderGhostPill('Project');
+      ? n.projects.map((p) => renderRelPill({ label: p.name, icon: renderChipIcon(n.icons.projects), navId: p.id, navRoute: 'project', editKey: 'note:projects' })).join('')
+      : renderGhostPill('Project', 'note:projects');
+
     // Resources has no #/resource/{id} route in this foundation slice (not
     // part of the seven shared routes) — populated pills render without a
-    // navigable label until that route exists.
+    // navigable label, but are still editable (link-existing only, §5.5).
+    const resourcesPop = pfeOpenFor('note', 'resources') ? renderPfeRelationPopover({
+      entity: 'note', field: 'resources', label: 'Resource',
+      members: n.resources, targetDbId: CONFIG.DB.RESOURCES, single: false, allowCreate: false,
+    }) : '';
     const resourcesHtml = n.resources.length
-      ? n.resources.map((r) => renderRelPill({ label: r.name, icon: renderChipIcon(n.icons.resources) })).join('')
-      : renderGhostPill('Resource');
+      ? n.resources.map((r) => renderRelPill({ label: r.name, icon: renderChipIcon(n.icons.resources), editKey: 'note:resources' })).join('')
+      : renderGhostPill('Resource', 'note:resources');
+
     return `<section class="dmn-prop-sec dmn-prop-sec--properties">
       <h3>Properties</h3>
-      ${renderPropRow('Domain', domainHtml)}
-      ${renderPropRow('People', peopleHtml)}
-      ${renderPropRow('Tags', tagsHtml)}
-      ${renderPropRow('Collections', collectionsHtml)}
-      ${renderPropRow('Project', projectsHtml)}
-      ${renderPropRow('Resources', resourcesHtml)}
+      ${renderPropRow('Domain', domainHtml, domainPop)}
+      ${renderPropRow('People', peopleHtml, peoplePop)}
+      ${renderPropRow('Tags', tagsHtml, tagsPop)}
+      ${renderPropRow('Collections', collectionsHtml, collectionsPop)}
+      ${renderPropRow('Project', projectsHtml, projectsPop)}
+      ${renderPropRow('Resources', resourcesHtml, resourcesPop)}
     </section>`;
+  }
+
+  // Live options for a plain `select` property (Priority) — same shape
+  // resolveOptionValue already reads internally, exposed here so a profile
+  // loader can hand its picker the live option list without duplicating
+  // the schema lookup.
+  async function getSelectOptions(databaseId, propertyName) {
+    if (!propertyName) return [];
+    const db = await getSchema(databaseId);
+    const prop = db.properties[propertyName];
+    return (prop && prop.select && prop.select.options) || [];
   }
 
   async function loadTaskProfile(pageId) {
@@ -3687,7 +4274,7 @@
 
     const [
       tasksTitleProp, tasksStatusSchema, tasksUniqueIdProp, tasksPriorityProp,
-      tasksProjectsProp, tasksPeopleProp,
+      tasksProjectsProp, tasksPeopleProp, tasksCompletedProp,
     ] = await Promise.all([
       titlePropertyName(CONFIG.DB.TASKS),
       getStatusSchema(CONFIG.DB.TASKS),
@@ -3695,7 +4282,9 @@
       getTasksPriorityProp(CONFIG.DB.TASKS),
       relationPropertyName(CONFIG.DB.TASKS, CONFIG.DB.PROJECTS),
       relationPropertyName(CONFIG.DB.TASKS, CONFIG.DB.PEOPLE),
+      getDatePropByKeyword(CONFIG.DB.TASKS, 'completed'),
     ]);
+    const priorityOptions = await getSelectOptions(CONFIG.DB.TASKS, tasksPriorityProp);
 
     const title = plainTitle(page, tasksTitleProp);
     const statusProp = page.properties[tasksStatusSchema.name];
@@ -3704,6 +4293,7 @@
     const priorityName = (priorityProp && priorityProp.select && priorityProp.select.name) || null;
     const dueDate = (page.properties[CONFIG.TASKS_PROP.DUE_DATE] || {}).date || null;
     const doDate = (page.properties[CONFIG.TASKS_PROP.DO_DATE] || {}).date || null;
+    const completedDate = tasksCompletedProp ? ((page.properties[tasksCompletedProp] || {}).date || null) : null;
 
     const uniqueIdVal = tasksUniqueIdProp ? (page.properties[tasksUniqueIdProp] || {}).unique_id : null;
     const uniqueId = uniqueIdVal ? formatUniqueId(uniqueIdVal.prefix, uniqueIdVal.number) : null;
@@ -3727,13 +4317,21 @@
     const domainName = domainRel.length ? domainRel[0].name : null;
 
     return {
-      id: page.id, title, uniqueId, statusName, priorityName, dueDate, doDate,
+      id: page.id, title, uniqueId, statusName, priorityName, dueDate, doDate, completedDate,
       domainId: projectResolution.domainId, domainName,
       projects: projectResolution.projects, people,
       icons: { projects: projectsIcon, people: peopleIcon, domains: domainsIcon },
       body,
       createdTime: page.created_time,
       lastEditedTime: page.last_edited_time,
+      // Edit slice — resolved property names + live option lists, memoized
+      // via getSchema, so every write below routes through
+      // resolveOptionValue/the relation helper instead of re-resolving (or
+      // hardcoding) anything.
+      statusPropName: tasksStatusSchema.name, statusOptions: tasksStatusSchema.options,
+      priorityPropName: tasksPriorityProp, priorityOptions,
+      projectsPropName: tasksProjectsProp, peoplePropName: tasksPeopleProp,
+      completedPropName: tasksCompletedProp,
     };
   }
 
@@ -3750,15 +4348,16 @@
         : '';
       pathHtml = `<span class="dmn-crumb-sep">·</span>${domainSegment}<a class="dmn-crumb-link" data-pf-nav="project/${escapeHtml(project.id)}">${escapeHtml(project.name)}</a>`;
     }
-    // Hero checkbox is a status mirror, render-only — checking/unchecking
-    // writes nothing this slice (that lands with the Status/Completed
-    // write in the edit slice).
+    // Hero checkbox IS the Status control (Conventions "Completion") —
+    // checking/unchecking writes Status + Completed in one PATCH
+    // (applyTaskCompletionToggle). No separate Done checkbox field exists
+    // in Notion.
     const isDone = (t.statusName || '').toLowerCase() === 'done';
     return `<div class="dmn-head">
       <div class="dmn-idline">${idSpan}${pathHtml}</div>
       <div class="dmn-title-row">
-        <span class="dmn-hero-checkbox${isDone ? ' dmn-hero-checkbox--checked' : ''}" aria-hidden="true">${isDone ? '✓' : ''}</span>
-        <h1 class="dmn-title">${escapeHtml(t.title || 'Untitled')}</h1>
+        <span class="dmn-hero-checkbox${isDone ? ' dmn-hero-checkbox--checked' : ''}" data-pfe-action="task:complete" role="checkbox" aria-checked="${isDone}">${isDone ? '✓' : ''}</span>
+        ${renderEditableTitleHtml('task', t.title)}
       </div>
     </div>`;
   }
@@ -3768,19 +4367,31 @@
   // Priority stays plain text here (not stars) — same as before this pass,
   // Task's own Priority pill never used renderPriorityValue (only Project's
   // does); preserved rather than "fixed" since this slice is a pure reorg.
+  // Edit slice: both are now editable value pills — "no destination
+  // exists, so the whole pill opens its picker" (Conventions "Pills").
   function renderTaskValuePills(t) {
-    const statusHtml = renderValuePill(t.statusName ? escapeHtml(t.statusName) : 'No status');
-    const priorityHtml = renderValuePill(t.priorityName ? escapeHtml(t.priorityName) : 'No priority');
+    const statusPop = pfeOpenFor('task', 'status') ? renderPfeSelectPopover(t.statusOptions, t.statusName, { label: 'Status' }) : '';
+    const statusHtml = `<span class="tg-pop-wrap">${renderValuePill(t.statusName ? escapeHtml(t.statusName) : 'No status', 'task:status')}${statusPop}</span>`;
+    let priorityHtml;
+    if (t.priorityPropName) {
+      const priorityPop = pfeOpenFor('task', 'priority') ? renderPfeSelectPopover(t.priorityOptions, t.priorityName, { label: 'Priority', clearable: !!t.priorityName }) : '';
+      priorityHtml = `<span class="tg-pop-wrap">${renderValuePill(t.priorityName ? escapeHtml(t.priorityName) : 'No priority', 'task:priority')}${priorityPop}</span>`;
+    } else {
+      priorityHtml = renderValuePill(t.priorityName ? escapeHtml(t.priorityName) : 'No priority');
+    }
     return statusHtml + priorityHtml;
   }
 
   // DATES — meaningful user dates only; Created/Last edited moved to Log.
-  // Rows extracted from the section wrapper so the exact same markup can
-  // also be dropped into the mobile value-pill row (see renderValuePillRow's
-  // caller in paintTaskProfile) without duplicating the date logic itself.
+  // Due Date/Do Date/Completed are all edit-slice editable (§7); Completed
+  // only renders once the schema actually has the property (degrades
+  // rather than guessing a name). Rows extracted from the section wrapper
+  // so the exact same markup can also be dropped into the mobile
+  // value-pill row (see renderValuePillRow's caller in paintTaskProfile)
+  // without duplicating the date logic itself.
   function renderTaskDateRows(t) {
-    return `<div class="dmn-kv"><span class="k">Due Date</span><span class="v">${t.dueDate && t.dueDate.start ? '🗓 ' + escapeHtml(formatDateShort(t.dueDate.start)) : '—'}</span></div>
-      <div class="dmn-kv"><span class="k">Do Date</span><span class="v">${t.doDate && t.doDate.start ? '🗓 ' + escapeHtml(formatDateShort(t.doDate.start)) : '—'}</span></div>`;
+    const completedHtml = t.completedPropName ? renderPfeDateRow('Completed', t.completedDate, 'task', 'completed') : '';
+    return `${renderPfeDateRow('Due Date', t.dueDate, 'task', 'due')}${renderPfeDateRow('Do Date', t.doDate, 'task', 'do')}${completedHtml}`;
   }
   function renderTaskDates(t) {
     return `<section class="dmn-prop-sec dmn-prop-sec--dates">
@@ -3818,19 +4429,27 @@
         })
       : '';
     const domainRow = domainHtml ? renderPropRow('Domain', domainHtml) : '';
+    const projectPop = pfeOpenFor('task', 'project') ? renderPfeRelationPopover({
+      entity: 'task', field: 'project', label: 'Project',
+      members: t.projects, targetDbId: CONFIG.DB.PROJECTS, single: true, allowCreate: true,
+    }) : '';
     const projectsHtml = t.projects.length
-      ? t.projects.map((p) => renderRelPill({ label: p.name, icon: renderChipIcon(t.icons.projects), navId: p.id, navRoute: 'project' })).join('')
-      : renderGhostPill('Project');
+      ? t.projects.map((p) => renderRelPill({ label: p.name, icon: renderChipIcon(t.icons.projects), navId: p.id, navRoute: 'project', editKey: 'task:project' })).join('')
+      : renderGhostPill('Project', 'task:project');
     // Tasks have no Tags relation — Projects/People are the only other
     // relation pills, per the profile spec ("People" label, was "For").
+    const peoplePop = pfeOpenFor('task', 'people') ? renderPfeRelationPopover({
+      entity: 'task', field: 'people', label: 'People',
+      members: t.people, targetDbId: CONFIG.DB.PEOPLE, single: false, allowCreate: true,
+    }) : '';
     const peopleHtml = t.people.length
-      ? t.people.map((p) => renderRelPill({ label: p.name, icon: renderChipIcon(t.icons.people), navId: p.id, navRoute: 'person' })).join('')
-      : renderGhostPill('People');
+      ? t.people.map((p) => renderRelPill({ label: p.name, icon: renderChipIcon(t.icons.people), navId: p.id, navRoute: 'person', editKey: 'task:people' })).join('')
+      : renderGhostPill('People', 'task:people');
     return `<section class="dmn-prop-sec dmn-prop-sec--properties">
       <h3>Properties</h3>
       ${domainRow}
-      ${renderPropRow('Project', projectsHtml)}
-      ${renderPropRow('People', peopleHtml)}
+      ${renderPropRow('Project', projectsHtml, projectPop)}
+      ${renderPropRow('People', peopleHtml, peoplePop)}
     </section>`;
   }
 
@@ -3849,7 +4468,7 @@
     }
     const n = noteProfileState.data;
     const bodyHtml = n.body ? `<div class="pf-body">${escapeHtml(n.body)}</div>` : `<div class="pf-body pf-body--empty">(empty)</div>`;
-    dmnMain.innerHTML = `${renderNoteHeader(n)}${renderValuePillRow(renderNoteValuePills(n) + `<span class="dmn-datepills-inline">${renderNoteDateRows(n)}</span>`)}<section class="dmn-sec">${bodyHtml}</section>`;
+    dmnMain.innerHTML = `${renderNoteHeader(n)}${renderValuePillRow(renderNoteValuePills(n) + `<span class="dmn-datepills-inline">${renderNoteDateRows(n)}</span>`)}<section class="dmn-sec">${bodyHtml}</section>${renderPfeToast()}`;
     dmnProps.innerHTML = `${renderCaptureAffordance()}${renderNoteDates(n)}${renderNoteProperties(n)}${renderNoteLog(n)}`;
   }
 
@@ -3891,7 +4510,7 @@
     }
     const t = taskProfileState.data;
     const bodyHtml = t.body ? `<div class="pf-body">${escapeHtml(t.body)}</div>` : `<div class="pf-body pf-body--empty">(empty)</div>`;
-    dmnMain.innerHTML = `${renderTaskHeader(t)}${renderValuePillRow(renderTaskValuePills(t) + `<span class="dmn-datepills-inline">${renderTaskDateRows(t)}</span>`)}<section class="dmn-sec">${bodyHtml}</section>`;
+    dmnMain.innerHTML = `${renderTaskHeader(t)}${renderValuePillRow(renderTaskValuePills(t) + `<span class="dmn-datepills-inline">${renderTaskDateRows(t)}</span>`)}<section class="dmn-sec">${bodyHtml}</section>${renderPfeToast()}`;
     dmnProps.innerHTML = `${renderCaptureAffordance()}${renderTaskDates(t)}${renderTaskProperties(t)}${renderTaskLog(t)}`;
   }
 
@@ -4434,10 +5053,33 @@
   // property as simply absent."
   function projectContextualDateRow(p) {
     const s = (p.statusName || '').toLowerCase();
-    if (s === 'archived') return { label: 'Date Archived', date: p.archivedDate };
-    if (s === 'done') return { label: 'Date Completed', date: p.completedDate };
-    if (s === 'paused') return { label: 'Date Paused', date: p.pausedDate };
+    // Date Completed is user-editable (a catch-up day just means tapping
+    // it) — Date Archived/Date Paused are auto-stamped by the status
+    // transition only (§8), never hand-edited, so those two stay read-only
+    // even in this contextual slot.
+    if (s === 'archived') return { label: 'Date Archived', date: p.archivedDate, editable: false };
+    if (s === 'done') return { label: 'Date Completed', date: p.completedDate, editable: true, field: 'completed' };
+    if (s === 'paused') return { label: 'Date Paused', date: p.pausedDate, editable: false };
     return null;
+  }
+
+  // Archived/Focus (§ Step D) are both plain checkboxes on the Projects DB
+  // — resolved by keyword first (Archived, Focus), falling back to "the
+  // other checkbox that isn't Archived" for Focus so a workspace that
+  // still has the old "Priority?" name (pre-rename, per the Worksheet)
+  // keeps working without a hardcoded property name.
+  async function getProjectCheckboxProps(databaseId) {
+    const db = await getSchema(databaseId);
+    const checkboxes = Object.entries(db.properties).filter(([, prop]) => prop.type === 'checkbox').map(([name]) => name);
+    const archived = checkboxes.find((n) => n.toLowerCase().includes('archived')) || null;
+    const focus = checkboxes.find((n) => n !== archived && n.toLowerCase().includes('focus'))
+      || checkboxes.find((n) => n !== archived) || null;
+    return { archived, focus };
+  }
+  function plainRichText(page, propName) {
+    if (!propName) return '';
+    const arr = (page.properties[propName] || {}).rich_text || [];
+    return arr.map((t) => t.plain_text).join('');
   }
 
   async function loadProjectProfile(pageId) {
@@ -4450,6 +5092,7 @@
       progressProp, noOfTasksProp, doneCountProp,
       tasksProjectsProp, notesProjectsProp,
       domainsIcon, peopleIcon, collectionsIcon,
+      checkboxProps, pauseDetailsProp,
     ] = await Promise.all([
       titlePropertyName(CONFIG.DB.PROJECTS),
       getStatusSchema(CONFIG.DB.PROJECTS),
@@ -4476,7 +5119,10 @@
       getDatabaseIcon(CONFIG.DB.DOMAINS),
       getDatabaseIcon(CONFIG.DB.PEOPLE),
       getDatabaseIcon(CONFIG.DB.COLLECTIONS),
+      getProjectCheckboxProps(CONFIG.DB.PROJECTS),
+      getTextPropByKeyword(CONFIG.DB.PROJECTS, 'pause'),
     ]);
+    const priorityOptions = await getSelectOptions(CONFIG.DB.PROJECTS, projPriorityProp);
 
     const title = plainTitle(page, projTitleProp);
     const statusProp = page.properties[projStatusSchema.name];
@@ -4491,6 +5137,10 @@
     const completedDate = completedDateProp ? (page.properties[completedDateProp] || {}).date : null;
     const archivedDate = archivedDateProp ? (page.properties[archivedDateProp] || {}).date : null;
     const pausedDate = pausedDateProp ? (page.properties[pausedDateProp] || {}).date : null;
+
+    const archivedChecked = checkboxProps.archived ? !!(page.properties[checkboxProps.archived] || {}).checkbox : false;
+    const focusChecked = checkboxProps.focus ? !!(page.properties[checkboxProps.focus] || {}).checkbox : false;
+    const pauseDetailsText = plainRichText(page, pauseDetailsProp);
 
     const domainIds = ((page.properties[projDomainProp] || {}).relation || []).map((r) => r.id);
     const peopleIds = ((page.properties[projPeopleProp] || {}).relation || []).map((r) => r.id);
@@ -4527,6 +5177,14 @@
       tasksProjectsProp, notesProjectsProp,
       createdTime: page.created_time,
       lastEditedTime: page.last_edited_time,
+      // Edit slice — resolved property names + live option lists/values.
+      statusPropName: projStatusSchema.name, statusOptions: projStatusSchema.options,
+      priorityPropName: projPriorityProp, priorityOptions,
+      domainPropName: projDomainProp, peoplePropName: projPeopleProp, collectionsPropName: projCollectionsProp,
+      startDatePropName: startDateProp, deadlinePropName: deadlineProp,
+      completedDatePropName: completedDateProp, archivedDatePropName: archivedDateProp, pausedDatePropName: pausedDateProp,
+      archivedPropName: checkboxProps.archived, focusPropName: checkboxProps.focus, archivedChecked, focusChecked,
+      pauseDetailsPropName: pauseDetailsProp, pauseDetailsText,
     };
   }
 
@@ -4628,11 +5286,14 @@
   // work spine is (.dmn-status-hd/.dmn-collapser/.dmn-collapse-body) —
   // unlike Domain's loose tasks, Project's Tasks tab can include a Done
   // group, so its card needs the checked box state Domain's never did.
+  // The checkbox is carved out of the card's own data-pf-nav click area
+  // (Step E carry-over) — tapping it writes completion (Status=Done +
+  // Completed=today, reversible) instead of navigating to the task.
   function renderProjectTaskCard(r) {
     const isDone = (r.statusName || '').toLowerCase() === 'done';
     const dateLabel = r.due && r.due.start ? `Due ${formatDateShort(r.due.start)}` : 'No date';
     return `<div class="dmn-task" data-pf-nav="task/${escapeHtml(r.id)}">
-      <div class="dmn-top"><span class="dmn-box${isDone ? ' dmn-box--checked' : ''}" aria-hidden="true">${isDone ? '✓' : ''}</span><span class="dmn-tname">${escapeHtml(r.title || 'Untitled')}</span></div>
+      <div class="dmn-top"><span class="dmn-box${isDone ? ' dmn-box--checked' : ''}" data-pfe-task-toggle="${escapeHtml(r.id)}" data-pfe-task-done="${isDone}" role="checkbox" aria-checked="${isDone}">${isDone ? '✓' : ''}</span><span class="dmn-tname">${escapeHtml(r.title || 'Untitled')}</span></div>
       <div class="dmn-tdate">${escapeHtml(dateLabel)}</div>
     </div>`;
   }
@@ -4668,7 +5329,7 @@
       : '';
     return `<div class="dmn-head">
       <div class="dmn-idline"><span class="dmn-crumb-id">${p.uniqueId ? escapeHtml(p.uniqueId) : '—'}</span>${domainSegment}</div>
-      <div class="dmn-title-row"><h1 class="dmn-title">${escapeHtml(p.title || 'Untitled')}</h1></div>
+      <div class="dmn-title-row">${renderEditableTitleHtml('project', p.title)}</div>
     </div>`;
   }
 
@@ -4689,23 +5350,35 @@
   // Right-rail hierarchy pass — Status/Priority move to the main column's
   // value-pill row; unchanged renderValuePill/renderPriorityValue markup.
   function renderProjectValuePills(p) {
-    const statusHtml = renderValuePill(p.statusName ? escapeHtml(p.statusName) : 'No status');
-    const priorityHtml = renderValuePill(renderPriorityValue(p.priorityName));
+    const statusPop = pfeOpenFor('project', 'status') ? renderPfeSelectPopover(p.statusOptions, p.statusName, { label: 'Status' }) : '';
+    const statusHtml = `<span class="tg-pop-wrap">${renderValuePill(p.statusName ? escapeHtml(p.statusName) : 'No status', 'project:status')}${statusPop}</span>`;
+    let priorityHtml;
+    if (p.priorityPropName) {
+      const priorityPop = pfeOpenFor('project', 'priority') ? renderPfeSelectPopover(p.priorityOptions, p.priorityName, { label: 'Priority', clearable: !!p.priorityName }) : '';
+      priorityHtml = `<span class="tg-pop-wrap">${renderValuePill(renderPriorityValue(p.priorityName), 'project:priority')}${priorityPop}</span>`;
+    } else {
+      priorityHtml = renderValuePill(renderPriorityValue(p.priorityName));
+    }
     return statusHtml + priorityHtml;
   }
 
   // DATES — meaningful user dates only; Created/Last edited moved to Log.
+  // Start Date/Target Deadline/Date Completed are edit-slice editable
+  // (§7); Date Archived/Date Paused are auto-written status-transition
+  // stamps only (§8) — not individually hand-editable, so they render as
+  // plain read-only rows even though they sit in the same DATES section.
   // Rows extracted from the section wrapper so the exact same markup can
   // also be dropped into the mobile value-pill row (see renderValuePillRow's
   // caller in paintProjectProfile) without duplicating the date logic itself.
   function renderProjectDateRows(p) {
     const contextRow = projectContextualDateRow(p);
-    const contextRowHtml = contextRow
-      ? `<div class="dmn-kv"><span class="k">${escapeHtml(contextRow.label)}</span><span class="v">${contextRow.date && contextRow.date.start ? '🗓 ' + escapeHtml(formatDateShort(contextRow.date.start)) : '—'}</span></div>`
-      : '';
-    return `<div class="dmn-kv"><span class="k">Start Date</span><span class="v">${p.startDate && p.startDate.start ? '🗓 ' + escapeHtml(formatDateShort(p.startDate.start)) : '—'}</span></div>
-      <div class="dmn-kv"><span class="k">Target Deadline</span><span class="v">${p.deadline && p.deadline.start ? '🗓 ' + escapeHtml(formatDateShort(p.deadline.start)) : '—'}</span></div>
-      ${contextRowHtml}`;
+    let contextRowHtml = '';
+    if (contextRow) {
+      contextRowHtml = contextRow.editable
+        ? renderPfeDateRow(contextRow.label, contextRow.date, 'project', contextRow.field)
+        : `<div class="dmn-kv"><span class="k">${escapeHtml(contextRow.label)}</span><span class="v">${contextRow.date && contextRow.date.start ? '🗓 ' + escapeHtml(formatDateShort(contextRow.date.start)) : '—'}</span></div>`;
+    }
+    return `${renderPfeDateRow('Start Date', p.startDate, 'project', 'start')}${renderPfeDateRow('Target Deadline', p.deadline, 'project', 'deadline')}${contextRowHtml}`;
   }
   function renderProjectDates(p) {
     return `<section class="dmn-prop-sec dmn-prop-sec--dates">
@@ -4734,19 +5407,55 @@
           label: p.domainName, icon: renderChipIcon(p.icons.domains),
           navId: p.domainId, navRoute: 'domain',
           styleAttr: domainMeta ? `background:${domainMeta.fill};color:${domainMeta.text};` : '',
+          editKey: 'project:domain',
         })
-      : renderGhostPill('Domain');
+      : renderGhostPill('Domain', 'project:domain');
+    const domainPop = pfeOpenFor('project', 'domain') ? renderPfeRelationPopover({
+      entity: 'project', field: 'domain', label: 'Domain',
+      members: p.domainId ? [{ id: p.domainId, name: p.domainName }] : [],
+      targetDbId: CONFIG.DB.DOMAINS, single: true, allowCreate: false,
+    }) : '';
+
+    const peoplePop = pfeOpenFor('project', 'people') ? renderPfeRelationPopover({
+      entity: 'project', field: 'people', label: 'Person',
+      members: p.people, targetDbId: CONFIG.DB.PEOPLE, single: false, allowCreate: true,
+    }) : '';
     const peopleHtml = p.people.length
-      ? p.people.map((pp) => renderRelPill({ label: pp.name, icon: renderChipIcon(p.icons.people), navId: pp.id, navRoute: 'person' })).join('')
-      : renderGhostPill('Person');
+      ? p.people.map((pp) => renderRelPill({ label: pp.name, icon: renderChipIcon(p.icons.people), navId: pp.id, navRoute: 'person', editKey: 'project:people' })).join('')
+      : renderGhostPill('Person', 'project:people');
+
+    const collectionsPop = pfeOpenFor('project', 'collections') ? renderPfeRelationPopover({
+      entity: 'project', field: 'collections', label: 'Collection',
+      members: p.collections, targetDbId: CONFIG.DB.COLLECTIONS, single: false, allowCreate: false,
+    }) : '';
     const collectionsHtml = p.collections.length
-      ? p.collections.map((c) => renderRelPill({ label: c.name, icon: renderChipIcon(p.icons.collections), navId: c.id, navRoute: 'collection' })).join('')
-      : renderGhostPill('Collection');
+      ? p.collections.map((c) => renderRelPill({ label: c.name, icon: renderChipIcon(p.icons.collections), navId: c.id, navRoute: 'collection', editKey: 'project:collections' })).join('')
+      : renderGhostPill('Collection', 'project:collections');
+
+    // Archived/Focus checkboxes (Step D) — Archived's own transition
+    // writes Date Archived in the same PATCH (applyProjectCheckboxToggle);
+    // Focus carries no date side-effect, it's a plain flag.
+    const archivedRow = p.archivedPropName ? `<div class="pfe-check-row"><span class="k">Archived</span><span class="pfe-checkbox${p.archivedChecked ? ' pfe-checkbox--checked' : ''}" data-pfe-action="project:archived" role="checkbox" aria-checked="${p.archivedChecked}">${p.archivedChecked ? '✓' : ''}</span></div>` : '';
+    const focusRow = p.focusPropName ? `<div class="pfe-check-row"><span class="k">Focus</span><span class="pfe-checkbox${p.focusChecked ? ' pfe-checkbox--checked' : ''}" data-pfe-action="project:focus" role="checkbox" aria-checked="${p.focusChecked}">${p.focusChecked ? '✓' : ''}</span></div>` : '';
+
+    // Pause Details (§8) — a hand-edited carry-forward note, editable any
+    // time (not just at pause), full-string write on Save, never
+    // auto-appended/stamped. Textarea always shows the field's live value;
+    // the Save button only writes when the draft differs.
+    const pauseDetailsHtml = p.pauseDetailsPropName ? `<div class="pfe-pausedetails">
+      <div class="k" style="margin-bottom:6px;">Pause Details</div>
+      <textarea data-pfe-pausedetails placeholder="What's unresolved — what would move this forward?">${escapeHtml(p.pauseDetailsText || '')}</textarea>
+      <button type="button" class="pfe-pausedetails-save" data-pfe-save-pausedetails>Save</button>
+    </div>` : '';
+
     return `<section class="dmn-prop-sec dmn-prop-sec--properties">
       <h3>Properties</h3>
-      ${renderPropRow('Domain', domainHtml)}
-      ${renderPropRow('People', peopleHtml)}
-      ${renderPropRow('Collections', collectionsHtml)}
+      ${renderPropRow('Domain', domainHtml, domainPop)}
+      ${renderPropRow('People', peopleHtml, peoplePop)}
+      ${renderPropRow('Collections', collectionsHtml, collectionsPop)}
+      ${archivedRow}
+      ${focusRow}
+      ${pauseDetailsHtml}
     </section>`;
   }
 
@@ -4775,7 +5484,12 @@
       ? renderProjectTasksTabPanel(activeTab, s.collapsedStatus)
       : renderRelationTabPanel(activeTab, 'Project');
 
-    dmnMain.innerHTML = `${renderProjectHeader(p)}${renderValuePillRow(renderProjectValuePills(p) + `<span class="dmn-datepills-inline">${renderProjectDateRows(p)}</span>`)}<section class="dmn-sec">${tabsHtml}${panelHtml}</section>`;
+    // Create-in-context (§5.6) — "+ New Task", pre-filled with this
+    // project's relation, only on the Tasks tab (the tab it populates).
+    const createTaskHtml = activeTab.key === 'tasks'
+      ? `<button type="button" class="pfe-create-context" data-pfe-create-context="project:task">+ New Task</button>`
+      : '';
+    dmnMain.innerHTML = `${renderProjectHeader(p)}${renderValuePillRow(renderProjectValuePills(p) + `<span class="dmn-datepills-inline">${renderProjectDateRows(p)}</span>`)}<section class="dmn-sec">${tabsHtml}${createTaskHtml}${panelHtml}</section>${renderPfeToast()}`;
     dmnProps.innerHTML = `${renderCaptureAffordance()}${renderProjectProgressRail(p)}${renderProjectDates(p)}${renderProjectProperties(p)}${renderProjectLog(p)}`;
   }
 
@@ -4856,6 +5570,691 @@
     else s.collapsedStatus.add(key);
     paintProjectProfile();
   }
+
+  // ==========================================================================
+  // Edit-slice write handlers — Task/Note/Project. Relation fields (up to
+  // six per entity) share ONE set of pick/remove/clear/create handlers via
+  // pfeActiveRelationField's small per-field descriptor table, rather than
+  // one bespoke handler per entity × field; Status/Priority/dates/titles/
+  // checkboxes stay per-entity (each is a couple of lines, not worth the
+  // extra indirection). Every write here routes through the shared layer
+  // (resolveOptionValue, the relation r-m-w helpers, the property-patch
+  // builders) defined earlier — never a bespoke inline PATCH.
+  // ==========================================================================
+
+  // Which lookup database a relation field's picker searches/links
+  // against — the one thing pfeTogglePopover needs to know to (lazily)
+  // load that pool when a field's picker opens.
+  const PFE_RELATION_TARGET_DB = {
+    'note:domain': CONFIG.DB.DOMAINS, 'note:people': CONFIG.DB.PEOPLE, 'note:tags': CONFIG.DB.TAGS,
+    'note:collections': CONFIG.DB.COLLECTIONS, 'note:projects': CONFIG.DB.PROJECTS, 'note:resources': CONFIG.DB.RESOURCES,
+    'task:project': CONFIG.DB.PROJECTS, 'task:people': CONFIG.DB.PEOPLE,
+    'project:domain': CONFIG.DB.DOMAINS, 'project:people': CONFIG.DB.PEOPLE, 'project:collections': CONFIG.DB.COLLECTIONS,
+  };
+
+  function pfeTogglePopover(entity, field) {
+    if (pfeOpenFor(entity, field)) {
+      pfeState.popover = null;
+      paintActiveProfile();
+      return;
+    }
+    pfeState.popover = { entity, field };
+    pfeState.query = '';
+    paintActiveProfile();
+    const targetDbId = PFE_RELATION_TARGET_DB[`${entity}:${field}`];
+    if (targetDbId && !pfeLookupPool(targetDbId)) {
+      ensurePfeLookupLoaded(targetDbId).then(() => { if (pfeOpenFor(entity, field)) paintActiveProfile(); });
+    }
+  }
+
+  // Resolves the active profile-state + field metadata for whichever
+  // relation popover is open — the single indirection point every
+  // pick/remove/clear/create handler reads through. `apply` is a
+  // state-only sync (no network call — the generic handlers below make
+  // the actual write) that patches the loaded profile data so the next
+  // paint reflects it without a full reload.
+  function pfeActiveRelationField() {
+    const pop = pfeState.popover;
+    if (!pop) return null;
+    const { entity, field } = pop;
+    if (entity === 'note') {
+      const s = noteProfileState; if (!s.data) return null;
+      const n = s.data;
+      if (field === 'domain') {
+        if (!n.domainProp) return null;
+        return {
+          pageId: n.id, dbId: CONFIG.DB.DOMAINS, single: true, label: 'Domain', allowCreate: false,
+          propName: n.domainProp.name, selectShape: n.domainProp.type === 'select',
+          currentIds: n.domainId ? [n.domainId] : [],
+          apply: async (ids, names) => {
+            n.domainId = n.domainProp.type === 'relation' ? (ids[0] || null) : null;
+            n.domainName = names[0] || null;
+          },
+        };
+      }
+      const relMap = {
+        people: { propName: n.peoplePropName, dbId: CONFIG.DB.PEOPLE, label: 'Person', allowCreate: true, listKey: 'people' },
+        tags: { propName: n.tagsPropName, dbId: CONFIG.DB.TAGS, label: 'Tag', allowCreate: true, listKey: 'tags' },
+        collections: { propName: n.collectionsPropName, dbId: CONFIG.DB.COLLECTIONS, label: 'Collection', allowCreate: false, listKey: 'collections' },
+        projects: { propName: n.projectsPropName, dbId: CONFIG.DB.PROJECTS, label: 'Project', allowCreate: true, listKey: 'projects' },
+        resources: { propName: n.resourcesPropName, dbId: CONFIG.DB.RESOURCES, label: 'Resource', allowCreate: false, listKey: 'resources' },
+      };
+      const cfg = relMap[field];
+      if (!cfg) return null;
+      return {
+        pageId: n.id, dbId: cfg.dbId, single: false, label: cfg.label, allowCreate: cfg.allowCreate, propName: cfg.propName,
+        currentIds: n[cfg.listKey].map((m) => m.id),
+        apply: async (ids, names) => { n[cfg.listKey] = ids.map((id, i) => ({ id, name: names[i] })); },
+      };
+    }
+    if (entity === 'task') {
+      const s = taskProfileState; if (!s.data) return null;
+      const t = s.data;
+      if (field === 'project') {
+        return {
+          pageId: t.id, dbId: CONFIG.DB.PROJECTS, single: true, label: 'Project', allowCreate: true, propName: t.projectsPropName,
+          currentIds: t.projects.map((p) => p.id),
+          apply: async (ids, names) => {
+            t.projects = ids.map((id, i) => ({ id, name: names[i] }));
+            // Domain is derived through the project — re-resolve so the
+            // read-only Domain pill stays correct after a Project change.
+            const resolution = await resolveTaskProjectAndDomain(ids);
+            t.domainId = resolution.domainId;
+            const domainRel = resolution.domainId ? await resolveRelationNames(CONFIG.DB.DOMAINS, [resolution.domainId]) : [];
+            t.domainName = domainRel.length ? domainRel[0].name : null;
+          },
+        };
+      }
+      if (field === 'people') {
+        return {
+          pageId: t.id, dbId: CONFIG.DB.PEOPLE, single: false, label: 'People', allowCreate: true, propName: t.peoplePropName,
+          currentIds: t.people.map((p) => p.id),
+          apply: async (ids, names) => { t.people = ids.map((id, i) => ({ id, name: names[i] })); },
+        };
+      }
+      return null;
+    }
+    if (entity === 'project') {
+      const s = projectProfileState; if (!s.data) return null;
+      const p = s.data.header;
+      if (field === 'domain') {
+        return {
+          pageId: p.id, dbId: CONFIG.DB.DOMAINS, single: true, label: 'Domain', allowCreate: false, propName: p.domainPropName,
+          currentIds: p.domainId ? [p.domainId] : [],
+          apply: async (ids, names) => { p.domainId = ids[0] || null; p.domainName = names[0] || null; },
+        };
+      }
+      if (field === 'people') {
+        return {
+          pageId: p.id, dbId: CONFIG.DB.PEOPLE, single: false, label: 'Person', allowCreate: true, propName: p.peoplePropName,
+          currentIds: p.people.map((pp) => pp.id),
+          apply: async (ids, names) => { p.people = ids.map((id, i) => ({ id, name: names[i] })); },
+        };
+      }
+      if (field === 'collections') {
+        return {
+          pageId: p.id, dbId: CONFIG.DB.COLLECTIONS, single: false, label: 'Collection', allowCreate: false, propName: p.collectionsPropName,
+          currentIds: p.collections.map((c) => c.id),
+          apply: async (ids, names) => { p.collections = ids.map((id, i) => ({ id, name: names[i] })); },
+        };
+      }
+      return null;
+    }
+    return null;
+  }
+
+  const applyPfeRelationPick = withPfeBusy(async (memberId) => {
+    const desc = pfeActiveRelationField();
+    if (!desc) return;
+    try {
+      let newIds, names;
+      if (desc.single) {
+        names = await resolveRelationNames(desc.dbId, [memberId]);
+        if (desc.selectShape) {
+          await patchProperties(desc.pageId, selectPropertyPatch(desc.propName, names[0] || null));
+          newIds = [];
+        } else {
+          await setRelationSingle(desc.pageId, desc.propName, memberId);
+          newIds = [memberId];
+        }
+      } else {
+        newIds = await addRelationMember(desc.pageId, desc.dbId, desc.propName, memberId);
+        names = await resolveRelationNames(desc.dbId, newIds);
+      }
+      await desc.apply(newIds, names);
+      pfeState.popover = null;
+      pfeState.query = '';
+      paintActiveProfile();
+    } catch (err) {
+      console.error('Failed to link', err);
+      showPfeToast(err.message || 'Could not link — try again.');
+    }
+  });
+
+  const applyPfeRelationRemove = withPfeBusy(async (memberId) => {
+    const desc = pfeActiveRelationField();
+    if (!desc || desc.single) return; // single fields use Clear, never a per-member ×
+    try {
+      const newIds = await removeRelationMember(desc.pageId, desc.dbId, desc.propName, memberId);
+      const names = await resolveRelationNames(desc.dbId, newIds);
+      await desc.apply(newIds, names);
+      paintActiveProfile();
+    } catch (err) {
+      console.error('Failed to remove', err);
+      showPfeToast(err.message || 'Could not remove — try again.');
+    }
+  });
+
+  const applyPfeRelationClear = withPfeBusy(async () => {
+    const desc = pfeActiveRelationField();
+    if (!desc) return;
+    try {
+      if (desc.selectShape) await patchProperties(desc.pageId, selectPropertyPatch(desc.propName, null));
+      else await writeRelationIds(desc.pageId, desc.propName, []);
+      await desc.apply([], []);
+      pfeState.popover = null;
+      paintActiveProfile();
+    } catch (err) {
+      console.error('Failed to clear', err);
+      showPfeToast(err.message || 'Could not clear — try again.');
+    }
+  });
+
+  const applyPfeRelationCreate = withPfeBusy(async (name) => {
+    const desc = pfeActiveRelationField();
+    if (!desc || !desc.allowCreate) return;
+    try {
+      const entry = await pfeCreateAndLink(desc.dbId, name);
+      let newIds;
+      if (desc.single) { await setRelationSingle(desc.pageId, desc.propName, entry.id); newIds = [entry.id]; }
+      else newIds = await addRelationMember(desc.pageId, desc.dbId, desc.propName, entry.id);
+      const names = await resolveRelationNames(desc.dbId, newIds);
+      await desc.apply(newIds, names);
+      pfeState.popover = null;
+      pfeState.query = '';
+      paintActiveProfile();
+      // A Project created from a picker (rather than a Domain's own
+      // create-in-context) has no Domain yet — resurfaces in the Inbox
+      // until one is assigned (§5.7).
+      if (desc.dbId === CONFIG.DB.PROJECTS) {
+        showPfeToast(`Created "${entry.name}" — it has no Domain yet, so it'll surface in the Inbox until one is assigned.`);
+      }
+    } catch (err) {
+      console.error('Failed to create', err);
+      showPfeToast(err.message || 'Could not create — try again.');
+    }
+  });
+
+  // --- Task: completion, Status, Priority, dates, title -------------------
+  const applyTaskCompletionToggle = withPfeBusy(async () => {
+    const s = taskProfileState;
+    if (!s.data) return;
+    const id = s.id;
+    const wasDone = (s.data.statusName || '').toLowerCase() === 'done';
+    try {
+      const resolved = await resolveOptionValue(CONFIG.DB.TASKS, s.data.statusPropName, wasDone ? 'Not Started' : 'Done');
+      const today = todayIsoLocal();
+      const props = { ...statusPropertyPatch(s.data.statusPropName, resolved) };
+      if (s.data.completedPropName) Object.assign(props, datePropertyPatch(s.data.completedPropName, wasDone ? null : today));
+      // Step A spike: confirmed-first — await, then re-render from the
+      // write itself rather than flipping optimistically, to validate the
+      // pipeline before the rest of the slice generalizes to optimistic.
+      await patchProperties(id, props);
+      if (s.id !== id) return;
+      s.data.statusName = resolved;
+      if (s.data.completedPropName) s.data.completedDate = wasDone ? null : { start: today };
+      paintActiveProfile();
+    } catch (err) {
+      console.error('Failed to toggle completion', err);
+      showPfeToast(err.message || 'Could not update completion — try again.');
+    }
+  });
+
+  const applyTaskStatusEdit = withPfeBusy(async (value) => {
+    const s = taskProfileState;
+    if (!s.data) return;
+    const id = s.id;
+    try {
+      const resolved = await resolveOptionValue(CONFIG.DB.TASKS, s.data.statusPropName, value);
+      const props = { ...statusPropertyPatch(s.data.statusPropName, resolved) };
+      // Status-transition side effect (§8) folded into the same PATCH —
+      // -> Done also stamps Completed, same compound write the hero
+      // checkbox makes, so the two entry points stay consistent.
+      const today = todayIsoLocal();
+      if (resolved.toLowerCase() === 'done' && s.data.completedPropName) Object.assign(props, datePropertyPatch(s.data.completedPropName, today));
+      await patchProperties(id, props);
+      if (s.id !== id) return;
+      s.data.statusName = resolved;
+      if (resolved.toLowerCase() === 'done' && s.data.completedPropName) s.data.completedDate = { start: today };
+      pfeState.popover = null;
+      paintActiveProfile();
+    } catch (err) {
+      console.error('Failed to update Status', err);
+      showPfeToast(err.message || 'Could not update Status — try again.');
+    }
+  });
+
+  const applyTaskPriorityEdit = withPfeBusy(async (value, clear) => {
+    const s = taskProfileState;
+    if (!s.data || !s.data.priorityPropName) return;
+    const id = s.id;
+    try {
+      const resolved = clear ? null : await resolveOptionValue(CONFIG.DB.TASKS, s.data.priorityPropName, value);
+      await patchProperties(id, selectPropertyPatch(s.data.priorityPropName, resolved));
+      if (s.id !== id) return;
+      s.data.priorityName = resolved;
+      pfeState.popover = null;
+      paintActiveProfile();
+    } catch (err) {
+      console.error('Failed to update Priority', err);
+      showPfeToast(err.message || 'Could not update Priority — try again.');
+    }
+  });
+
+  const applyTaskDateEdit = withPfeBusy(async (field, iso) => {
+    const s = taskProfileState;
+    if (!s.data) return;
+    const id = s.id;
+    const propName = { due: CONFIG.TASKS_PROP.DUE_DATE, do: CONFIG.TASKS_PROP.DO_DATE, completed: s.data.completedPropName }[field];
+    if (!propName) return;
+    try {
+      await patchProperties(id, datePropertyPatch(propName, iso));
+      if (s.id !== id) return;
+      s.data[{ due: 'dueDate', do: 'doDate', completed: 'completedDate' }[field]] = iso ? { start: iso } : null;
+      pfeState.popover = null;
+      paintActiveProfile();
+    } catch (err) {
+      console.error('Failed to update date', err);
+      showPfeToast(err.message || 'Could not update the date — try again.');
+    }
+  });
+
+  const applyTaskTitleEdit = withPfeBusy(async (text) => {
+    const s = taskProfileState;
+    if (!s.data) return;
+    const id = s.id;
+    const title = text.trim() || 'Untitled';
+    try {
+      const titleProp = await titlePropertyName(CONFIG.DB.TASKS);
+      await patchProperties(id, titlePropertyPatch(titleProp, title));
+      if (s.id !== id) return;
+      s.data.title = title;
+      pfeState.popover = null;
+      paintActiveProfile();
+    } catch (err) {
+      console.error('Failed to rename', err);
+      showPfeToast(err.message || 'Could not rename — try again.');
+    }
+  });
+
+  // Completion toggle for a task-grid CARD (Project's Tasks tab, Domain's
+  // Inbox/Admin) — distinct from applyTaskCompletionToggle because the
+  // card isn't the mounted Task profile itself; it patches whichever
+  // profile is currently showing the card by task id, never a full reload.
+  const applyTaskCardCompletionToggle = withPfeBusy(async (taskId, wasDoneStr) => {
+    const wasDone = wasDoneStr === 'true';
+    try {
+      const statusSchema = await getStatusSchema(CONFIG.DB.TASKS);
+      const resolved = await resolveOptionValue(CONFIG.DB.TASKS, statusSchema.name, wasDone ? 'Not Started' : 'Done');
+      const completedProp = await getDatePropByKeyword(CONFIG.DB.TASKS, 'completed');
+      const props = { ...statusPropertyPatch(statusSchema.name, resolved) };
+      if (completedProp) Object.assign(props, datePropertyPatch(completedProp, wasDone ? null : todayIsoLocal()));
+      await patchProperties(taskId, props);
+      const route = currentRoute().name;
+      if (route === 'project' && projectProfileState.data) {
+        const tab = projectProfileState.data.tabs.find((t) => t.key === 'tasks');
+        const rec = tab && tab.records.find((r) => r.id === taskId);
+        if (rec) rec.statusName = resolved;
+      } else if (route === 'domain' && domainProfileState.data) {
+        const rec = domainProfileState.data.catchAllTasks.find((t) => t.id === taskId);
+        if (rec) rec.statusName = resolved;
+      }
+      paintActiveProfile();
+    } catch (err) {
+      console.error('Failed to toggle completion', err);
+      showPfeToast(err.message || 'Could not update completion — try again.');
+    }
+  });
+
+  // --- Note: Status, Type (multi-select), Date, title ---------------------
+  const applyNoteStatusEdit = withPfeBusy(async (value) => {
+    const s = noteProfileState;
+    if (!s.data) return;
+    const id = s.id;
+    try {
+      const resolved = await resolveOptionValue(CONFIG.DB.NOTES, s.data.statusPropName, value);
+      await patchProperties(id, statusPropertyPatch(s.data.statusPropName, resolved));
+      if (s.id !== id) return;
+      s.data.statusName = resolved;
+      pfeState.popover = null;
+      paintActiveProfile();
+    } catch (err) {
+      console.error('Failed to update Status', err);
+      showPfeToast(err.message || 'Could not update Status — try again.');
+    }
+  });
+
+  // Type is multi_select — toggling one option adds it if the note
+  // doesn't already carry it, or removes it if it does, always writing
+  // the FULL resulting array (§6) — the popover stays open (add/remove-
+  // many), unlike Status/Priority's pick-one-and-close.
+  const applyNoteTypeToggle = withPfeBusy(async (typeName) => {
+    const s = noteProfileState;
+    if (!s.data) return;
+    const id = s.id;
+    const newTypes = s.data.types.includes(typeName) ? s.data.types.filter((t) => t !== typeName) : [...s.data.types, typeName];
+    try {
+      await patchProperties(id, multiSelectPropertyPatch(CONFIG.NOTES_PROP.TYPE, newTypes));
+      if (s.id !== id) return;
+      s.data.types = newTypes;
+      paintActiveProfile();
+    } catch (err) {
+      console.error('Failed to update Type', err);
+      showPfeToast(err.message || 'Could not update Type — try again.');
+    }
+  });
+
+  const applyNoteDateEdit = withPfeBusy(async (iso) => {
+    const s = noteProfileState;
+    if (!s.data) return;
+    const id = s.id;
+    try {
+      await patchProperties(id, datePropertyPatch(CONFIG.NOTES_PROP.DATE, iso));
+      if (s.id !== id) return;
+      s.data.date = iso ? { start: iso } : null;
+      pfeState.popover = null;
+      paintActiveProfile();
+    } catch (err) {
+      console.error('Failed to update Date', err);
+      showPfeToast(err.message || 'Could not update the date — try again.');
+    }
+  });
+
+  const applyNoteTitleEdit = withPfeBusy(async (text) => {
+    const s = noteProfileState;
+    if (!s.data) return;
+    const id = s.id;
+    const title = text.trim() || 'Untitled';
+    try {
+      const titleProp = await titlePropertyName(CONFIG.DB.NOTES);
+      await patchProperties(id, titlePropertyPatch(titleProp, title));
+      if (s.id !== id) return;
+      s.data.title = title;
+      pfeState.popover = null;
+      paintActiveProfile();
+    } catch (err) {
+      console.error('Failed to rename', err);
+      showPfeToast(err.message || 'Could not rename — try again.');
+    }
+  });
+
+  // --- Project: Status (+transitions), Priority, dates, title,
+  //     Archived/Focus, Pause Details ------------------------------------
+  const applyProjectStatusEdit = withPfeBusy(async (value) => {
+    const s = projectProfileState;
+    if (!s.data) return;
+    const p = s.data.header;
+    const id = p.id;
+    try {
+      const resolved = await resolveOptionValue(CONFIG.DB.PROJECTS, p.statusPropName, value);
+      const props = { ...statusPropertyPatch(p.statusPropName, resolved) };
+      const lower = resolved.toLowerCase();
+      const today = todayIsoLocal();
+      // Status-transition side effects (§8), folded into the same PATCH.
+      if (lower === 'done' && p.completedDatePropName) Object.assign(props, datePropertyPatch(p.completedDatePropName, today));
+      if (lower === 'paused' && p.pausedDatePropName) Object.assign(props, datePropertyPatch(p.pausedDatePropName, today));
+      await patchProperties(id, props);
+      if (s.id !== id) return;
+      p.statusName = resolved;
+      if (lower === 'done' && p.completedDatePropName) p.completedDate = { start: today };
+      if (lower === 'paused' && p.pausedDatePropName) p.pausedDate = { start: today };
+      pfeState.popover = null;
+      paintActiveProfile();
+      if (lower === 'paused') showPfeToast('Paused — add Pause Details below to note what would move it forward.');
+    } catch (err) {
+      console.error('Failed to update Status', err);
+      showPfeToast(err.message || 'Could not update Status — try again.');
+    }
+  });
+
+  const applyProjectPriorityEdit = withPfeBusy(async (value, clear) => {
+    const s = projectProfileState;
+    if (!s.data) return;
+    const p = s.data.header;
+    if (!p.priorityPropName) return;
+    const id = p.id;
+    try {
+      const resolved = clear ? null : await resolveOptionValue(CONFIG.DB.PROJECTS, p.priorityPropName, value);
+      await patchProperties(id, selectPropertyPatch(p.priorityPropName, resolved));
+      if (s.id !== id) return;
+      p.priorityName = resolved;
+      pfeState.popover = null;
+      paintActiveProfile();
+    } catch (err) {
+      console.error('Failed to update Priority', err);
+      showPfeToast(err.message || 'Could not update Priority — try again.');
+    }
+  });
+
+  const applyProjectDateEdit = withPfeBusy(async (field, iso) => {
+    const s = projectProfileState;
+    if (!s.data) return;
+    const p = s.data.header;
+    const id = p.id;
+    const propName = { start: p.startDatePropName, deadline: p.deadlinePropName, completed: p.completedDatePropName }[field];
+    if (!propName) return;
+    try {
+      await patchProperties(id, datePropertyPatch(propName, iso));
+      if (s.id !== id) return;
+      p[{ start: 'startDate', deadline: 'deadline', completed: 'completedDate' }[field]] = iso ? { start: iso } : null;
+      pfeState.popover = null;
+      paintActiveProfile();
+    } catch (err) {
+      console.error('Failed to update date', err);
+      showPfeToast(err.message || 'Could not update the date — try again.');
+    }
+  });
+
+  const applyProjectTitleEdit = withPfeBusy(async (text) => {
+    const s = projectProfileState;
+    if (!s.data) return;
+    const p = s.data.header;
+    const id = p.id;
+    const title = text.trim() || 'Untitled';
+    try {
+      const titleProp = await titlePropertyName(CONFIG.DB.PROJECTS);
+      await patchProperties(id, titlePropertyPatch(titleProp, title));
+      if (s.id !== id) return;
+      p.title = title;
+      pfeState.popover = null;
+      paintActiveProfile();
+    } catch (err) {
+      console.error('Failed to rename', err);
+      showPfeToast(err.message || 'Could not rename — try again.');
+    }
+  });
+
+  const applyProjectCheckboxToggle = withPfeBusy(async (which) => {
+    const s = projectProfileState;
+    if (!s.data) return;
+    const p = s.data.header;
+    const propName = which === 'archived' ? p.archivedPropName : p.focusPropName;
+    if (!propName) return;
+    const next = !(which === 'archived' ? p.archivedChecked : p.focusChecked);
+    try {
+      const props = { ...checkboxPropertyPatch(propName, next) };
+      // Archived -> true stamps Date Archived in the same PATCH (§8).
+      // Un-archiving leaves the stored date (audit trail) — the DATES
+      // section's contextual-row precedence just hides it once the
+      // status no longer applies.
+      if (which === 'archived' && next && p.archivedDatePropName) Object.assign(props, datePropertyPatch(p.archivedDatePropName, todayIsoLocal()));
+      await patchProperties(p.id, props);
+      if (which === 'archived') {
+        p.archivedChecked = next;
+        if (next && p.archivedDatePropName) p.archivedDate = { start: todayIsoLocal() };
+      } else {
+        p.focusChecked = next;
+      }
+      paintActiveProfile();
+    } catch (err) {
+      console.error(`Failed to toggle ${which}`, err);
+      showPfeToast(err.message || 'Could not update — try again.');
+    }
+  });
+
+  // Pause Details (§8) — a hand-edited carry-forward note, editable any
+  // time, full-string write on Save, never auto-appended/stamped. Reads
+  // the textarea's live value directly (rather than threading it through
+  // state on every keystroke) since it only needs to be read once, on Save.
+  const applyProjectPauseDetailsSave = withPfeBusy(async () => {
+    const s = projectProfileState;
+    if (!s.data) return;
+    const p = s.data.header;
+    if (!p.pauseDetailsPropName) return;
+    const textarea = dmnProps && dmnProps.querySelector('[data-pfe-pausedetails]');
+    if (!textarea) return;
+    const text = textarea.value;
+    try {
+      await patchProperties(p.id, richTextPropertyPatch(p.pauseDetailsPropName, text));
+      p.pauseDetailsText = text;
+      showPfeToast('Pause Details saved.');
+    } catch (err) {
+      console.error('Failed to save Pause Details', err);
+      showPfeToast(err.message || 'Could not save — try again.');
+    }
+  });
+
+  // --- Generic dispatchers — route a picker's option-select/clear/date-
+  // input/title-save click to whichever entity-specific handler above
+  // owns the field currently open in pfeState.popover.
+  function applyPfeOptionSelect(value) {
+    const pop = pfeState.popover;
+    if (!pop) return;
+    const key = `${pop.entity}:${pop.field}`;
+    if (key === 'note:status') return applyNoteStatusEdit(value);
+    if (key === 'note:type') return applyNoteTypeToggle(value);
+    if (key === 'task:status') return applyTaskStatusEdit(value);
+    if (key === 'task:priority') return applyTaskPriorityEdit(value, false);
+    if (key === 'project:status') return applyProjectStatusEdit(value);
+    if (key === 'project:priority') return applyProjectPriorityEdit(value, false);
+  }
+  function applyPfeClear() {
+    const pop = pfeState.popover;
+    if (!pop) return;
+    const key = `${pop.entity}:${pop.field}`;
+    if (key === 'task:priority') return applyTaskPriorityEdit(null, true);
+    if (key === 'project:priority') return applyProjectPriorityEdit(null, true);
+    if (key === 'task:due') return applyTaskDateEdit('due', null);
+    if (key === 'task:do') return applyTaskDateEdit('do', null);
+    if (key === 'task:completed') return applyTaskDateEdit('completed', null);
+    if (key === 'note:date') return applyNoteDateEdit(null);
+    if (key === 'project:start') return applyProjectDateEdit('start', null);
+    if (key === 'project:deadline') return applyProjectDateEdit('deadline', null);
+    if (key === 'project:completed') return applyProjectDateEdit('completed', null);
+    return applyPfeRelationClear();
+  }
+  function applyPfeDateInput(iso) {
+    const pop = pfeState.popover;
+    if (!pop) return;
+    const key = `${pop.entity}:${pop.field}`;
+    if (key === 'task:due') return applyTaskDateEdit('due', iso);
+    if (key === 'task:do') return applyTaskDateEdit('do', iso);
+    if (key === 'task:completed') return applyTaskDateEdit('completed', iso);
+    if (key === 'note:date') return applyNoteDateEdit(iso);
+    if (key === 'project:start') return applyProjectDateEdit('start', iso);
+    if (key === 'project:deadline') return applyProjectDateEdit('deadline', iso);
+    if (key === 'project:completed') return applyProjectDateEdit('completed', iso);
+  }
+  function applyPfeTitleSave(text) {
+    const pop = pfeState.popover;
+    if (!pop || pop.field !== 'title') return;
+    if (pop.entity === 'note') return applyNoteTitleEdit(text);
+    if (pop.entity === 'task') return applyTaskTitleEdit(text);
+    if (pop.entity === 'project') return applyProjectTitleEdit(text);
+  }
+
+  // --- Create-in-context (§5.6) — minimal payload + the container
+  // relation; new Note/Task default Status = Inbox, matching capture
+  // routing. Never mints a new Domain — the six are fixed. Uses a plain
+  // prompt() for the title rather than a bespoke inline form — a
+  // deliberately low-footprint entry point, consistent with "minimal
+  // payload".
+  const applyPfeCreateInContext = withPfeBusy(async (key) => {
+    try {
+      if (key === 'project:task') {
+        const s = projectProfileState;
+        if (!s.data) return;
+        const p = s.data.header;
+        const name = window.prompt('New task title:');
+        if (!name || !name.trim()) return;
+        const [titleProp, statusTarget] = await Promise.all([
+          titlePropertyName(CONFIG.DB.TASKS),
+          getInboxStatusFilter(CONFIG.DB.TASKS),
+        ]);
+        const body = {
+          ...titlePropertyPatch(titleProp, name.trim()),
+          ...statusPropertyPatch(statusTarget.name, statusTarget.value),
+          [p.tasksProjectsProp]: { relation: [{ id: p.id }] },
+        };
+        await notionRequest('/v1/pages', { method: 'POST', body: { parent: { database_id: CONFIG.DB.TASKS }, properties: body } });
+        showPfeToast('Task created.');
+        const tab = s.data.tabs.find((t) => t.key === 'tasks');
+        if (tab) {
+          const [records, statusSchema] = await Promise.all([
+            queryProjectTaskRecords(p.tasksProjectsProp, p.id),
+            getStatusSchema(CONFIG.DB.TASKS),
+          ]);
+          tab.records = records;
+          tab.count = records.length;
+          tab.statusOptions = statusSchema.options;
+        }
+        paintActiveProfile();
+        return;
+      }
+      if (key === 'domain:project') {
+        const s = domainProfileState;
+        if (!s.data) return;
+        const name = window.prompt('New project title:');
+        if (!name || !name.trim()) return;
+        const [titleProp, domainRelProp] = await Promise.all([
+          titlePropertyName(CONFIG.DB.PROJECTS),
+          relationPropertyName(CONFIG.DB.PROJECTS, CONFIG.DB.DOMAINS),
+        ]);
+        const body = { ...titlePropertyPatch(titleProp, name.trim()), [domainRelProp]: { relation: [{ id: s.id }] } };
+        await notionRequest('/v1/pages', { method: 'POST', body: { parent: { database_id: CONFIG.DB.PROJECTS }, properties: body } });
+        showPfeToast('Project created.');
+        // Reload the whole Domain profile — simplest way to get the new
+        // project correctly grouped into the work spine by its status.
+        mountDomainProfile(s.id);
+        return;
+      }
+      if (key === 'domain:task') {
+        const s = domainProfileState;
+        if (!s.data) return;
+        const name = window.prompt('New task title:');
+        if (!name || !name.trim()) return;
+        const meta = DOMAIN_META.find((d) => normalizeDbId(d.pageId) === normalizeDbId(s.id));
+        if (!meta) return;
+        const [titleProp, statusTarget, tasksProjectsProp] = await Promise.all([
+          titlePropertyName(CONFIG.DB.TASKS),
+          getInboxStatusFilter(CONFIG.DB.TASKS),
+          relationPropertyName(CONFIG.DB.TASKS, CONFIG.DB.PROJECTS),
+        ]);
+        const body = {
+          ...titlePropertyPatch(titleProp, name.trim()),
+          ...statusPropertyPatch(statusTarget.name, statusTarget.value),
+          [tasksProjectsProp]: { relation: [{ id: meta.catchAllProjectId }] },
+        };
+        await notionRequest('/v1/pages', { method: 'POST', body: { parent: { database_id: CONFIG.DB.TASKS }, properties: body } });
+        showPfeToast('Task created.');
+        mountDomainProfile(s.id);
+        return;
+      }
+    } catch (err) {
+      console.error('Failed to create in context', err);
+      showPfeToast(err.message || 'Could not create — try again.');
+    }
+  });
 
   // --- Domain profile — the framed shell's first (and so far only)
   // consumer. Read/navigate only, no writes to Notion. Composes the
@@ -5174,17 +6573,23 @@
       <div class="dmn-collapse-body"${collapsed ? ' hidden' : ''}>${cardsHtml}</div>`;
   }
 
+  // Create-in-context (§5.6) — "+ New Project", pre-filled with this
+  // Domain's relation; the new project is domainless-safety-net-exempt
+  // since it's born with a Domain already set (§5.7).
   function renderWorkSpine(groups, collapsedStatus) {
     const body = groups.length
       ? groups.map((g) => renderDomainStatusGroup(g, collapsedStatus)).join('')
       : `<div class="dmn-empty">No projects in this domain yet.</div>`;
-    return `<section class="dmn-sec"><h2 class="dmn-sec-hd">Work</h2>${body}</section>`;
+    return `<section class="dmn-sec"><h2 class="dmn-sec-hd">Work</h2><button type="button" class="pfe-create-context" data-pfe-create-context="domain:project">+ New Project</button>${body}</section>`;
   }
 
+  // Checkbox carved out of the card's click area, same as Project's Tasks
+  // tab (renderProjectTaskCard) — completion-writable this slice.
   function renderDomainTaskCard(t) {
+    const isDone = (t.statusName || '').toLowerCase() === 'done';
     const dateLabel = t.dueDate && t.dueDate.start ? `Due ${formatDateShort(t.dueDate.start)}` : 'No date';
     return `<div class="dmn-task" data-pf-nav="task/${escapeHtml(t.id)}">
-      <div class="dmn-top"><span class="dmn-box" aria-hidden="true"></span><span class="dmn-tname">${escapeHtml(t.title || 'Untitled')}</span></div>
+      <div class="dmn-top"><span class="dmn-box${isDone ? ' dmn-box--checked' : ''}" data-pfe-task-toggle="${escapeHtml(t.id)}" data-pfe-task-done="${isDone}" role="checkbox" aria-checked="${isDone}">${isDone ? '✓' : ''}</span><span class="dmn-tname">${escapeHtml(t.title || 'Untitled')}</span></div>
       <div class="dmn-tdate">${escapeHtml(dateLabel)}</div>
     </div>`;
   }
@@ -5193,7 +6598,7 @@
     const body = tasks.length
       ? `<div class="dmn-task-grid">${tasks.map(renderDomainTaskCard).join('')}</div>`
       : `<div class="dmn-empty">Nothing loose right now.</div>`;
-    return `<section class="dmn-sec"><h2 class="dmn-sec-hd">Inbox/Admin</h2>${body}</section>`;
+    return `<section class="dmn-sec"><h2 class="dmn-sec-hd">Inbox/Admin</h2><button type="button" class="pfe-create-context" data-pfe-create-context="domain:task">+ New Task</button>${body}</section>`;
   }
 
   // The shelf's tab chrome is its own dmn- styling (uppercase headings per
@@ -5313,6 +6718,7 @@
       ${renderWorkSpine(d.projectGroups, s.collapsedStatus)}
       ${renderInboxAdmin(d.catchAllTasks)}
       ${renderDomainShelf(d.shelfTabs, s.activeShelfTab)}
+      ${renderPfeToast()}
     `;
     dmnProps.innerHTML = `
       ${renderCaptureAffordance()}
@@ -5440,6 +6846,49 @@
   // tab/status-toggle clicks dispatch to whichever profile's own handler
   // owns that data attribute.
   framedRoot.addEventListener('click', (e) => {
+    // Edit-slice handlers go first — several (task-toggle, the pfe-*
+    // triggers) sit *inside* a card/pill that also carries data-pf-nav or
+    // another read-side handler, so they must claim the click (and
+    // return) before those broader closest() checks below ever run.
+    const taskToggleEl = e.target.closest('[data-pfe-task-toggle]');
+    if (taskToggleEl) {
+      e.stopPropagation();
+      if (!pfeState.busy) applyTaskCardCompletionToggle(taskToggleEl.dataset.pfeTaskToggle, taskToggleEl.dataset.pfeTaskDone);
+      return;
+    }
+    const pfeTrigger = e.target.closest('[data-pfe-action]');
+    if (pfeTrigger) {
+      e.stopPropagation();
+      if (pfeState.busy) return;
+      const [entity, field] = pfeTrigger.dataset.pfeAction.split(':');
+      if (field === 'complete') { applyTaskCompletionToggle(); return; }
+      if (entity === 'project' && (field === 'archived' || field === 'focus')) { applyProjectCheckboxToggle(field); return; }
+      if (field === 'title') {
+        pfeState.popover = { entity, field: 'title' };
+        paintActiveProfile();
+        return;
+      }
+      pfeTogglePopover(entity, field);
+      return;
+    }
+    const pfeOpt = e.target.closest('[data-pfe-opt]');
+    if (pfeOpt) { e.stopPropagation(); if (!pfeState.busy) applyPfeOptionSelect(pfeOpt.dataset.pfeOpt); return; }
+    const pfeClear = e.target.closest('[data-pfe-clear]');
+    if (pfeClear) { e.stopPropagation(); if (!pfeState.busy) applyPfeClear(); return; }
+    const pfePick = e.target.closest('[data-pfe-pick]');
+    if (pfePick) { e.stopPropagation(); if (!pfeState.busy) applyPfeRelationPick(pfePick.dataset.pfePick); return; }
+    const pfeCreate = e.target.closest('[data-pfe-create]');
+    if (pfeCreate) { e.stopPropagation(); if (!pfeState.busy) applyPfeRelationCreate(pfeCreate.dataset.pfeCreate); return; }
+    const pfeRemove = e.target.closest('[data-pfe-remove]');
+    if (pfeRemove) { e.stopPropagation(); if (!pfeState.busy) applyPfeRelationRemove(pfeRemove.dataset.pfeRemove); return; }
+    const pfeSave = e.target.closest('[data-pfe-save-pausedetails]');
+    if (pfeSave) { e.stopPropagation(); applyProjectPauseDetailsSave(); return; }
+    const pfeCreateContext = e.target.closest('[data-pfe-create-context]');
+    if (pfeCreateContext) { e.stopPropagation(); if (!pfeState.busy) applyPfeCreateInContext(pfeCreateContext.dataset.pfeCreateContext); return; }
+    const pfeTitleInput = e.target.closest('[data-pfe-title-input]');
+    if (pfeTitleInput) { e.stopPropagation(); return; } // don't let the dismiss-on-outside-click below eat focus/selection clicks
+    if (e.target.closest('.tg-popover')) { e.stopPropagation(); return; }
+
     const navEl = e.target.closest('[data-pf-nav]');
     if (navEl) { location.hash = `#/${navEl.dataset.pfNav}`; return; }
     const tabEl = e.target.closest('[data-pf-tab]');
@@ -5451,7 +6900,48 @@
     const shelfTabEl = e.target.closest('[data-dmn-shelf-tab]');
     if (shelfTabEl) { onDomainShelfTabClick(shelfTabEl.dataset.dmnShelfTab); return; }
     const domainStatusToggleEl = e.target.closest('[data-dmn-status-toggle]');
-    if (domainStatusToggleEl) onDomainStatusToggle(domainStatusToggleEl.dataset.dmnStatusToggle);
+    if (domainStatusToggleEl) { onDomainStatusToggle(domainStatusToggleEl.dataset.dmnStatusToggle); return; }
+
+    // Click anywhere else dismisses an open picker or inline title edit —
+    // same "full-card backdrop" convention Inbox's own popovers use.
+    if (pfeState.popover) { pfeState.popover = null; paintActiveProfile(); }
+  });
+
+  // Typing in a relation-field filter input updates only the matches/
+  // create row next to it (mirrors Inbox's own data-pop-filter listener) —
+  // a full repaint here would destroy and recreate the <input> on every
+  // keystroke, dropping focus/characters for a fast typist.
+  framedRoot.addEventListener('input', (e) => {
+    if (e.target.matches('[data-pfe-filter]')) {
+      pfeState.query = e.target.value;
+      const wrap = e.target.closest('.tg-popover');
+      const dynamicEl = wrap && wrap.querySelector('.tg-pop-dynamic');
+      const desc = pfeActiveRelationField();
+      if (dynamicEl && desc) {
+        dynamicEl.innerHTML = renderPfeRelationDynamic(pfeLookupPool(desc.dbId), desc.currentIds, desc.allowCreate, desc.label);
+      }
+    }
+  });
+
+  // The native date input inside a date popover (Task Due/Do/Completed,
+  // Note Date, Project Start/Target Deadline/Date Completed) — already a
+  // local YYYY-MM-DD string verbatim (§7), passed straight through.
+  framedRoot.addEventListener('change', (e) => {
+    if (e.target.matches('[data-pfe-date-input]') && e.target.value) {
+      applyPfeDateInput(e.target.value);
+    }
+  });
+
+  // Inline title editing — Enter saves, Escape cancels, blur saves (so a
+  // stray click elsewhere doesn't silently discard an edit).
+  framedRoot.addEventListener('keydown', (e) => {
+    if (!e.target.matches('[data-pfe-title-input]')) return;
+    if (e.key === 'Enter') { e.preventDefault(); applyPfeTitleSave(e.target.value); }
+    else if (e.key === 'Escape') { e.preventDefault(); pfeState.popover = null; paintActiveProfile(); }
+  });
+  framedRoot.addEventListener('focusout', (e) => {
+    if (!e.target.matches('[data-pfe-title-input]')) return;
+    if (pfeState.popover && pfeState.popover.field === 'title') applyPfeTitleSave(e.target.value);
   });
 
   // --- Views ----------------------------------------------------------------
@@ -5502,6 +6992,13 @@
       location.hash = '#/inbox';
       return;
     }
+    // A profile's open picker/inline-title-edit is meaningless once you've
+    // navigated away from it (a relation pill's label click, a breadcrumb
+    // link, browser back/forward) — clear it on every route change rather
+    // than leaving stale state that could otherwise bleed into whichever
+    // profile mounts next.
+    pfeState.popover = null;
+    pfeState.query = '';
     const route = parseRoute();
     document.querySelectorAll('.nav-btn').forEach((btn) => {
       btn.classList.toggle('active', btn.dataset.route === route.name);
