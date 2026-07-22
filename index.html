@@ -3750,7 +3750,9 @@
   // profile wiring its own repaint, since the picker markup/handlers are
   // shared across Note/Task/Project/Domain.
   function paintActiveProfile() {
-    const name = currentRoute().name;
+    // currentRoute() already returns the route's name as a plain string
+    // (it's a thin wrapper over parseRoute().name) — not an object.
+    const name = currentRoute();
     if (name === 'note') paintNoteProfile();
     else if (name === 'task') paintTaskProfile();
     else if (name === 'project') paintProjectProfile();
@@ -5626,9 +5628,9 @@
           pageId: n.id, dbId: CONFIG.DB.DOMAINS, single: true, label: 'Domain', allowCreate: false,
           propName: n.domainProp.name, selectShape: n.domainProp.type === 'select',
           currentIds: n.domainId ? [n.domainId] : [],
-          apply: async (ids, names) => {
-            n.domainId = n.domainProp.type === 'relation' ? (ids[0] || null) : null;
-            n.domainName = names[0] || null;
+          apply: async (members) => {
+            n.domainId = n.domainProp.type === 'relation' ? (members[0] ? members[0].id : null) : null;
+            n.domainName = members[0] ? members[0].name : null;
           },
         };
       }
@@ -5644,7 +5646,7 @@
       return {
         pageId: n.id, dbId: cfg.dbId, single: false, label: cfg.label, allowCreate: cfg.allowCreate, propName: cfg.propName,
         currentIds: n[cfg.listKey].map((m) => m.id),
-        apply: async (ids, names) => { n[cfg.listKey] = ids.map((id, i) => ({ id, name: names[i] })); },
+        apply: async (members) => { n[cfg.listKey] = members; },
       };
     }
     if (entity === 'task') {
@@ -5654,11 +5656,11 @@
         return {
           pageId: t.id, dbId: CONFIG.DB.PROJECTS, single: true, label: 'Project', allowCreate: true, propName: t.projectsPropName,
           currentIds: t.projects.map((p) => p.id),
-          apply: async (ids, names) => {
-            t.projects = ids.map((id, i) => ({ id, name: names[i] }));
+          apply: async (members) => {
+            t.projects = members;
             // Domain is derived through the project — re-resolve so the
             // read-only Domain pill stays correct after a Project change.
-            const resolution = await resolveTaskProjectAndDomain(ids);
+            const resolution = await resolveTaskProjectAndDomain(members.map((m) => m.id));
             t.domainId = resolution.domainId;
             const domainRel = resolution.domainId ? await resolveRelationNames(CONFIG.DB.DOMAINS, [resolution.domainId]) : [];
             t.domainName = domainRel.length ? domainRel[0].name : null;
@@ -5669,7 +5671,7 @@
         return {
           pageId: t.id, dbId: CONFIG.DB.PEOPLE, single: false, label: 'People', allowCreate: true, propName: t.peoplePropName,
           currentIds: t.people.map((p) => p.id),
-          apply: async (ids, names) => { t.people = ids.map((id, i) => ({ id, name: names[i] })); },
+          apply: async (members) => { t.people = members; },
         };
       }
       return null;
@@ -5681,21 +5683,21 @@
         return {
           pageId: p.id, dbId: CONFIG.DB.DOMAINS, single: true, label: 'Domain', allowCreate: false, propName: p.domainPropName,
           currentIds: p.domainId ? [p.domainId] : [],
-          apply: async (ids, names) => { p.domainId = ids[0] || null; p.domainName = names[0] || null; },
+          apply: async (members) => { p.domainId = members[0] ? members[0].id : null; p.domainName = members[0] ? members[0].name : null; },
         };
       }
       if (field === 'people') {
         return {
           pageId: p.id, dbId: CONFIG.DB.PEOPLE, single: false, label: 'Person', allowCreate: true, propName: p.peoplePropName,
           currentIds: p.people.map((pp) => pp.id),
-          apply: async (ids, names) => { p.people = ids.map((id, i) => ({ id, name: names[i] })); },
+          apply: async (members) => { p.people = members; },
         };
       }
       if (field === 'collections') {
         return {
           pageId: p.id, dbId: CONFIG.DB.COLLECTIONS, single: false, label: 'Collection', allowCreate: false, propName: p.collectionsPropName,
           currentIds: p.collections.map((c) => c.id),
-          apply: async (ids, names) => { p.collections = ids.map((id, i) => ({ id, name: names[i] })); },
+          apply: async (members) => { p.collections = members; },
         };
       }
       return null;
@@ -5703,25 +5705,29 @@
     return null;
   }
 
+  // Every handler below resolves the field's new member set as a fresh
+  // {id,name}[] straight from resolveRelationNames and hands that array
+  // to desc.apply() as one unit — never re-zipped against a separately-
+  // computed ids array, which could silently misalign if
+  // resolveRelationNames ever drops an entry (an archived/deleted linked
+  // page resolves softly to nothing, per its own contract).
   const applyPfeRelationPick = withPfeBusy(async (memberId) => {
     const desc = pfeActiveRelationField();
     if (!desc) return;
     try {
-      let newIds, names;
+      let members;
       if (desc.single) {
-        names = await resolveRelationNames(desc.dbId, [memberId]);
+        members = await resolveRelationNames(desc.dbId, [memberId]);
         if (desc.selectShape) {
-          await patchProperties(desc.pageId, selectPropertyPatch(desc.propName, names[0] || null));
-          newIds = [];
+          await patchProperties(desc.pageId, selectPropertyPatch(desc.propName, members[0] ? members[0].name : null));
         } else {
           await setRelationSingle(desc.pageId, desc.propName, memberId);
-          newIds = [memberId];
         }
       } else {
-        newIds = await addRelationMember(desc.pageId, desc.dbId, desc.propName, memberId);
-        names = await resolveRelationNames(desc.dbId, newIds);
+        const newIds = await addRelationMember(desc.pageId, desc.dbId, desc.propName, memberId);
+        members = await resolveRelationNames(desc.dbId, newIds);
       }
-      await desc.apply(newIds, names);
+      await desc.apply(members);
       pfeState.popover = null;
       pfeState.query = '';
       paintActiveProfile();
@@ -5736,8 +5742,8 @@
     if (!desc || desc.single) return; // single fields use Clear, never a per-member ×
     try {
       const newIds = await removeRelationMember(desc.pageId, desc.dbId, desc.propName, memberId);
-      const names = await resolveRelationNames(desc.dbId, newIds);
-      await desc.apply(newIds, names);
+      const members = await resolveRelationNames(desc.dbId, newIds);
+      await desc.apply(members);
       paintActiveProfile();
     } catch (err) {
       console.error('Failed to remove', err);
@@ -5751,7 +5757,7 @@
     try {
       if (desc.selectShape) await patchProperties(desc.pageId, selectPropertyPatch(desc.propName, null));
       else await writeRelationIds(desc.pageId, desc.propName, []);
-      await desc.apply([], []);
+      await desc.apply([]);
       pfeState.popover = null;
       paintActiveProfile();
     } catch (err) {
@@ -5765,11 +5771,13 @@
     if (!desc || !desc.allowCreate) return;
     try {
       const entry = await pfeCreateAndLink(desc.dbId, name);
-      let newIds;
-      if (desc.single) { await setRelationSingle(desc.pageId, desc.propName, entry.id); newIds = [entry.id]; }
-      else newIds = await addRelationMember(desc.pageId, desc.dbId, desc.propName, entry.id);
-      const names = await resolveRelationNames(desc.dbId, newIds);
-      await desc.apply(newIds, names);
+      let members;
+      if (desc.single) { await setRelationSingle(desc.pageId, desc.propName, entry.id); members = [entry]; }
+      else {
+        const newIds = await addRelationMember(desc.pageId, desc.dbId, desc.propName, entry.id);
+        members = await resolveRelationNames(desc.dbId, newIds);
+      }
+      await desc.apply(members);
       pfeState.popover = null;
       pfeState.query = '';
       paintActiveProfile();
@@ -5900,7 +5908,7 @@
       const props = { ...statusPropertyPatch(statusSchema.name, resolved) };
       if (completedProp) Object.assign(props, datePropertyPatch(completedProp, wasDone ? null : todayIsoLocal()));
       await patchProperties(taskId, props);
-      const route = currentRoute().name;
+      const route = currentRoute();
       if (route === 'project' && projectProfileState.data) {
         const tab = projectProfileState.data.tabs.find((t) => t.key === 'tasks');
         const rec = tab && tab.records.find((r) => r.id === taskId);
