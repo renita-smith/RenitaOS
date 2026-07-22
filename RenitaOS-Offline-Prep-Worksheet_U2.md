@@ -47,11 +47,11 @@
 | 📝 Notes | Relation | → 📝 Notes DB | Notes |
 | 👥 People | Relation | → 👥 People DB | People |
 | 🗃 Collections | Relation | → 🗃 Collections DB | Collection |
-| ~~🚧 Projects~~ | ~~Relation~~ | ~~→ 🚧 Projects DB~~ | ⚠️ phantom — verify (see note) |
+| ~~🚧 Projects~~ | ~~Relation~~ | ~~→ 🚧 Projects DB~~ | struck — phantom, confirmed absent |
 | Last Edited Time | Automated | - | - |
 | ℹ️ Resources | Relation | → ℹ️ Resources DB | Resources |
 
-> ⚠️ **Projects↔Tags is phantom.** The **Projects DB has no relation to Global Tags** (confirmed — speculative, never in the original capture); the `🚧 Projects` row above is struck. If the relation is fully absent (likely), also drop the **Projects list from the Tag profile**; if a one-directional `Tags → Projects` somehow exists, keep it Tags-side only. **Verify in Notion.**
+> ✅ **Projects↔Tags is phantom — confirmed, resolved.** The **Projects DB has no relation to Global Tags** (speculative, never in the original capture); the `🚧 Projects` row above is struck and the Tag profile carries no Projects list (§2 TAG PROFILE, §3 Tag profile).
 
 ### PEOPLE DATABASE
 | Exact property name (w/ emoji) | Notion type | Options / target DB | UI display label |
@@ -94,9 +94,9 @@
 | Progress | Rollup | → ✅ Tasks DB | Progress |
 | Priority | Select | High, Medium, Low | Priority |
 | Date Completed | Date | - | Date Completed |
-| Date Archived | Date | *(add in Notion)* | Date Archived |
-| Date Paused | Date | *(add in Notion)* | Date Paused |
-| Pause Log | Text | *(add in Notion; append-only)* | Pause Log |
+| Date Archived | Date | *(exists)* | Date Archived |
+| Date Paused | Date | *(exists)* | Date Paused |
+| Pause Details | Text | *(exists; hand-edited carry-forward note, not append-only)* | Pause Details |
 | Last Edited Time | Automated | - | - |
 | Created Time | Automated | - | - |
 | ✅ Tasks | Relation | → ✅ Tasks DB | Tasks |
@@ -106,8 +106,9 @@
 | Priority? | Checkbox | - | Priority |
 | 👥 People | Relation | → 👥 People DB | People |
 | 🗃 Collections | Relation | → 🗃 Collections DB | Collections |
+| Done Tasks | Rollup | → ✅ Tasks DB (count, Status = Done) | Done Tasks |
 
-> Removed: `Type` (select). **`🏷️ Tags` relation removed — it does not exist: the Projects DB has no relation to Global Tags (speculative, never in the original capture).** **To add in Notion (schema / edit-slice): `Date Archived`, `Date Paused`, `Pause Log`** (status-transition dates + pause history). `🎯 Goal` relation omitted — Goals deferred this phase. The old `Priority?` checkbox is renamed **`Focus`** — it flags projects chosen as next-week focus in the Weekly Review Dashboard. `Priority` (select) is the real priority field.
+> Removed: `Type` (select). **`🏷️ Tags` relation removed — it does not exist: the Projects DB has no relation to Global Tags (speculative, never in the original capture).** **Schema complete — no further additions needed:** `Date Archived`, `Date Paused`, and `Pause Details` (Text, renamed from `Pause Log`) all exist on the Projects DB. `🎯 Goal` relation omitted — Goals deferred this phase. The old `Priority?` checkbox is renamed **`Focus`** — it flags projects chosen as next-week focus in the Weekly Review Dashboard. `Priority` (select) is the real priority field. **`Done Tasks`** is the completed-count rollup (count of linked Tasks with Status = Done) — the Project/Domain profiles read it directly for "N of M done" instead of reconstructing N via `round(progress × total)`; falls back to that reconstruction only if this rollup is absent from the live schema.
 
 ### DOMAINS DATABASE
 | Exact property name (w/ emoji) | Notion type | Options / target DB | UI display label |
@@ -220,7 +221,7 @@ Roles: *primary* (hero), *body* (rich-text block content), *meta* (small chip), 
 | Status | Meta | Status | Editable value pill; synced with hero checkbox |
 | Created Time | Timestamp | Created | Date only; read-only |
 | Last Edited Time | Timestamp | Last Edited | Date + time |
-| 🏛 Domain | Relation | Domain | Drills to Domain profile |
+| 🏛 Domain | Rollup (through Project) | Domain | **Not a task-level field** — a task has no Domain relation of its own; this is read via the linked Project's own Domain relation. Read-only/navigate-only pill (no edit caret) — change it by changing the Project. |
 | Completed | Meta (editable date) | Completed | App sets = today when Status → Done; **user-editable** for catch-up days. Pill briefly highlights on completion. Not a timestamp. |
 | 👥 People | Relation List | People | Each drills to People profile |
 | Body | Body | Details | - |
@@ -242,6 +243,7 @@ Roles: *primary* (hero), *body* (rich-text block content), *meta* (small chip), 
 | Created Time | Timestamp | Created | Date only |
 | ✅ Tasks | Relation List | Tasks | Each drills to Task profile |
 | No of Tasks | Meta | No of Tasks | Rollup (read-only, from Tasks) |
+| Done Tasks | Meta | Done Tasks | Completed-count rollup (read-only) — "N of M done" reads N from here directly; falls back to `round(Progress × No of Tasks)` only if this rollup is absent from the live schema. |
 | 📝 Notes | Relation List | Notes | Each drills to Note profile |
 | Start Date | Meta | Start Date | - |
 | Focus | Meta (checkbox) | Focus | Weekly Review: flags next-week focus projects |
@@ -298,7 +300,7 @@ Roles: *primary* (hero), *body* (rich-text block content), *meta* (small chip), 
 | Tag | Primary | Tag | - |
 | Total Notes | Meta | Total Notes | Rollup (read-only) |
 | 📝 Notes | Relation List | Notes | Each drills to Note profile |
-| 🚧 Projects | Relation List | Projects | Each drills to Project profile |
+| ~~🚧 Projects~~ | ~~Relation List~~ | ~~Projects~~ | struck — phantom, confirmed absent (Projects DB has no Tags relation) |
 | 👥 People | Relation List | People | Each drills to People profile |
 | 🗃 Collections | Relation List | Collections | Each drills to Collection profile |
 | ℹ️ Resources | Relation List | Resources | Each drills to Resource profile |
@@ -369,14 +371,13 @@ Pulls three sets, then derives two more from them:
 
 ### Domain profile
 - **Projects grouped by Status**, each rendered as a **card with a task summary** (e.g. "4 of 7 done"). Tap a card → Project profile.
-- **Direct Tasks section** — tasks where `🏛 Domain` = this **AND `🚧 Projects` is empty.** These are the orphan tasks (domain assigned, no project) that the Domain→Task relation exists to hold. Without this section they'd be invisible everywhere in the app.
-  - ⚠️ The empty-project filter is essential: querying *all* of the domain's tasks would duplicate every task already summarized inside the project cards.
+- **Loose tasks (Inbox/Admin)** — ⚠️ **void: the "Direct Tasks / `Domain = this AND Projects empty`" filter described in earlier drafts never matches anything.** A task carries no Domain field of its own — its domain is a rollup **through** its Project — so a projectless task has no domain rollup and can never satisfy that filter. The domain's loose tasks are instead **the contents of that domain's catch-all `Inbox/Admin` project** (page IDs in Backend §4): query domain → its projects → the catch-all project's tasks, never a task-level Domain filter.
   - Same spirit as Triage's "No domain" bin — give the un-parented things a visible home.
-- **No flat all-tasks list.** Project cards carry task summaries; direct tasks are the only loose ones. (Resolves Q9.)
+- **No flat all-tasks list.** Project cards carry task summaries; the catch-all project's tasks are the only loose ones shown separately. (Resolves Q9.)
 - Notes / Resources / Routines: newest-first. (Sessions deferred.)
 
 ### Tag profile
-Notes + People + Collections + Resources related to this tag (**Projects pending** — the Tags↔Projects relation is phantom; verify). **Not tasks** (tasks have no Tags relation).
+Notes + People + Collections + Resources related to this tag. **Not tasks** (tasks have no Tags relation). **Projects struck — confirmed phantom:** the Projects DB has no relation to Global Tags (verified against the live schema), so there is no Tags↔Projects list on this profile.
 
 ### Collection profile
 Notes / Resources / Projects / People where Collection = this.
@@ -393,7 +394,7 @@ Every record is a **card**; tapping a card opens its profile.
 - **Today / Week / Month** → Task profile, Note profile, Project profile, Tag profile, People profile (each section's cards drill to their own entity)
 - **Task profile** → Project profile, Domain profile, People profile
 - **Project profile** → Task profile, Note profile, Tag profile, People profile, Collection profile, Domain profile
-- **Domain profile** → Project profile (via project cards), **Task profile (via Direct Tasks)**, Note profile, Resource profile, Routines
+- **Domain profile** → Project profile (via project cards), **Task profile (via the catch-all Inbox/Admin project's loose tasks)**, Note profile, Resource profile, Routines
 - **Note profile** → People / Tag / Collection / Resource / Domain / Project profiles
 - **Collection profile** → Note, People, Tag, Project, Resource profiles
 - **Tag profile** → Note, Project, People, Collection, Resource profiles
@@ -405,7 +406,7 @@ Every record is a **card**; tapping a card opens its profile.
 - **Q6 — People:** ✅ People profile screen added.
 - **Q7 — Sessions & Routines:** Routines display-only inside Domain profile for now; Sessions deferred (Shortcut not built).
 - **Q8 — Goals:** deferred this phase.
-- **Q9 — Domain → tasks:** ✅ Resolved — project cards (grouped by status, with task summaries) **plus** a Direct Tasks section for orphan tasks (domain set, no project). No flat all-tasks list.
+- **Q9 — Domain → tasks:** ✅ Resolved — project cards (grouped by status, with task summaries) **plus** the domain's catch-all `Inbox/Admin` project's own loose tasks (never a task-level `Domain = this AND Projects empty` filter — that filter is void, see §3 Domain profile). No flat all-tasks list.
 
 ---
 
