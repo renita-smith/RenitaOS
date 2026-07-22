@@ -436,7 +436,18 @@
      behind a long list of matches. */
   .tg-pop-opt--create { color: var(--tg-ghost); margin-top: 4px; }
   .tg-pop-opt--clear { color: oklch(0.5 0.15 25); margin-top: 4px; }
-  .tg-pop-date { width: 100%; border: none; outline: none; background: oklch(0.97 0.005 75); border-radius: var(--radius-sm); padding: 9px 11px; font-size: 13px; color: var(--text); font-family: inherit; box-sizing: border-box; margin-top: 6px; }
+  .tg-pop-date { width: 100%; border: none; outline: none; background: oklch(0.97 0.005 75); border-radius: var(--radius-sm); padding: 9px 11px; font-size: 13px; color: #2A3408; font-family: inherit; box-sizing: border-box; margin-top: 6px; }
+  /* Fix 6 (Appendix A) — a native date input's displayed value renders
+     through WebKit's own shadow-DOM sub-parts, which don't reliably
+     inherit the outer element's `color` (this was rendering as a pale,
+     near-invisible tint despite `.tg-pop-date` already setting olive) —
+     force it explicitly on each sub-part. */
+  .tg-pop-date::-webkit-datetime-edit,
+  .tg-pop-date::-webkit-datetime-edit-fields-wrapper,
+  .tg-pop-date::-webkit-datetime-edit-text,
+  .tg-pop-date::-webkit-datetime-edit-month-field,
+  .tg-pop-date::-webkit-datetime-edit-day-field,
+  .tg-pop-date::-webkit-datetime-edit-year-field { color: #2A3408; opacity: 1; -webkit-text-fill-color: #2A3408; }
 
   .tg-pop-current { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
   .tg-pop-pill {
@@ -1323,6 +1334,16 @@
     return schemaCache.get(databaseId);
   }
   function normalizeDbId(id) { return (id || '').replace(/-/g, '').toLowerCase(); }
+  // Fix 2 (Appendix A) — every keyword-based property-name resolver below
+  // matches on this normalized form (trim + lowercase + collapse internal
+  // whitespace runs to one space) on BOTH sides of the comparison, so an
+  // invisible whitespace/casing drift in the live Notion schema (e.g. a
+  // property literally named "Do␣␣Date", double-spaced) can't silently
+  // 400 a write the way a hardcoded exact string can. A keyword substring
+  // match already tolerated most drift; this closes the exact-name gap.
+  function normalizePropKeyword(str) {
+    return (str || '').trim().toLowerCase().replace(/\s+/g, ' ');
+  }
   async function titlePropertyName(databaseId) {
     const db = await getSchema(databaseId);
     const [name] = Object.entries(db.properties).find(([, prop]) => prop.type === 'title');
@@ -1417,7 +1438,7 @@
           ([, prop]) => prop.type === 'relation' && normalizeDbId(prop.relation && prop.relation.database_id) === normalizeDbId(CONFIG.DB.DOMAINS)
         );
         if (relEntry) return { name: relEntry[0], type: 'relation' };
-        const selEntry = Object.entries(db.properties).find(([name, prop]) => prop.type === 'select' && name.toLowerCase() === 'domain');
+        const selEntry = Object.entries(db.properties).find(([name, prop]) => prop.type === 'select' && normalizePropKeyword(name) === 'domain');
         if (selEntry) return { name: selEntry[0], type: 'select' };
         return null;
       })());
@@ -1432,7 +1453,7 @@
   async function getTasksPriorityProp(databaseId) {
     const db = await getSchema(databaseId);
     const entry = Object.entries(db.properties).find(
-      ([name, prop]) => prop.type === 'select' && name.toLowerCase().includes('priority')
+      ([name, prop]) => prop.type === 'select' && normalizePropKeyword(name).includes('priority')
     );
     return entry ? entry[0] : null;
   }
@@ -1443,17 +1464,25 @@
   // edit slice for Pause Details (rich_text) and Archived/Focus (checkbox).
   async function getTextPropByKeyword(databaseId, keyword) {
     const db = await getSchema(databaseId);
-    const target = keyword.toLowerCase();
+    const target = normalizePropKeyword(keyword);
     const entry = Object.entries(db.properties).find(
-      ([name, prop]) => prop.type === 'rich_text' && name.toLowerCase().includes(target)
+      ([name, prop]) => prop.type === 'rich_text' && normalizePropKeyword(name).includes(target)
     );
     return entry ? entry[0] : null;
   }
   async function getCheckboxPropByKeyword(databaseId, keyword) {
     const db = await getSchema(databaseId);
-    const target = keyword.toLowerCase();
+    const target = normalizePropKeyword(keyword);
     const entry = Object.entries(db.properties).find(
-      ([name, prop]) => prop.type === 'checkbox' && name.toLowerCase().includes(target)
+      ([name, prop]) => prop.type === 'checkbox' && normalizePropKeyword(name).includes(target)
+    );
+    return entry ? entry[0] : null;
+  }
+  async function getMultiSelectPropByKeyword(databaseId, keyword) {
+    const db = await getSchema(databaseId);
+    const target = normalizePropKeyword(keyword);
+    const entry = Object.entries(db.properties).find(
+      ([name, prop]) => prop.type === 'multi_select' && normalizePropKeyword(name).includes(target)
     );
     return entry ? entry[0] : null;
   }
@@ -1515,10 +1544,18 @@
   // the full new set back. (multi_select is exempt from this truncation —
   // Notion returns it complete on the page object — so Type toggling stays
   // on the simpler page-object read the existing Inbox code already uses.)
-  async function readRelationIds(pageId, databaseId, propertyName) {
-    const db = await getSchema(databaseId);
+  // Fix 1 (Appendix A) — `propertyName` lives on the HOST record's own
+  // database (the page being edited: Notes/Tasks/Projects), never on the
+  // relation's TARGET database (People/Tags/…) — resolving its property
+  // `id` must therefore query the host database's schema. Passing the
+  // target database here was the functional blocker: every multi-value
+  // relation add/remove 404'd/threw with "No property id resolved",
+  // because People/Tags/Projects/Collections/Resources's own schemas
+  // never contain a property named after the HOST's relation field.
+  async function readRelationIds(pageId, hostDatabaseId, propertyName) {
+    const db = await getSchema(hostDatabaseId);
     const propId = db.properties[propertyName] && db.properties[propertyName].id;
-    if (!propId) throw new Error(`No "${propertyName}" property id resolved for database ${databaseId}`);
+    if (!propId) throw new Error(`No "${propertyName}" property id resolved for database ${hostDatabaseId}`);
     const ids = [];
     let cursor;
     do {
@@ -1533,15 +1570,18 @@
   function writeRelationIds(pageId, propertyName, ids) {
     return notionRequest(`/v1/pages/${pageId}`, { method: 'PATCH', body: { properties: { [propertyName]: { relation: ids.map((id) => ({ id })) } } } });
   }
-  async function addRelationMember(pageId, databaseId, propertyName, memberId) {
-    const current = await readRelationIds(pageId, databaseId, propertyName);
+  // `hostDatabaseId` — the database the PAGE being edited belongs to
+  // (Notes/Tasks/Projects), not the relation's target database. Callers
+  // must pass the host id (see pfeActiveRelationField's `hostDbId`).
+  async function addRelationMember(pageId, hostDatabaseId, propertyName, memberId) {
+    const current = await readRelationIds(pageId, hostDatabaseId, propertyName);
     if (current.includes(memberId)) return current;
     const next = [...current, memberId];
     await writeRelationIds(pageId, propertyName, next);
     return next;
   }
-  async function removeRelationMember(pageId, databaseId, propertyName, memberId) {
-    const current = await readRelationIds(pageId, databaseId, propertyName);
+  async function removeRelationMember(pageId, hostDatabaseId, propertyName, memberId) {
+    const current = await readRelationIds(pageId, hostDatabaseId, propertyName);
     const next = current.filter((id) => id !== memberId);
     await writeRelationIds(pageId, propertyName, next);
     return next;
@@ -3757,6 +3797,28 @@
     else if (name === 'task') paintTaskProfile();
     else if (name === 'project') paintProjectProfile();
     else if (name === 'domain') paintDomainProfile();
+    adjustPfePopoverPosition();
+  }
+
+  // Fix 5 (Appendix A) — clamps/flips an open picker into the viewport.
+  // Unlike Inbox's adjustPopoverPosition (bounded against its own
+  // .tg-view pane), a profile's popover can open from the narrow right
+  // rail (~230px, per Addendum 2) or the main column, so this bounds
+  // against the viewport itself rather than any one ancestor — simpler
+  // and correct regardless of which zone triggered it.
+  function adjustPfePopoverPosition() {
+    const popEl = framedRoot.querySelector('.tg-popover');
+    if (!popEl) return;
+    const margin = 8;
+    popEl.style.left = '0px';
+    popEl.classList.remove('tg-popover--up');
+    let popRect = popEl.getBoundingClientRect();
+    const overflowRight = popRect.right - (window.innerWidth - margin);
+    if (overflowRight > 0) popEl.style.left = `${-overflowRight}px`;
+    popRect = popEl.getBoundingClientRect();
+    if (popRect.left < margin) popEl.style.left = `${parseFloat(popEl.style.left) + (margin - popRect.left)}px`;
+    popRect = popEl.getBoundingClientRect();
+    if (popRect.bottom > window.innerHeight - margin) popEl.classList.add('tg-popover--up');
   }
 
   function showPfeToast(message) {
@@ -3895,13 +3957,29 @@
     const exact = q && pool.some((e) => e.name.toLowerCase() === ql);
     const near = !exact && q ? pfeFindNearMatch(q, pool) : null;
     const nearHtml = near ? `<div class="tg-pop-opt tg-pop-opt--create" data-pfe-pick="${escapeHtml(near.id)}">Did you mean "${escapeHtml(near.name)}"?</div>` : '';
-    const createHtml = allowCreate && q && !exact && !near
+    // Fix 4 (Appendix A) — the near-match suggestion and "Create [typed]"
+    // must show TOGETHER, never one hiding the other: a near-match is a
+    // suggestion, not a forced substitution, so the escape hatch to
+    // create the genuinely-new value has to stay visible alongside it.
+    const createHtml = allowCreate && q && !exact
       ? `<div class="tg-pop-opt tg-pop-opt--create" data-pfe-create="${escapeHtml(q)}">+ Create "${escapeHtml(q)}"</div>`
       : '';
     return `${nearHtml}${createHtml}<div class="tg-pop-list">${optsHtml}</div>`;
   }
 
+  // Fix 5 (Appendix A) — Domain is a fixed 6-record set, so it gets a
+  // tap-list (same treatment the old Inbox Domain popovers used) instead
+  // of type-to-search: sidesteps the empty-filter state (and its shadow
+  // artifact) entirely rather than patching around it.
+  function renderPfeDomainTapList(ctx) {
+    const currentId = ctx.members[0] ? ctx.members[0].id : null;
+    const opts = DOMAIN_META.map((d) => `<div class="tg-type-opt${currentId && normalizeDbId(d.pageId) === normalizeDbId(currentId) ? ' on' : ''}" data-pfe-pick="${escapeHtml(d.pageId)}" style="background:${d.fill};color:${d.text};">${escapeHtml(d.code)}</div>`).join('');
+    const clearHtml = ctx.members.length ? `<div class="tg-pop-opt tg-pop-opt--clear" data-pfe-clear="true">Remove domain</div>` : '';
+    return `<div class="tg-popover"><div class="tg-pop-label">Domain</div><div class="tg-type-strip">${opts}</div>${clearHtml}</div>`;
+  }
+
   function renderPfeRelationPopover(ctx) {
+    if (ctx.targetDbId === CONFIG.DB.DOMAINS) return renderPfeDomainTapList(ctx);
     const currentHtml = ctx.members.length
       ? `<div class="tg-pop-current">${ctx.members.map((m) => `<span class="tg-pop-pill">${escapeHtml(m.name)}<span class="x" data-pfe-remove="${escapeHtml(m.id)}">×</span></span>`).join('')}</div>`
       : '';
@@ -3966,7 +4044,7 @@
     const [
       notesTitleProp, notesStatusSchema, notesDomainProp, notesUniqueIdProp,
       notesProjectsProp, notesPeopleProp, notesTagsProp, notesCollectionsProp, notesResourcesProp,
-      notesTypeOptions,
+      notesTypeProp, notesDateProp,
     ] = await Promise.all([
       titlePropertyName(CONFIG.DB.NOTES),
       getStatusSchema(CONFIG.DB.NOTES),
@@ -3977,14 +4055,24 @@
       relationPropertyName(CONFIG.DB.NOTES, CONFIG.DB.TAGS),
       relationPropertyName(CONFIG.DB.NOTES, CONFIG.DB.COLLECTIONS),
       relationPropertyName(CONFIG.DB.NOTES, CONFIG.DB.RESOURCES),
-      getMultiSelectOptions(CONFIG.DB.NOTES, CONFIG.NOTES_PROP.TYPE),
+      // Fix 2 (Appendix A) — resolved by keyword/whitespace-normalized
+      // rather than the CONFIG.NOTES_PROP hardcoded literal.
+      getMultiSelectPropByKeyword(CONFIG.DB.NOTES, 'type'),
+      getDatePropByKeyword(CONFIG.DB.NOTES, 'date'),
     ]);
+    // No CONFIG-literal fallback here — a genuine resolution miss should
+    // leave the field null (read as empty, write aborts with a toast)
+    // rather than risk sending a name that might not exist on the live
+    // schema and 400 (the Do Date bug's whole failure class).
+    const typeProp = notesTypeProp;
+    const dateProp = notesDateProp;
+    const notesTypeOptions = typeProp ? await getMultiSelectOptions(CONFIG.DB.NOTES, typeProp) : [];
 
     const title = plainTitle(page, notesTitleProp);
     const statusProp = page.properties[notesStatusSchema.name];
     const statusName = (statusProp && statusProp.status && statusProp.status.name) || null;
-    const types = ((page.properties[CONFIG.NOTES_PROP.TYPE] || {}).multi_select || []).map((o) => o.name);
-    const date = (page.properties[CONFIG.NOTES_PROP.DATE] || {}).date || null;
+    const types = ((page.properties[typeProp] || {}).multi_select || []).map((o) => o.name);
+    const date = (page.properties[dateProp] || {}).date || null;
 
     // "{prefix}-{number}" e.g. "NOTE-247" — both halves read live off the
     // property value itself, never hardcoded (the prefix is whatever the
@@ -4051,7 +4139,7 @@
       // write below routes through resolveOptionValue/the relation helper
       // instead of re-resolving (or hardcoding) anything.
       statusPropName: notesStatusSchema.name, statusOptions: notesStatusSchema.options,
-      typeOptions: notesTypeOptions,
+      typePropName: typeProp, typeOptions: notesTypeOptions, datePropName: dateProp,
       domainProp: notesDomainProp,
       projectsPropName: notesProjectsProp, peoplePropName: notesPeopleProp,
       tagsPropName: notesTagsProp, collectionsPropName: notesCollectionsProp, resourcesPropName: notesResourcesProp,
@@ -4277,6 +4365,7 @@
     const [
       tasksTitleProp, tasksStatusSchema, tasksUniqueIdProp, tasksPriorityProp,
       tasksProjectsProp, tasksPeopleProp, tasksCompletedProp,
+      tasksDueDateProp, tasksDoDateProp,
     ] = await Promise.all([
       titlePropertyName(CONFIG.DB.TASKS),
       getStatusSchema(CONFIG.DB.TASKS),
@@ -4285,16 +4374,28 @@
       relationPropertyName(CONFIG.DB.TASKS, CONFIG.DB.PROJECTS),
       relationPropertyName(CONFIG.DB.TASKS, CONFIG.DB.PEOPLE),
       getDatePropByKeyword(CONFIG.DB.TASKS, 'completed'),
+      // Fix 2 (Appendix A) — resolved by keyword/whitespace-normalized
+      // rather than the CONFIG.TASKS_PROP hardcoded literal, which 400'd
+      // when the live property carried invisible whitespace drift
+      // ("Do␣␣Date"). Falls back to the CONFIG literal only if the live
+      // schema genuinely has neither (never silently drops the field).
+      getDatePropByKeyword(CONFIG.DB.TASKS, 'due date'),
+      getDatePropByKeyword(CONFIG.DB.TASKS, 'do date'),
     ]);
     const priorityOptions = await getSelectOptions(CONFIG.DB.TASKS, tasksPriorityProp);
+    // No CONFIG-literal fallback — see the matching comment in
+    // loadNoteProfile; a genuine miss leaves the field null rather than
+    // risk a 400 from a name that might not exist on the live schema.
+    const dueDateProp = tasksDueDateProp;
+    const doDateProp = tasksDoDateProp;
 
     const title = plainTitle(page, tasksTitleProp);
     const statusProp = page.properties[tasksStatusSchema.name];
     const statusName = (statusProp && statusProp.status && statusProp.status.name) || null;
     const priorityProp = tasksPriorityProp ? page.properties[tasksPriorityProp] : null;
     const priorityName = (priorityProp && priorityProp.select && priorityProp.select.name) || null;
-    const dueDate = (page.properties[CONFIG.TASKS_PROP.DUE_DATE] || {}).date || null;
-    const doDate = (page.properties[CONFIG.TASKS_PROP.DO_DATE] || {}).date || null;
+    const dueDate = (page.properties[dueDateProp] || {}).date || null;
+    const doDate = (page.properties[doDateProp] || {}).date || null;
     const completedDate = tasksCompletedProp ? ((page.properties[tasksCompletedProp] || {}).date || null) : null;
 
     const uniqueIdVal = tasksUniqueIdProp ? (page.properties[tasksUniqueIdProp] || {}).unique_id : null;
@@ -4334,6 +4435,7 @@
       priorityPropName: tasksPriorityProp, priorityOptions,
       projectsPropName: tasksProjectsProp, peoplePropName: tasksPeopleProp,
       completedPropName: tasksCompletedProp,
+      dueDatePropName: dueDateProp, doDatePropName: doDateProp,
     };
   }
 
@@ -4984,9 +5086,9 @@
   // Priority/date/rollup properties under different exact names.
   async function getSelectPropByKeyword(databaseId, keyword) {
     const db = await getSchema(databaseId);
-    const target = keyword.toLowerCase();
+    const target = normalizePropKeyword(keyword);
     const entry = Object.entries(db.properties).find(
-      ([name, prop]) => prop.type === 'select' && name.toLowerCase().includes(target)
+      ([name, prop]) => prop.type === 'select' && normalizePropKeyword(name).includes(target)
     );
     return entry ? entry[0] : null;
   }
@@ -4996,17 +5098,17 @@
   // than special-casing those two.
   async function getDatePropByKeyword(databaseId, keyword) {
     const db = await getSchema(databaseId);
-    const target = keyword.toLowerCase();
+    const target = normalizePropKeyword(keyword);
     const entry = Object.entries(db.properties).find(
-      ([name, prop]) => prop.type === 'date' && name.toLowerCase().includes(target)
+      ([name, prop]) => prop.type === 'date' && normalizePropKeyword(name).includes(target)
     );
     return entry ? entry[0] : null;
   }
   async function getRollupPropByKeyword(databaseId, keyword) {
     const db = await getSchema(databaseId);
-    const target = keyword.toLowerCase();
+    const target = normalizePropKeyword(keyword);
     const entry = Object.entries(db.properties).find(
-      ([name, prop]) => prop.type === 'rollup' && name.toLowerCase().includes(target)
+      ([name, prop]) => prop.type === 'rollup' && normalizePropKeyword(name).includes(target)
     );
     return entry ? entry[0] : null;
   }
@@ -5053,13 +5155,22 @@
   // exists, regardless of whether Notion has a live "Archived" status value
   // yet — this just never matches until it does, per "treat a missing
   // property as simply absent."
+  // Fix 7 (Appendix A) — Archived is its own checkbox, never a Status
+  // value (Project Status is Not Started/In Progress/Paused/Done only —
+  // there is no "Archived" status string), so `p.statusName === 'archived'`
+  // could never match; archiving an already-Done project kept showing
+  // Date Completed forever, even though Date Archived was correctly
+  // written in Notion. Precedence now checks the Archived checkbox first,
+  // matching Addendum-2's Archived -> Done -> Paused -> hidden order, and
+  // re-picks fresh on every render since it reads live state, not a
+  // cached selection — no write changes, display-only.
   function projectContextualDateRow(p) {
-    const s = (p.statusName || '').toLowerCase();
     // Date Completed is user-editable (a catch-up day just means tapping
     // it) — Date Archived/Date Paused are auto-stamped by the status
     // transition only (§8), never hand-edited, so those two stay read-only
     // even in this contextual slot.
-    if (s === 'archived') return { label: 'Date Archived', date: p.archivedDate, editable: false };
+    if (p.archivedChecked) return { label: 'Date Archived', date: p.archivedDate, editable: false };
+    const s = (p.statusName || '').toLowerCase();
     if (s === 'done') return { label: 'Date Completed', date: p.completedDate, editable: true, field: 'completed' };
     if (s === 'paused') return { label: 'Date Paused', date: p.pausedDate, editable: false };
     return null;
@@ -5625,7 +5736,7 @@
       if (field === 'domain') {
         if (!n.domainProp) return null;
         return {
-          pageId: n.id, dbId: CONFIG.DB.DOMAINS, single: true, label: 'Domain', allowCreate: false,
+          pageId: n.id, hostDbId: CONFIG.DB.NOTES, dbId: CONFIG.DB.DOMAINS, single: true, label: 'Domain', allowCreate: false,
           propName: n.domainProp.name, selectShape: n.domainProp.type === 'select',
           currentIds: n.domainId ? [n.domainId] : [],
           apply: async (members) => {
@@ -5644,7 +5755,7 @@
       const cfg = relMap[field];
       if (!cfg) return null;
       return {
-        pageId: n.id, dbId: cfg.dbId, single: false, label: cfg.label, allowCreate: cfg.allowCreate, propName: cfg.propName,
+        pageId: n.id, hostDbId: CONFIG.DB.NOTES, dbId: cfg.dbId, single: false, label: cfg.label, allowCreate: cfg.allowCreate, propName: cfg.propName,
         currentIds: n[cfg.listKey].map((m) => m.id),
         apply: async (members) => { n[cfg.listKey] = members; },
       };
@@ -5654,7 +5765,7 @@
       const t = s.data;
       if (field === 'project') {
         return {
-          pageId: t.id, dbId: CONFIG.DB.PROJECTS, single: true, label: 'Project', allowCreate: true, propName: t.projectsPropName,
+          pageId: t.id, hostDbId: CONFIG.DB.TASKS, dbId: CONFIG.DB.PROJECTS, single: true, label: 'Project', allowCreate: true, propName: t.projectsPropName,
           currentIds: t.projects.map((p) => p.id),
           apply: async (members) => {
             t.projects = members;
@@ -5669,7 +5780,7 @@
       }
       if (field === 'people') {
         return {
-          pageId: t.id, dbId: CONFIG.DB.PEOPLE, single: false, label: 'People', allowCreate: true, propName: t.peoplePropName,
+          pageId: t.id, hostDbId: CONFIG.DB.TASKS, dbId: CONFIG.DB.PEOPLE, single: false, label: 'People', allowCreate: true, propName: t.peoplePropName,
           currentIds: t.people.map((p) => p.id),
           apply: async (members) => { t.people = members; },
         };
@@ -5681,21 +5792,21 @@
       const p = s.data.header;
       if (field === 'domain') {
         return {
-          pageId: p.id, dbId: CONFIG.DB.DOMAINS, single: true, label: 'Domain', allowCreate: false, propName: p.domainPropName,
+          pageId: p.id, hostDbId: CONFIG.DB.PROJECTS, dbId: CONFIG.DB.DOMAINS, single: true, label: 'Domain', allowCreate: false, propName: p.domainPropName,
           currentIds: p.domainId ? [p.domainId] : [],
           apply: async (members) => { p.domainId = members[0] ? members[0].id : null; p.domainName = members[0] ? members[0].name : null; },
         };
       }
       if (field === 'people') {
         return {
-          pageId: p.id, dbId: CONFIG.DB.PEOPLE, single: false, label: 'Person', allowCreate: true, propName: p.peoplePropName,
+          pageId: p.id, hostDbId: CONFIG.DB.PROJECTS, dbId: CONFIG.DB.PEOPLE, single: false, label: 'Person', allowCreate: true, propName: p.peoplePropName,
           currentIds: p.people.map((pp) => pp.id),
           apply: async (members) => { p.people = members; },
         };
       }
       if (field === 'collections') {
         return {
-          pageId: p.id, dbId: CONFIG.DB.COLLECTIONS, single: false, label: 'Collection', allowCreate: false, propName: p.collectionsPropName,
+          pageId: p.id, hostDbId: CONFIG.DB.PROJECTS, dbId: CONFIG.DB.COLLECTIONS, single: false, label: 'Collection', allowCreate: false, propName: p.collectionsPropName,
           currentIds: p.collections.map((c) => c.id),
           apply: async (members) => { p.collections = members; },
         };
@@ -5724,7 +5835,7 @@
           await setRelationSingle(desc.pageId, desc.propName, memberId);
         }
       } else {
-        const newIds = await addRelationMember(desc.pageId, desc.dbId, desc.propName, memberId);
+        const newIds = await addRelationMember(desc.pageId, desc.hostDbId, desc.propName, memberId);
         members = await resolveRelationNames(desc.dbId, newIds);
       }
       await desc.apply(members);
@@ -5741,7 +5852,7 @@
     const desc = pfeActiveRelationField();
     if (!desc || desc.single) return; // single fields use Clear, never a per-member ×
     try {
-      const newIds = await removeRelationMember(desc.pageId, desc.dbId, desc.propName, memberId);
+      const newIds = await removeRelationMember(desc.pageId, desc.hostDbId, desc.propName, memberId);
       const members = await resolveRelationNames(desc.dbId, newIds);
       await desc.apply(members);
       paintActiveProfile();
@@ -5774,7 +5885,7 @@
       let members;
       if (desc.single) { await setRelationSingle(desc.pageId, desc.propName, entry.id); members = [entry]; }
       else {
-        const newIds = await addRelationMember(desc.pageId, desc.dbId, desc.propName, entry.id);
+        const newIds = await addRelationMember(desc.pageId, desc.hostDbId, desc.propName, entry.id);
         members = await resolveRelationNames(desc.dbId, newIds);
       }
       await desc.apply(members);
@@ -5863,10 +5974,23 @@
     const s = taskProfileState;
     if (!s.data) return;
     const id = s.id;
-    const propName = { due: CONFIG.TASKS_PROP.DUE_DATE, do: CONFIG.TASKS_PROP.DO_DATE, completed: s.data.completedPropName }[field];
-    if (!propName) return;
+    const propName = { due: s.data.dueDatePropName, do: s.data.doDatePropName, completed: s.data.completedPropName }[field];
+    if (!propName) { showPfeToast('Could not find that date property on the Notion schema — try again.'); return; }
     try {
-      await patchProperties(id, datePropertyPatch(propName, iso));
+      const props = datePropertyPatch(propName, iso);
+      // Fix 3 (Appendix A) — clearing Completed is the inverse of the
+      // completion checkbox: an empty Completed date is incompatible with
+      // Done, so it also reverts Status. Editing the date to a different
+      // day (iso truthy) is a catch-up correction and leaves Status alone.
+      if (field === 'completed' && !iso) {
+        const notStarted = await resolveOptionValue(CONFIG.DB.TASKS, s.data.statusPropName, 'Not Started');
+        Object.assign(props, statusPropertyPatch(s.data.statusPropName, notStarted));
+        await patchProperties(id, props);
+        if (s.id !== id) return;
+        s.data.statusName = notStarted;
+      } else {
+        await patchProperties(id, props);
+      }
       if (s.id !== id) return;
       s.data[{ due: 'dueDate', do: 'doDate', completed: 'completedDate' }[field]] = iso ? { start: iso } : null;
       pfeState.popover = null;
@@ -5950,9 +6074,10 @@
     const s = noteProfileState;
     if (!s.data) return;
     const id = s.id;
+    if (!s.data.typePropName) { showPfeToast('Could not find the Type property on the Notion schema — try again.'); return; }
     const newTypes = s.data.types.includes(typeName) ? s.data.types.filter((t) => t !== typeName) : [...s.data.types, typeName];
     try {
-      await patchProperties(id, multiSelectPropertyPatch(CONFIG.NOTES_PROP.TYPE, newTypes));
+      await patchProperties(id, multiSelectPropertyPatch(s.data.typePropName, newTypes));
       if (s.id !== id) return;
       s.data.types = newTypes;
       paintActiveProfile();
@@ -5966,8 +6091,9 @@
     const s = noteProfileState;
     if (!s.data) return;
     const id = s.id;
+    if (!s.data.datePropName) { showPfeToast('Could not find the Date property on the Notion schema — try again.'); return; }
     try {
-      await patchProperties(id, datePropertyPatch(CONFIG.NOTES_PROP.DATE, iso));
+      await patchProperties(id, datePropertyPatch(s.data.datePropName, iso));
       if (s.id !== id) return;
       s.data.date = iso ? { start: iso } : null;
       pfeState.popover = null;
@@ -6050,9 +6176,21 @@
     const p = s.data.header;
     const id = p.id;
     const propName = { start: p.startDatePropName, deadline: p.deadlinePropName, completed: p.completedDatePropName }[field];
-    if (!propName) return;
+    if (!propName) { showPfeToast('Could not find that date property on the Notion schema — try again.'); return; }
     try {
-      await patchProperties(id, datePropertyPatch(propName, iso));
+      const props = datePropertyPatch(propName, iso);
+      // Fix 3 (Appendix A) — same rule as Task's Completed: clearing Date
+      // Completed is incompatible with Done, so it reverts Status; editing
+      // to a different day (catch-up) leaves Status alone.
+      if (field === 'completed' && !iso) {
+        const notStarted = await resolveOptionValue(CONFIG.DB.PROJECTS, p.statusPropName, 'Not Started');
+        Object.assign(props, statusPropertyPatch(p.statusPropName, notStarted));
+        await patchProperties(id, props);
+        if (s.id !== id) return;
+        p.statusName = notStarted;
+      } else {
+        await patchProperties(id, props);
+      }
       if (s.id !== id) return;
       p[{ start: 'startDate', deadline: 'deadline', completed: 'completedDate' }[field]] = iso ? { start: iso } : null;
       pfeState.popover = null;
