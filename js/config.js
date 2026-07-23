@@ -47,6 +47,22 @@ export const TYPE_SET = [
 // creating a new one.
 export const DAY_MERGE_TYPE = 'Dream';
 
+// §9 (Edit Slice Cycle 2) — the auto-titler's type prefix, restored on the
+// AUTO-GENERATED default title only (never on a typed/explicit title).
+// Keyed to the plain type name, same convention TYPE_SET already uses here
+// (this grammar module never fetches live schema, so there's no resolver
+// to key emoji'd option strings through, unlike index.html's profiles).
+// Covers the full Type list per the Backend Worksheet, including three
+// (Reminder, Podcast, One on One) not yet in TYPE_SET above — harmless
+// here since an unmatched type just never applies a prefix, but worth
+// noting TYPE_SET itself may be stale against the live schema.
+export const TYPE_PREFIXES = {
+  Dream: 'DRM', Sermon: 'SRM', Prayer: 'PRY', Download: 'DWL',
+  Thought: 'THT', 'Prophetic Word': 'PRW', Quote: 'QOT', Reminder: 'RMD',
+  Idea: 'IDA', Virtual: 'VRT', Study: 'STD', 'One on One': 'ONO',
+  Convo: 'CNV', Teaching: 'TCH', Reflection: 'RFL', Podcast: 'POD',
+};
+
 // §4 — Domain code -> its page id, catch-all project name/id, and CSS var.
 export const DOMAINS = {
   RCBS:  { pageId: '33110b0375a8800fa48dcf469ed04677', catchAllProjectId: '39310b0375a880a3bfafe163619679e3', catchAllName: '💚 RCBS - Inbox/Admin', cssVar: '--domain-rcbs' },

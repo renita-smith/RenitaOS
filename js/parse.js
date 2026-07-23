@@ -1,7 +1,7 @@
 // The capture grammar: splits a braindump into per-thought entries and parses
 // each entry independently into a structured "thought" descriptor. Pure
 // functions — no Notion calls here (see cache.js / notion.js / app.js).
-import { TYPE_SET, DOMAIN_CODES, DAY_MERGE_TYPE } from './config.js';
+import { TYPE_SET, DOMAIN_CODES, DAY_MERGE_TYPE, TYPE_PREFIXES } from './config.js';
 import { findNearMatch } from './similarity.js';
 import { parseLocalDate, todayISO } from './dateParse.js';
 
@@ -112,11 +112,12 @@ function classifyDomain(rawValue, isPending, absStart, absEnd) {
   return { ...base, state: 'invalid' };
 }
 
-// Title cascade (RenitaOS-Backend-Notes-Template.md §11, revised):
+// Title cascade (Edit Slice Build Brief §9, revised):
 // Task -> own text (handled by the caller, before this is ever consulted).
 // Dream -> "DRM | MMDDYY" always (never a typed [title]) — see
-// dreamTitle() below. [title] -> verbatim. Otherwise -> a plain snippet,
-// no type prefix, no date, no dash. Empty body/no snippet -> "Untitled".
+// dreamTitle() below. [title] -> verbatim, no prefix. Otherwise, a typed
+// Type with a known prefix -> "{PREFIX} | {snippet}"; untyped -> a plain
+// snippet, no prefix. Empty body/no snippet -> "Untitled".
 const SNIPPET_WORD_COUNT = 5;
 
 function deriveTitle(body) {
@@ -226,11 +227,17 @@ export function parseEntry(raw, caches, confirmedNew, offset = 0) {
   body = body.replace(/^\s*\+/, '').replace(/\s+/g, ' ').replace(/\s+([.,;:!?])/g, '$1').trim();
 
   const dueDateISO = isTask ? parseLocalDate(body) : null;
+  // §9 — the prefix decorates only the auto-generated snippet default,
+  // never an explicit/typed title (checked first, below) and never Dream
+  // (already its own fixed format). No prefix at all for an untyped note.
+  const snippet = deriveTitle(body);
+  const prefix = typeName && TYPE_PREFIXES[typeName];
+  const prefixedSnippet = prefix && snippet ? `${prefix} | ${snippet}` : snippet;
   const title = isTask
     ? body
     : typeName === DAY_MERGE_TYPE
       ? dreamTitle()
-      : (explicitTitle || deriveTitle(body) || 'Untitled');
+      : (explicitTitle || prefixedSnippet || 'Untitled');
 
   return {
     raw,

@@ -76,6 +76,12 @@
     font-weight: 600;
   }
 
+  /* Preflight (Cycle 2) — a glance-visible build stamp, so "merged" claims
+     can be checked against what's actually running rather than taken on
+     faith. Muted on purpose: informational chrome, not a UI element. */
+  .build-stamp { margin-left: 6px; font-weight: 400; text-transform: none; letter-spacing: normal; opacity: .55; font-size: 0.85em; }
+  .dmn-brand .build-stamp { display: block; font-size: 10px; margin: -2px 0 0; }
+
   .inbox-pill {
     display: inline-flex;
     align-items: center;
@@ -797,6 +803,49 @@
   }
   .pfe-rt-toolbar button:hover { background: rgba(255,255,255,.15); }
 
+  /* Fix 13 (Appendix B) — link Edit/Remove/Open popover, same floating
+     shared-element pattern as .pfe-rt-toolbar above. */
+  .pfe-link-popover {
+    position: fixed; transform: translate(-50%, -100%); display: flex; gap: 2px;
+    background: #fff; border-radius: 8px; padding: 4px; z-index: 500;
+    box-shadow: 0 4px 14px rgba(0,0,0,.25);
+  }
+  .pfe-link-popover button {
+    border: none; background: none; color: #2A3408; font-size: 12px; font-weight: 600;
+    padding: 6px 10px; border-radius: 5px; cursor: pointer; white-space: nowrap;
+  }
+  .pfe-link-popover button:hover { background: oklch(0.94 0.02 100); }
+  .pfe-link-popover button[data-pfe-link-cmd="remove"] { color: oklch(0.5 0.15 25); }
+
+  /* Fix 15b (Appendix B) — text/highlight color picker, opened from the
+     toolbar's 🎨 button. Swatches show Notion's actual color values (the
+     app's own muted-chrome rule doesn't apply to user content). */
+  .pfe-color-panel {
+    position: fixed; background: #fff; border-radius: 8px; padding: 8px;
+    box-shadow: 0 4px 14px rgba(0,0,0,.25); z-index: 500; width: 172px;
+  }
+  .pfe-color-row { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 6px; }
+  .pfe-color-swatch {
+    width: 22px; height: 22px; border-radius: 50%; border: 1px solid rgba(0,0,0,.12);
+    cursor: pointer; padding: 0;
+  }
+  .pfe-color-swatch:hover { transform: scale(1.12); }
+  .pfe-color-clear {
+    width: 100%; border: none; background: oklch(0.96 0.006 75); color: #2A3408;
+    font-size: 12px; font-weight: 600; padding: 6px; border-radius: 5px; cursor: pointer;
+  }
+  .pfe-color-clear:hover { background: oklch(0.93 0.008 75); }
+
+  /* These three floating elements each set their own `display` (flex, for
+     the button row layout), which sits at equal specificity with the UA
+     stylesheet's `[hidden] { display: none }` — and equal-specificity
+     author rules beat UA rules regardless of the `hidden` attribute being
+     set, so without this override toggling `.hidden = true` on any of
+     them silently does nothing and they stay visibly on-screen. This rule
+     (attribute + class = higher specificity) is what actually makes
+     Fix 14's dismissal work. */
+  .pfe-rt-toolbar[hidden], .pfe-link-popover[hidden], .pfe-color-panel[hidden] { display: none; }
+
   /* ============================================================
      Relation-list profiles (Tag, Collection, Person) — the "header +
      several parallel relation-lists" pattern from Conventions.md. Thinner
@@ -1036,11 +1085,6 @@
     padding: 14px 16px; margin-bottom: 10px; cursor: pointer;
     border: 1px solid transparent; position: relative;
   }
-  /* Mass-select checkbox (Step E carry-over) — corner badge, same
-     placement convention as .tg-open-record/.tg-check elsewhere, since
-     .dmn-proj (unlike .dmn-task's flex .dmn-top) has no existing row to
-     drop it inline into without disturbing the title/progress layout. */
-  .dmn-proj > .tg-checkbox { position: absolute; top: 14px; right: 14px; }
   .dmn-proj:hover { border-color: #DBE2C1; }
   .dmn-proj .dmn-pname { font-family: 'Newsreader', serif; font-size: 16px; }
   .dmn-proj .dmn-pmeta { display: flex; align-items: center; gap: 10px; margin-top: 8px; }
@@ -1065,14 +1109,38 @@
     background: #2A3408; border-color: #2A3408; color: #F6F2E9;
     display: flex; align-items: center; justify-content: center; font-size: 11px; line-height: 1;
   }
+  /* Fix 10 (Appendix B) — in select mode the completion checkbox is
+     non-interactive (selection is the whole card), so it's dimmed rather
+     than left indistinguishable from its normal tappable state. */
+  .dmn-box--dim { opacity: .35; }
+  /* Selected-card treatment (Fix 10) — the same ring+shadow "active" look
+     Inbox's own bin chips use for a selected Type, not a second checkbox
+     or circular indicator. Shared by both card shapes (.dmn-task/.dmn-proj). */
+  .dmn-card--selected {
+    border-color: #3A4410 !important;
+    box-shadow: inset 0 0 0 1.5px #3A4410, 0 3px 10px rgba(0,0,0,.14);
+  }
+  /* Fix 10 (Appendix B) — the Select toggle and its bulk bar(s) sit
+     together inline next to "+ New Task/Project", not stacked full-width
+     the way Inbox's own bottom-sheet bulk bar does. */
+  .pfe-select-bar { display: inline-flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-left: 8px; }
+  .pfe-bulk-bar { display: inline-flex; align-items: center; gap: 10px; }
+  .pfe-bulk-bar .tg-bulk-cnt { margin: 0; white-space: nowrap; }
+  .pfe-bulk-bar .tg-bulk-actions { display: flex; gap: 6px; }
+  .pfe-bulk-bar .tg-bulk-wrap { flex: none; }
+  .pfe-bulk-bar .tg-bulk-btn { width: auto; padding: 7px 13px; font-size: 12px; }
   .dmn-task .dmn-tname { font-family: 'Newsreader', serif; font-size: 15px; line-height: 1.25; }
-  .dmn-task .dmn-tdate { margin-top: auto; font-family: 'IBM Plex Sans', sans-serif; font-size: 12px; color: oklch(0.55 0.012 75); }
   /* Inline Status+Priority pills (Step E) — compact variant of .pf-pill,
      small enough to sit inside a two-column near-square card without
      crowding the title/date. */
   .dmn-card-pills { display: flex; flex-wrap: wrap; gap: 5px; margin: 8px 0 0; }
   .dmn-card-pill { font-size: 10px; padding: 3px 8px; cursor: pointer; }
   .dmn-card-pill:hover { background: var(--tg-sage-deep, #DBE2C1); }
+  /* Fix 9 (Appendix B) — Due Date rides in the same pill row but is
+     read-only (no popover), so it skips the editable pill's hover/cursor
+     affordance rather than implying it opens something. */
+  .dmn-card-pill--due { cursor: default; color: var(--muted-text); background: transparent; }
+  .dmn-card-pill--due:hover { background: transparent; }
 
   /* Reference shelf — tabbed. Tab headings uppercase (Addendum 2's mock);
      the tab panel body itself reuses the shipped .pf-tab-panel/.pf-row-list/
@@ -1278,7 +1346,7 @@
 <div class="shell">
 
   <header class="shell-topbar">
-    <div class="shell-title">RenitaOS</div>
+    <div class="shell-title">RenitaOS<span class="build-stamp" id="buildStampTop"></span></div>
     <div class="shell-topbar-actions">
       <a href="./capture.html" class="topbar-capture" title="Capture" aria-label="Capture">+</a>
       <button id="inboxPill" class="inbox-pill" type="button">… to Sort</button>
@@ -1313,6 +1381,12 @@
 
 <script>
 (() => {
+  // Bumped by hand on every deployed change (Cycle-2 preflight) — logged on
+  // load and shown in-app (topbar + framed rail) so it's a glance which
+  // build is actually running, instead of inferring it from git history.
+  const BUILD_STAMP = '2026-07-23-c2.1';
+  console.log(`RenitaOS build ${BUILD_STAMP}`);
+
   // --- Shared bootstrap: defined once, in one place. -----------------------
   // Values copied verbatim from js/config.js / RenitaOS-Backend-Notes-Template.md.
   const CONFIG = {
@@ -1733,6 +1807,8 @@
   // ensureFramedShell() first runs, so its delegated click listener can
   // attach unconditionally alongside the others here.
   const framedRoot = document.getElementById('framedRoot');
+  const buildStampTopEl = document.getElementById('buildStampTop');
+  if (buildStampTopEl) buildStampTopEl.textContent = BUILD_STAMP;
 
   async function refreshInboxCount() {
     try {
@@ -3888,19 +3964,30 @@
   // rail (~230px, per Addendum 2) or the main column, so this bounds
   // against the viewport itself rather than any one ancestor — simpler
   // and correct regardless of which zone triggered it.
+  //
+  // Fix 8 (Appendix B) — a date row's trigger+popover markup
+  // (renderPfeDateRow, via render*DateRows) is reused verbatim by BOTH the
+  // header's inline date pills and the right-rail Dates section, so a
+  // single open date field renders two `.tg-popover` elements at once (one
+  // per location) — the rail instance, opening from the ~230px column
+  // right at the viewport edge, is the one that was overflowing
+  // unclamped while querySelector's first-match only ever fixed the
+  // header copy. querySelectorAll + clamping every instance found fixes
+  // both without having to de-duplicate that shared rendering.
   function adjustPfePopoverPosition() {
-    const popEl = framedRoot.querySelector('.tg-popover');
-    if (!popEl) return;
+    const popEls = framedRoot.querySelectorAll('.tg-popover');
     const margin = 8;
-    popEl.style.left = '0px';
-    popEl.classList.remove('tg-popover--up');
-    let popRect = popEl.getBoundingClientRect();
-    const overflowRight = popRect.right - (window.innerWidth - margin);
-    if (overflowRight > 0) popEl.style.left = `${-overflowRight}px`;
-    popRect = popEl.getBoundingClientRect();
-    if (popRect.left < margin) popEl.style.left = `${parseFloat(popEl.style.left) + (margin - popRect.left)}px`;
-    popRect = popEl.getBoundingClientRect();
-    if (popRect.bottom > window.innerHeight - margin) popEl.classList.add('tg-popover--up');
+    popEls.forEach((popEl) => {
+      popEl.style.left = '0px';
+      popEl.classList.remove('tg-popover--up');
+      let popRect = popEl.getBoundingClientRect();
+      const overflowRight = popRect.right - (window.innerWidth - margin);
+      if (overflowRight > 0) popEl.style.left = `${-overflowRight}px`;
+      popRect = popEl.getBoundingClientRect();
+      if (popRect.left < margin) popEl.style.left = `${parseFloat(popEl.style.left) + (margin - popRect.left)}px`;
+      popRect = popEl.getBoundingClientRect();
+      if (popRect.bottom > window.innerHeight - margin) popEl.classList.add('tg-popover--up');
+    });
   }
 
   function showPfeToast(message) {
@@ -4017,11 +4104,66 @@
     return { type: 'external', external: { url: dbIcon.value } };
   }
 
+  // §5.8 icon backfill — one-time migration (Cycle 2 §4). Run once from
+  // devtools after Fix 11 is verified live: `RenitaOSBackfillIcons()`.
+  // Deliberately console-only, not a UI button — a migration that should
+  // fire exactly once is safer behind deliberate invocation than behind a
+  // button someone could tap twice. Sets each existing Project/Task/
+  // Person/Tag page's icon to its own database's live icon (§5.8's "one
+  // source of truth", same as every create-time icon this cycle), but
+  // ONLY on a page with no icon at all — a page that already has some
+  // icon (the app's own from an earlier create, or one Nita set by hand
+  // in Notion) is left completely alone, matching "never overwrite a
+  // manually-set icon" literally: this can't tell the two apart, so it
+  // never touches either. Notes are never included — no icon, per §5.8.
+  // Sequential, never Promise.all, same "throttled sequential" shape
+  // every bulk write in this file already uses (network round-trip time
+  // is the throttle; no artificial delay needed at this volume).
+  async function runIconBackfill() {
+    const targets = [
+      { label: 'Projects', dbId: CONFIG.DB.PROJECTS },
+      { label: 'Tasks', dbId: CONFIG.DB.TASKS },
+      { label: 'People', dbId: CONFIG.DB.PEOPLE },
+      { label: 'Tags', dbId: CONFIG.DB.TAGS },
+    ];
+    let totalUpdated = 0;
+    let totalSkipped = 0;
+    for (const { label, dbId } of targets) {
+      const dbIcon = await getDatabaseIcon(dbId);
+      const icon = pageIconPayload(dbIcon);
+      if (!icon) {
+        console.log(`[icon backfill] ${label}: database has no icon set — nothing to mirror, skipping entirely.`);
+        continue;
+      }
+      const pages = await queryAllPages(dbId);
+      let updated = 0;
+      let skipped = 0;
+      for (const page of pages) {
+        if (page.icon) { skipped += 1; continue; }
+        // eslint-disable-next-line no-await-in-loop
+        await notionRequest(`/v1/pages/${page.id}`, { method: 'PATCH', body: { icon } });
+        updated += 1;
+      }
+      console.log(`[icon backfill] ${label}: ${updated} updated, ${skipped} already had an icon (untouched).`);
+      totalUpdated += updated;
+      totalSkipped += skipped;
+    }
+    console.log(`[icon backfill] Done. ${totalUpdated} pages updated, ${totalSkipped} left untouched. Safe to run again — it only ever fills in a missing icon.`);
+    return { updated: totalUpdated, skipped: totalSkipped };
+  }
+  window.RenitaOSBackfillIcons = runIconBackfill;
+
   async function pfeCreateAndLink(databaseId, name) {
     const [titleProp, dbIcon] = await Promise.all([titlePropertyName(databaseId), getDatabaseIcon(databaseId)]);
     const body = { parent: { database_id: databaseId }, properties: titlePropertyPatch(titleProp, name) };
     const icon = pageIconPayload(dbIcon);
     if (icon) body.icon = icon;
+    // Fix 11 (Appendix B) diagnostic — §5.8 mirrors whatever icon the
+    // target database itself has set in Notion (never a hardcoded second
+    // source of truth), so a null here means that database has no Notion
+    // icon to mirror yet, not a silent app failure. Logged so that
+    // distinction is a glance in devtools during live verification.
+    else console.warn(`No Notion icon set on database ${databaseId} — new page created without one.`);
     const page = await notionRequest('/v1/pages', { method: 'POST', body });
     const entry = { id: page.id, name };
     const c = pfeLookupCache.get(databaseId);
@@ -4665,12 +4807,28 @@
     'bulleted_list_item', 'numbered_list_item', 'quote', 'callout', 'to_do',
   ];
 
+  // Fix 15a (Appendix B) — color/highlight joins the supported annotation
+  // set. Notion's actual swatch values (not the app's own muted earth-tone
+  // chrome palette — that rule governs UI, not user content, per the
+  // fix). `data-pfe-color` carries the exact Notion color name straight
+  // through the DOM round-trip, so the serializer never has to reverse-
+  // engineer a color name from a CSS value.
+  const NOTION_TEXT_COLORS = {
+    gray: '#9B9A97', brown: '#64473A', orange: '#D9730D', yellow: '#DFAB01',
+    green: '#0F7B6C', blue: '#0B6E99', purple: '#6940A5', pink: '#AD1A72', red: '#E03E3E',
+  };
+  const NOTION_BG_COLORS = {
+    gray_background: '#EBECED', brown_background: '#E9E5E3', orange_background: '#FAEBDD',
+    yellow_background: '#FBF3DB', green_background: '#DDEDEA', blue_background: '#DDEBF1',
+    purple_background: '#EAE4F2', pink_background: '#F4DFEB', red_background: '#FBE4E4',
+  };
+
   // Existing rich_text runs -> the contentEditable's innerHTML. Only the
-  // annotations §10 promises round-trip (bold/italic/strikethrough/code/
-  // link) are rendered; anything else on a run (color, underline) is read
-  // here only to display today's text and is not carried into the DOM —
-  // it survives untouched on every block this editor never dirties, and is
-  // the documented fidelity loss on a block that IS actively edited.
+  // annotations §10 (+ Fix 15a's color) promise to round-trip are
+  // rendered; anything else on a run (underline) is read here only to
+  // display today's text and is not carried into the DOM — it survives
+  // untouched on every block this editor never dirties, and is the
+  // documented fidelity loss on a block that IS actively edited.
   function richTextToEditableHtml(runs) {
     return (runs || []).map((r) => {
       const raw = r.plain_text != null ? r.plain_text : ((r.text && r.text.content) || '');
@@ -4680,6 +4838,10 @@
       if (ann.bold) html = `<b>${html}</b>`;
       if (ann.italic) html = `<i>${html}</i>`;
       if (ann.strikethrough) html = `<s>${html}</s>`;
+      if (ann.color && ann.color !== 'default') {
+        if (NOTION_BG_COLORS[ann.color]) html = `<span style="background-color:${NOTION_BG_COLORS[ann.color]}" data-pfe-color="${ann.color}">${html}</span>`;
+        else if (NOTION_TEXT_COLORS[ann.color]) html = `<span style="color:${NOTION_TEXT_COLORS[ann.color]}" data-pfe-color="${ann.color}">${html}</span>`;
+      }
       const url = r.href || (r.text && r.text.link && r.text.link.url) || null;
       if (url) html = `<a href="${escapeHtml(url)}">${html}</a>`;
       return html;
@@ -4688,11 +4850,12 @@
 
   // The serializer half — walks the edited contentEditable's live DOM (not
   // a saved HTML string) and rebuilds Notion rich_text runs, tracking
-  // bold/italic/strikethrough/code/link state down the tree. Adjacent runs
-  // sharing identical formatting are merged so a lightly-edited paragraph
-  // doesn't explode into one run per character. Any annotation this editor
-  // doesn't support (color, underline) is simply never produced — the
-  // §10-documented fidelity loss on blocks this function actually touches.
+  // bold/italic/strikethrough/code/color/link state down the tree.
+  // Adjacent runs sharing identical formatting are merged so a lightly-
+  // edited paragraph doesn't explode into one run per character. Any
+  // annotation this editor doesn't support (underline) is simply never
+  // produced — the §10-documented fidelity loss on blocks this function
+  // actually touches.
   function domToRichText(root) {
     const runs = [];
     function walk(node, ann, link) {
@@ -4709,10 +4872,11 @@
       if (tag === 'i' || tag === 'em') nextAnn.italic = true;
       if (tag === 's' || tag === 'strike' || tag === 'del') nextAnn.strikethrough = true;
       if (tag === 'code') nextAnn.code = true;
+      if (tag === 'span' && node.dataset && node.dataset.pfeColor) nextAnn.color = node.dataset.pfeColor;
       if (tag === 'a') nextLink = node.getAttribute('href') || null;
       node.childNodes.forEach((child) => walk(child, nextAnn, nextLink));
     }
-    root.childNodes.forEach((child) => walk(child, { bold: false, italic: false, strikethrough: false, code: false }, null));
+    root.childNodes.forEach((child) => walk(child, { bold: false, italic: false, strikethrough: false, code: false, color: 'default' }, null));
     const merged = [];
     for (const r of runs) {
       const last = merged[merged.length - 1];
@@ -4722,7 +4886,7 @@
     return merged.filter((r) => r.text.length).map((r) => ({
       type: 'text',
       text: { content: r.text, link: r.link ? { url: r.link } : null },
-      annotations: { bold: r.ann.bold, italic: r.ann.italic, strikethrough: r.ann.strikethrough, underline: false, code: r.ann.code, color: 'default' },
+      annotations: { bold: r.ann.bold, italic: r.ann.italic, strikethrough: r.ann.strikethrough, underline: false, code: r.ann.code, color: r.ann.color },
     }));
   }
 
@@ -4801,11 +4965,16 @@
     }
   });
 
+  // Fix 12 (Appendix B) — DELETE fails with a raw network error (the
+  // Worker doesn't forward/allow the method), not a Notion validation
+  // response like every other write failure here. PATCH is already proven
+  // through the Worker, and `{ archived: true }` is the same "delete =
+  // archive" result Notion's own DELETE would have produced.
   const applyBodyBlockDelete = withPfeBusy(async (blockId) => {
     const data = activeBodyProfileData();
     if (!data) return;
     try {
-      await notionRequest(`/v1/blocks/${blockId}`, { method: 'DELETE' });
+      await notionRequest(`/v1/blocks/${blockId}`, { method: 'PATCH', body: { archived: true } });
       data.blocks = data.blocks.filter((b) => b.id !== blockId);
       paintActiveProfile();
     } catch (err) {
@@ -4866,7 +5035,37 @@
     if (cmd === 'link') {
       const url = window.prompt('Link URL:');
       if (url && url.trim()) wrapSelectionWithTag('a', { href: url.trim() });
+      return;
     }
+    if (cmd === 'color') { toggleRtColorPanel(); }
+  }
+  // Fix 15b (Appendix B) — one picker for both text colors and background/
+  // highlight variants, immediately after 15a since the color mapping
+  // already exists. "Clear color" wraps the selection in a color:inherit
+  // span carrying data-pfe-color="default" rather than trying to unwrap
+  // any existing color span it might partially overlap — domToRichText's
+  // walk always takes the innermost data-pfe-color it finds, so a nested
+  // "default" span correctly resets just the re-selected range.
+  function toggleRtColorPanel() {
+    const panel = document.getElementById('pfeColorPanel');
+    const toolbar = document.getElementById('pfeRtToolbar');
+    if (!panel || !toolbar) return;
+    panel.hidden = !panel.hidden;
+    if (!panel.hidden) {
+      const rect = toolbar.getBoundingClientRect();
+      panel.style.left = `${rect.left}px`;
+      panel.style.top = `${rect.bottom + 6}px`;
+    }
+  }
+  function applyColorCommand(colorName) {
+    let styleAttr;
+    if (colorName === 'default') styleAttr = 'color:inherit;background-color:transparent';
+    else if (NOTION_BG_COLORS[colorName]) styleAttr = `background-color:${NOTION_BG_COLORS[colorName]}`;
+    else if (NOTION_TEXT_COLORS[colorName]) styleAttr = `color:${NOTION_TEXT_COLORS[colorName]}`;
+    else return;
+    wrapSelectionWithTag('span', { style: styleAttr, 'data-pfe-color': colorName });
+    const panel = document.getElementById('pfeColorPanel');
+    if (panel) panel.hidden = true;
   }
   function renderRtToolbar() {
     return `<div class="pfe-rt-toolbar" id="pfeRtToolbar" hidden>
@@ -4875,7 +5074,67 @@
       <button type="button" data-pfe-rt-cmd="strike"><s>S</s></button>
       <button type="button" data-pfe-rt-cmd="code">&lt;/&gt;</button>
       <button type="button" data-pfe-rt-cmd="link">🔗</button>
+      <button type="button" data-pfe-rt-cmd="color">🎨</button>
     </div>`;
+  }
+  function renderRtColorPanel() {
+    const textRow = Object.entries(NOTION_TEXT_COLORS)
+      .map(([name, hex]) => `<button type="button" class="pfe-color-swatch" data-pfe-color-cmd="${name}" style="background:${hex}" title="${name}" aria-label="${name} text"></button>`)
+      .join('');
+    const bgRow = Object.entries(NOTION_BG_COLORS)
+      .map(([name, hex]) => `<button type="button" class="pfe-color-swatch" data-pfe-color-cmd="${name}" style="background:${hex}" title="${name.replace('_background', '')} highlight" aria-label="${name.replace('_background', '')} highlight"></button>`)
+      .join('');
+    return `<div class="pfe-color-panel" id="pfeColorPanel" hidden>
+      <div class="pfe-color-row">${textRow}</div>
+      <div class="pfe-color-row">${bgRow}</div>
+      <button type="button" class="pfe-color-clear" data-pfe-color-cmd="default">Clear color</button>
+    </div>`;
+  }
+
+  // Fix 13 (Appendix B) — a link inside the editable body needs an escape
+  // hatch that isn't "hold Ctrl and hope" (the browser's own contentEditable
+  // convention for reaching a link without just placing the caret). A plain
+  // click opens this small popover instead; Open/Edit/Remove cover the one
+  // thing each does. Same one-shared-floating-element pattern as the rich-
+  // text toolbar — positioned in JS, not tied to any profile's render state.
+  let pfeLinkPopoverTarget = null;
+  function renderPfeLinkPopover() {
+    return `<div class="pfe-link-popover" id="pfeLinkPopover" hidden>
+      <button type="button" data-pfe-link-cmd="edit">Edit</button>
+      <button type="button" data-pfe-link-cmd="remove">Remove</button>
+      <button type="button" data-pfe-link-cmd="open">Open</button>
+    </div>`;
+  }
+  function showPfeLinkPopover(linkEl) {
+    pfeLinkPopoverTarget = linkEl;
+    const popEl = document.getElementById('pfeLinkPopover');
+    if (!popEl) return;
+    const rect = linkEl.getBoundingClientRect();
+    popEl.hidden = false;
+    popEl.style.left = `${rect.left + rect.width / 2}px`;
+    popEl.style.top = `${rect.top - 8}px`;
+  }
+  function hidePfeLinkPopover() {
+    pfeLinkPopoverTarget = null;
+    const popEl = document.getElementById('pfeLinkPopover');
+    if (popEl) popEl.hidden = true;
+  }
+  function applyLinkCommand(cmd) {
+    const linkEl = pfeLinkPopoverTarget;
+    if (!linkEl) return;
+    const blockEditEl = linkEl.closest('[data-pfe-block-edit]');
+    if (cmd === 'open') { window.open(linkEl.href, '_blank', 'noopener'); hidePfeLinkPopover(); return; }
+    if (cmd === 'remove') {
+      const parent = linkEl.parentNode;
+      while (linkEl.firstChild) parent.insertBefore(linkEl.firstChild, linkEl);
+      parent.removeChild(linkEl);
+    } else if (cmd === 'edit') {
+      const url = window.prompt('Link URL:', linkEl.getAttribute('href') || '');
+      if (!url || !url.trim()) { hidePfeLinkPopover(); return; }
+      linkEl.setAttribute('href', url.trim());
+    }
+    hidePfeLinkPopover();
+    if (blockEditEl) applyBodyBlockSave(blockEditEl.dataset.pfeBlockEdit, blockEditEl);
   }
 
   const noteProfileState = { id: null, loading: false, error: null, data: null };
@@ -5638,7 +5897,7 @@
     return pages.length;
   }
 
-  async function queryProjectTaskRecords(relProp, pageId, priorityProp) {
+  async function queryProjectTaskRecords(relProp, pageId, priorityProp, dueDateProp) {
     const pages = await queryAllPages(CONFIG.DB.TASKS, { property: relProp, relation: { contains: pageId } });
     const [titleProp, uniqueIdProp, statusSchema] = await Promise.all([
       titlePropertyName(CONFIG.DB.TASKS),
@@ -5651,7 +5910,7 @@
       const uniqueId = uniqueIdVal ? formatUniqueId(uniqueIdVal.prefix, uniqueIdVal.number) : null;
       const statusProp = p.properties[statusSchema.name];
       const statusName = (statusProp && statusProp.status && statusProp.status.name) || null;
-      const due = (p.properties[CONFIG.TASKS_PROP.DUE_DATE] || {}).date || null;
+      const due = dueDateProp ? ((p.properties[dueDateProp] || {}).date || null) : null;
       // Inline Status+Priority pills (Step E) — Priority read alongside
       // Status so the card can offer both without a per-card fetch.
       const priorityProp2 = priorityProp ? p.properties[priorityProp] : null;
@@ -5701,17 +5960,20 @@
   // count query up front and hydrates lazily on first open, exactly like
   // loadRelationProfileBase's non-default tabs above.
   async function loadProjectTabs(pageId, tasksProjectsProp, notesProjectsProp) {
-    const tasksPriorityProp = await getTasksPriorityProp(CONFIG.DB.TASKS);
+    const [tasksPriorityProp, tasksDueDateProp] = await Promise.all([
+      getTasksPriorityProp(CONFIG.DB.TASKS),
+      getDatePropByKeyword(CONFIG.DB.TASKS, 'due date'),
+    ]);
     const [tasksStatusSchema, tasksRecords, notesCount, priorityOptions] = await Promise.all([
       getStatusSchema(CONFIG.DB.TASKS),
-      queryProjectTaskRecords(tasksProjectsProp, pageId, tasksPriorityProp),
+      queryProjectTaskRecords(tasksProjectsProp, pageId, tasksPriorityProp, tasksDueDateProp),
       queryTabCount(REL_DB_META.notes, notesProjectsProp, pageId),
       getSelectOptions(CONFIG.DB.TASKS, tasksPriorityProp),
     ]);
     const tasksTab = {
       key: 'tasks', label: 'Tasks', count: tasksRecords.length,
       records: tasksRecords, statusOptions: tasksStatusSchema.options,
-      priorityPropName: tasksPriorityProp, priorityOptions,
+      priorityPropName: tasksPriorityProp, priorityOptions, dueDatePropName: tasksDueDateProp,
       hydrated: true, loading: false, error: null,
     };
     const notesTab = {
@@ -5741,20 +6003,28 @@
   function renderMassSelectToggle(scope, selecting) {
     return `<button type="button" class="tg-btn-select${selecting ? ' on' : ''}" data-pfe-toggle-select="${scope}">${selecting ? 'Done' : 'Select'}</button>`;
   }
-  function renderPfeSelectCheckbox(id, kind, selectedSet) {
-    const checked = selectedSet.has(id);
-    return `<div class="tg-checkbox${checked ? ' checked' : ''}" data-pfe-select-card="${escapeHtml(id)}" data-pfe-select-kind="${kind}">${checked ? '✓' : ''}</div>`;
+  // Fix 10 (Appendix B) — selection is a card-level state, not a second
+  // checkbox competing with the completion checkbox. In select mode the
+  // whole card becomes the tap target (data-pfe-select-card lives on the
+  // card's own root, ahead of data-pf-nav in the click-dispatch order, so
+  // it wins) and a selected card gets a ring+shadow — the same "active"
+  // treatment Inbox's own bin chips use — rather than a circular indicator.
+  function cardSelectState(id, kind, selectedSet, selecting) {
+    if (!selecting) return { attrs: '', cls: '' };
+    return {
+      attrs: ` data-pfe-select-card="${escapeHtml(id)}" data-pfe-select-kind="${kind}"`,
+      cls: selectedSet.has(id) ? ' dmn-card--selected' : '',
+    };
   }
 
   function renderProjectTaskCard(r, statusOptions, priorityOptions) {
     const isDone = (r.statusName || '').toLowerCase() === 'done';
-    const dateLabel = r.due && r.due.start ? `Due ${formatDateShort(r.due.start)}` : 'No date';
     const s = projectProfileState;
-    const checkboxHtml = s.selecting ? renderPfeSelectCheckbox(r.id, 'project-task', s.selected) : '';
-    return `<div class="dmn-task" data-pf-nav="task/${escapeHtml(r.id)}">
-      <div class="dmn-top">${checkboxHtml}<span class="dmn-box${isDone ? ' dmn-box--checked' : ''}" data-pfe-task-toggle="${escapeHtml(r.id)}" data-pfe-task-done="${isDone}" role="checkbox" aria-checked="${isDone}">${isDone ? '✓' : ''}</span><span class="dmn-tname">${escapeHtml(r.title || 'Untitled')}</span></div>
+    const sel = cardSelectState(r.id, 'project-task', s.selected, s.selecting);
+    const checkboxAttrs = s.selecting ? '' : ` data-pfe-task-toggle="${escapeHtml(r.id)}" data-pfe-task-done="${isDone}"`;
+    return `<div class="dmn-task${sel.cls}" data-pf-nav="task/${escapeHtml(r.id)}"${sel.attrs}>
+      <div class="dmn-top"><span class="dmn-box${isDone ? ' dmn-box--checked' : ''}${s.selecting ? ' dmn-box--dim' : ''}"${checkboxAttrs} role="checkbox" aria-checked="${isDone}">${isDone ? '✓' : ''}</span><span class="dmn-tname">${escapeHtml(r.title || 'Untitled')}</span></div>
       ${renderPfeCardValuePills(r, statusOptions, priorityOptions)}
-      <div class="dmn-tdate">${escapeHtml(dateLabel)}</div>
     </div>`;
   }
 
@@ -5780,7 +6050,7 @@
     // no longer shown inline above the task groups.
     const groups = groupProjectTasksByStatus(tab.records, tab.statusOptions);
     const groupsHtml = groups.map((g) => renderProjectStatusGroup(g, collapsedStatus, tab.statusOptions, tab.priorityOptions)).join('');
-    return `<div class="pf-tab-panel">${countHtml}<div class="pf-status-group-list">${groupsHtml}</div>${renderProjectBulkBar()}</div>`;
+    return `<div class="pf-tab-panel">${countHtml}<div class="pf-status-group-list">${groupsHtml}</div></div>`;
   }
 
   // Bulk Status popover — a plain option list (no current-value highlight,
@@ -5792,6 +6062,12 @@
     return `<div class="tg-popover"><div class="tg-pop-label">Status</div><div class="tg-pop-list">${rows}</div></div>`;
   }
 
+  // Fix 10 (Appendix B) — the profile mass-select bulk bar is inline
+  // content next to the Select toggle, never Inbox's own fixed
+  // bottom-sheet (that's a different layout context with its own
+  // full-width convention) — so it gets its own compact wrapper
+  // (.pfe-bulk-bar) sized to its content instead of reusing
+  // .tg-bulk-bar's width:100%/border-top bottom-sheet styling.
   function renderProjectBulkBar() {
     const s = projectProfileState;
     if (!s.selecting) return '';
@@ -5803,7 +6079,7 @@
         <button type="button" class="tg-bulk-btn" data-pfe-bulk-action="${a.key}"${count === 0 || pfeState.busy ? ' disabled' : ''}>${a.label}</button>
         ${s.bulkPopover === a.key && a.key === 'status' ? renderPfeBulkStatusPopover(tasksTab && tasksTab.statusOptions) : ''}
       </div>`).join('');
-    return `<div class="tg-bulk-bar">
+    return `<div class="pfe-bulk-bar">
       <div class="tg-bulk-cnt">${count} selected</div>
       <div class="tg-bulk-actions">${btnsHtml}</div>
     </div>`;
@@ -5977,7 +6253,7 @@
     // Create-in-context (§5.6) — "+ New Task", pre-filled with this
     // project's relation, only on the Tasks tab (the tab it populates).
     const createTaskHtml = activeTab.key === 'tasks'
-      ? `<button type="button" class="pfe-create-context" data-pfe-create-context="project:task">+ New Task</button>${renderMassSelectToggle('project', s.selecting)}`
+      ? `<button type="button" class="pfe-create-context" data-pfe-create-context="project:task">+ New Task</button><span class="pfe-select-bar">${renderMassSelectToggle('project', s.selecting)}${renderProjectBulkBar()}</span>`
       : '';
     dmnMain.innerHTML = `${renderProjectHeader(p)}${renderValuePillRow(renderProjectValuePills(p) + `<span class="dmn-datepills-inline">${renderProjectDateRows(p)}</span>`)}<section class="dmn-sec">${tabsHtml}${createTaskHtml}${panelHtml}</section>${renderPfeToast()}`;
     dmnProps.innerHTML = `${renderCaptureAffordance()}${renderProjectProgressRail(p)}${renderProjectDates(p)}${renderProjectProperties(p)}${renderProjectLog(p)}`;
@@ -6467,6 +6743,14 @@
   // `priorityOptions` is null when the tab/card context hasn't resolved a
   // Priority property at all (never rendered in that case, same
   // degrade-gracefully rule every other optional property follows here).
+  //
+  // Fix 9 (Appendix B) — Due Date moves into this same pill row instead of
+  // rendering as muted metadata at the card's bottom (it's the scanned
+  // field). Read-only here (no data-pfe-card-action) — editing still
+  // happens on the record itself. Do Date never appears on a card. The
+  // two card record shapes name this field differently (Project's own
+  // `r.due` vs Domain's `t.dueDate`), so both are checked rather than
+  // renaming either and risking a missed reference elsewhere.
   function renderPfeCardValuePills(r, statusOptions, priorityOptions) {
     const statusPop = pfeCardOpenFor(r.id, 'status') ? renderPfeCardSelectPopover(r.id, statusOptions, r.statusName, { label: 'Status' }) : '';
     const statusHtml = `<span class="tg-pop-wrap"><span class="pf-pill pf-pill--value dmn-card-pill" data-pfe-card-action="status" data-pfe-card-id="${escapeHtml(r.id)}">${escapeHtml(r.statusName || 'No status')}</span>${statusPop}</span>`;
@@ -6475,7 +6759,11 @@
       const priorityPop = pfeCardOpenFor(r.id, 'priority') ? renderPfeCardSelectPopover(r.id, priorityOptions, r.priorityName, { label: 'Priority', clearable: !!r.priorityName }) : '';
       priorityHtml = `<span class="tg-pop-wrap"><span class="pf-pill pf-pill--value dmn-card-pill" data-pfe-card-action="priority" data-pfe-card-id="${escapeHtml(r.id)}">${escapeHtml(r.priorityName || 'No priority')}</span>${priorityPop}</span>`;
     }
-    return `<div class="dmn-card-pills">${statusHtml}${priorityHtml}</div>`;
+    const due = r.due || r.dueDate || null;
+    const dueHtml = (due && due.start)
+      ? `<span class="pf-pill pf-pill--value dmn-card-pill dmn-card-pill--due">🗓 ${escapeHtml(formatDateShort(due.start))}</span>`
+      : '';
+    return `<div class="dmn-card-pills">${statusHtml}${priorityHtml}${dueHtml}</div>`;
   }
 
   const applyTaskCardStatusEdit = withPfeBusy(async (taskId, value) => {
@@ -6966,12 +7254,13 @@
         const createBody = { parent: { database_id: CONFIG.DB.TASKS }, properties: body };
         const taskIconPayload = pageIconPayload(taskIcon);
         if (taskIconPayload) createBody.icon = taskIconPayload;
+        else console.warn('No Notion icon set on the Tasks database — new task created without one.');
         await notionRequest('/v1/pages', { method: 'POST', body: createBody });
         showPfeToast('Task created.');
         const tab = s.data.tabs.find((t) => t.key === 'tasks');
         if (tab) {
           const [records, statusSchema] = await Promise.all([
-            queryProjectTaskRecords(p.tasksProjectsProp, p.id, tab.priorityPropName),
+            queryProjectTaskRecords(p.tasksProjectsProp, p.id, tab.priorityPropName, tab.dueDatePropName),
             getStatusSchema(CONFIG.DB.TASKS),
           ]);
           tab.records = records;
@@ -6995,6 +7284,7 @@
         const createBody = { parent: { database_id: CONFIG.DB.PROJECTS }, properties: body };
         const projectIconPayload = pageIconPayload(projectIcon);
         if (projectIconPayload) createBody.icon = projectIconPayload;
+        else console.warn('No Notion icon set on the Projects database — new project created without one.');
         await notionRequest('/v1/pages', { method: 'POST', body: createBody });
         showPfeToast('Project created.');
         // Reload the whole Domain profile — simplest way to get the new
@@ -7023,6 +7313,7 @@
         const createBody = { parent: { database_id: CONFIG.DB.TASKS }, properties: body };
         const taskIconPayload = pageIconPayload(taskIcon);
         if (taskIconPayload) createBody.icon = taskIconPayload;
+        else console.warn('No Notion icon set on the Tasks database — new task created without one.');
         await notionRequest('/v1/pages', { method: 'POST', body: createBody });
         showPfeToast('Task created.');
         mountDomainProfile(s.id);
@@ -7275,12 +7566,16 @@
     let tasksPriorityOptions = [];
     let tasksStatusOptions = [];
     if (projectIds.length) {
-      const [taskTitleProp, taskUniqueIdProp, taskStatusSchema, completedDateProp, tasksPriorityProp] = await Promise.all([
+      const [taskTitleProp, taskUniqueIdProp, taskStatusSchema, completedDateProp, tasksPriorityProp, tasksDueDateProp] = await Promise.all([
         titlePropertyName(CONFIG.DB.TASKS),
         uniqueIdPropertyName(CONFIG.DB.TASKS),
         getStatusSchema(CONFIG.DB.TASKS),
         getDatePropByKeyword(CONFIG.DB.TASKS, 'completed'),
         getTasksPriorityProp(CONFIG.DB.TASKS),
+        // Fix 9 (Appendix B) touches this card's Due Date read — resolved
+        // by keyword like every other profile-scoped date, rather than
+        // the CONFIG.TASKS_PROP literal Triage still uses elsewhere.
+        getDatePropByKeyword(CONFIG.DB.TASKS, 'due date'),
       ]);
       tasksPriorityOptions = await getSelectOptions(CONFIG.DB.TASKS, tasksPriorityProp);
       tasksStatusOptions = taskStatusSchema.options;
@@ -7298,7 +7593,7 @@
         const projRel = (tp.properties[tasksProjectsProp] || {}).relation || [];
         const projectId = projRel[0] ? projRel[0].id : null;
         const completedDate = completedDateProp ? ((tp.properties[completedDateProp] || {}).date || null) : null;
-        const dueDate = (tp.properties[CONFIG.TASKS_PROP.DUE_DATE] || {}).date || null;
+        const dueDate = tasksDueDateProp ? ((tp.properties[tasksDueDateProp] || {}).date || null) : null;
         return { id: tp.id, title: taskTitle, uniqueId: taskUniqueId, statusName, priorityName, projectId, completedDate, dueDate, lastEditedTime: tp.last_edited_time };
       });
     }
@@ -7338,9 +7633,8 @@
     const pct = (p.totalTasks && p.totalTasks > 0 && p.doneTasks != null) ? Math.max(0, Math.min(100, Math.round((p.doneTasks / p.totalTasks) * 100))) : 0;
     const countLabel = p.totalTasks != null ? `${p.doneTasks != null ? p.doneTasks : '—'} / ${p.totalTasks} done` : 'No tasks yet';
     const s = domainProfileState;
-    const checkboxHtml = s.selecting ? renderPfeSelectCheckbox(p.id, 'domain-project', s.selectedProjects) : '';
-    return `<div class="dmn-proj" data-pf-nav="project/${escapeHtml(p.id)}">
-      ${checkboxHtml}
+    const sel = cardSelectState(p.id, 'domain-project', s.selectedProjects, s.selecting);
+    return `<div class="dmn-proj${sel.cls}" data-pf-nav="project/${escapeHtml(p.id)}"${sel.attrs}>
       <div class="dmn-pname">${escapeHtml(p.title || 'Untitled')}</div>
       <div class="dmn-pmeta"><span class="dmn-count">${escapeHtml(countLabel)}</span><span class="dmn-bar"><i style="width:${pct}%"></i></span></div>
     </div>`;
@@ -7371,20 +7665,24 @@
       ? groups.map((g) => renderDomainStatusGroup(g, collapsedStatus)).join('')
       : `<div class="dmn-empty">No projects in this domain yet.</div>`;
     const s = domainProfileState;
-    return `<section class="dmn-sec"><h2 class="dmn-sec-hd">Work</h2><button type="button" class="pfe-create-context" data-pfe-create-context="domain:project">+ New Project</button>${renderMassSelectToggle('domain', s.selecting)}${body}${renderDomainProjectBulkBar()}</section>`;
+    // Fix 10 (Appendix B) — Domain has one shared Select toggle for both
+    // project cards (here) and Inbox/Admin tasks (below); both bulk bars
+    // anchor next to that one toggle rather than trailing their own
+    // section's card list.
+    const selectBar = `<span class="pfe-select-bar">${renderMassSelectToggle('domain', s.selecting)}${renderDomainProjectBulkBar()}${renderDomainTaskBulkBar()}</span>`;
+    return `<section class="dmn-sec"><h2 class="dmn-sec-hd">Work</h2><button type="button" class="pfe-create-context" data-pfe-create-context="domain:project">+ New Project</button>${selectBar}${body}</section>`;
   }
 
   // Checkbox carved out of the card's click area, same as Project's Tasks
   // tab (renderProjectTaskCard) — completion-writable this slice.
   function renderDomainTaskCard(t, statusOptions, priorityOptions) {
     const isDone = (t.statusName || '').toLowerCase() === 'done';
-    const dateLabel = t.dueDate && t.dueDate.start ? `Due ${formatDateShort(t.dueDate.start)}` : 'No date';
     const s = domainProfileState;
-    const checkboxHtml = s.selecting ? renderPfeSelectCheckbox(t.id, 'domain-task', s.selectedTasks) : '';
-    return `<div class="dmn-task" data-pf-nav="task/${escapeHtml(t.id)}">
-      <div class="dmn-top">${checkboxHtml}<span class="dmn-box${isDone ? ' dmn-box--checked' : ''}" data-pfe-task-toggle="${escapeHtml(t.id)}" data-pfe-task-done="${isDone}" role="checkbox" aria-checked="${isDone}">${isDone ? '✓' : ''}</span><span class="dmn-tname">${escapeHtml(t.title || 'Untitled')}</span></div>
+    const sel = cardSelectState(t.id, 'domain-task', s.selectedTasks, s.selecting);
+    const checkboxAttrs = s.selecting ? '' : ` data-pfe-task-toggle="${escapeHtml(t.id)}" data-pfe-task-done="${isDone}"`;
+    return `<div class="dmn-task${sel.cls}" data-pf-nav="task/${escapeHtml(t.id)}"${sel.attrs}>
+      <div class="dmn-top"><span class="dmn-box${isDone ? ' dmn-box--checked' : ''}${s.selecting ? ' dmn-box--dim' : ''}"${checkboxAttrs} role="checkbox" aria-checked="${isDone}">${isDone ? '✓' : ''}</span><span class="dmn-tname">${escapeHtml(t.title || 'Untitled')}</span></div>
       ${renderPfeCardValuePills(t, statusOptions, priorityOptions)}
-      <div class="dmn-tdate">${escapeHtml(dateLabel)}</div>
     </div>`;
   }
 
@@ -7392,7 +7690,7 @@
     const body = tasks.length
       ? `<div class="dmn-task-grid">${tasks.map((t) => renderDomainTaskCard(t, statusOptions, priorityOptions)).join('')}</div>`
       : `<div class="dmn-empty">Nothing loose right now.</div>`;
-    return `<section class="dmn-sec"><h2 class="dmn-sec-hd">Inbox/Admin</h2><button type="button" class="pfe-create-context" data-pfe-create-context="domain:task">+ New Task</button>${body}${renderDomainTaskBulkBar()}</section>`;
+    return `<section class="dmn-sec"><h2 class="dmn-sec-hd">Inbox/Admin</h2><button type="button" class="pfe-create-context" data-pfe-create-context="domain:task">+ New Task</button>${body}</section>`;
   }
 
   // Two independent bulk bars (tasks vs projects are different Notion
@@ -7407,7 +7705,7 @@
         <button type="button" class="tg-bulk-btn" data-pfe-bulk-action="${a.key}"${pfeState.busy ? ' disabled' : ''}>${a.label}</button>
         ${s.bulkPopover === a.key && a.key === 'task-status' ? renderPfeBulkStatusPopover(s.data.tasksStatusOptions) : ''}
       </div>`).join('');
-    return `<div class="tg-bulk-bar">
+    return `<div class="pfe-bulk-bar">
       <div class="tg-bulk-cnt">${count} task${count === 1 ? '' : 's'} selected</div>
       <div class="tg-bulk-actions">${btnsHtml}</div>
     </div>`;
@@ -7422,7 +7720,7 @@
         <button type="button" class="tg-bulk-btn" data-pfe-bulk-action="${a.key}"${pfeState.busy ? ' disabled' : ''}>${a.label}</button>
         ${s.bulkPopover === a.key && a.key === 'project-status' ? renderPfeBulkStatusPopover(s.data.projectsStatusOptions) : ''}
       </div>`).join('');
-    return `<div class="tg-bulk-bar">
+    return `<div class="pfe-bulk-bar">
       <div class="tg-bulk-cnt">${count} project${count === 1 ? '' : 's'} selected</div>
       <div class="tg-bulk-actions">${btnsHtml}</div>
     </div>`;
@@ -7516,7 +7814,7 @@
     framedRoot.innerHTML = `
       <div class="dmn-inner"><div class="dmn-shell">
         <div class="dmn-rail">
-          <div class="dmn-brand">RenitaOS</div>
+          <div class="dmn-brand">RenitaOS<span class="build-stamp" id="buildStampRail"></span></div>
           <nav aria-label="Primary">
             <a href="#/home"><svg class="dmn-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 11l9-8 9 8M5 9v11h14V9"/></svg>Home</a>
             <a href="#/today"><svg class="dmn-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M3 10h18M8 2v4M16 2v4"/></svg>Today</a>
@@ -7529,10 +7827,14 @@
         <aside class="dmn-props" id="dmnProps"></aside>
       </div></div>
       ${renderRtToolbar()}
+      ${renderRtColorPanel()}
+      ${renderPfeLinkPopover()}
     `;
     dmnMain = document.getElementById('dmnMain');
     dmnProps = document.getElementById('dmnProps');
     framedMounted = true;
+    const buildStampRailEl = document.getElementById('buildStampRail');
+    if (buildStampRailEl) buildStampRailEl.textContent = BUILD_STAMP;
   }
 
   function paintDomainProfile() {
@@ -7705,6 +8007,19 @@
     if (blockDeleteEl) { e.stopPropagation(); if (!pfeState.busy) applyBodyBlockDelete(blockDeleteEl.dataset.pfeBlockDelete); return; }
     const blockAppendEl = e.target.closest('[data-pfe-block-append]');
     if (blockAppendEl) { e.stopPropagation(); if (!pfeState.busy) applyBodyBlockAppend(); return; }
+    // Fix 13 (Appendix B) — a link inside the editable body claims the
+    // click before the browser's own navigation fires (checked ahead of
+    // everything below, since an <a> only ever appears inside a
+    // data-pfe-block-edit region, never inside a nav'd card/pill). A plain
+    // click opens Edit/Remove/Open instead of requiring Ctrl-click to
+    // reach the link at all.
+    const linkEl = e.target.closest('a');
+    if (linkEl && linkEl.closest('[data-pfe-block-edit]')) {
+      e.preventDefault();
+      e.stopPropagation();
+      showPfeLinkPopover(linkEl);
+      return;
+    }
     // Inline Status+Priority pills on task-grid cards — checked before
     // data-pf-nav for the same reason as the checkbox above (the pill
     // sits inside a card that also carries the card's own nav route).
@@ -7887,9 +8202,10 @@
 
   // Rich-text selection toolbar (§10) — shown only while the active
   // selection sits inside a body block's contentEditable and isn't
-  // collapsed. mousedown (not click) on a toolbar button so the button
-  // itself never steals focus/selection away from the block before the
-  // command runs.
+  // collapsed. mousedown (not click) on a toolbar/link-popover button so
+  // the button itself never steals focus/selection away from the block
+  // before the command runs (also sidesteps a focusout-triggered block
+  // save racing the command's own save through withPfeBusy).
   document.addEventListener('selectionchange', () => {
     const toolbar = document.getElementById('pfeRtToolbar');
     if (!toolbar) return;
@@ -7907,11 +8223,37 @@
     toolbar.style.top = `${rect.top - 8}px`;
   });
   framedRoot.addEventListener('mousedown', (e) => {
+    const colorBtn = e.target.closest('[data-pfe-color-cmd]');
+    if (colorBtn) { e.preventDefault(); applyColorCommand(colorBtn.dataset.pfeColorCmd); return; }
     const btn = e.target.closest('[data-pfe-rt-cmd]');
-    if (!btn) return;
-    e.preventDefault();
-    applyRichTextCommand(btn.dataset.pfeRtCmd);
+    if (btn) { e.preventDefault(); applyRichTextCommand(btn.dataset.pfeRtCmd); return; }
+    const linkBtn = e.target.closest('[data-pfe-link-cmd]');
+    if (linkBtn) { e.preventDefault(); applyLinkCommand(linkBtn.dataset.pfeLinkCmd); }
   });
+
+  // Fix 14 (Appendix B) — the toolbar (and the Fix 13 link popover, the
+  // Fix 15b color panel) must dismiss on every one of: selection collapsed
+  // (handled by the selectionchange listener above), editor blur, Escape,
+  // a click outside all three floating elements, and scroll. Only some of
+  // these fired before.
+  function hidePfeFloatingUi() {
+    const toolbar = document.getElementById('pfeRtToolbar');
+    if (toolbar) toolbar.hidden = true;
+    const colorPanel = document.getElementById('pfeColorPanel');
+    if (colorPanel) colorPanel.hidden = true;
+    hidePfeLinkPopover();
+  }
+  framedRoot.addEventListener('focusout', (e) => {
+    if (e.target.matches('[data-pfe-block-edit]')) hidePfeFloatingUi();
+  });
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') hidePfeFloatingUi();
+  });
+  document.addEventListener('mousedown', (e) => {
+    if (e.target.closest('[data-pfe-rt-cmd], [data-pfe-link-cmd], [data-pfe-color-cmd], [data-pfe-block-edit], a')) return;
+    hidePfeFloatingUi();
+  });
+  window.addEventListener('scroll', hidePfeFloatingUi, true);
 
   // --- Views ----------------------------------------------------------------
   // Capture isn't an in-shell route: the nav links straight to capture.html
