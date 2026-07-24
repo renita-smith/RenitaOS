@@ -74,3 +74,18 @@ export const DOMAINS = {
 };
 
 export const DOMAIN_CODES = Object.keys(DOMAINS);
+
+// B5 (Cycle 3) — cosmetic-only Type-edge palette, mirroring index.html's
+// Triage TYPE_EDGE table (the app's one canonical earth-tone Type palette)
+// keyed here by the plain type name since this grammar module has no live
+// emoji'd schema to key off, unlike index.html's profiles. A type with no
+// dedicated hue below just falls back to the olive default — cosmetic
+// only, never load-bearing — same as index.html's own fallback rule.
+export const TYPE_EDGE = {
+  Reflection: 'oklch(0.56 0.03 70)',
+  Dream: 'oklch(0.56 0.045 25)',
+  Sermon: 'oklch(0.55 0.05 45)',
+  Thought: 'oklch(0.55 0.035 110)',
+  Study: 'oklch(0.55 0.03 135)',
+};
+export const TYPE_EDGE_DEFAULT = '#2A3408';

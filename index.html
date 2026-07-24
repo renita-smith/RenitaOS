@@ -610,6 +610,51 @@
        first card) always has room, even if the chip row above has to
        shrink and scroll internally first to make it happen. */
     .tg-pane-bin > .tg-view { min-height: 220px; }
+
+    /* B6 (Cycle 3) — scroll fix. With a realistic number of Type/Domain
+       bins, the wrapped chip row above grows to 2+ rows, and — because
+       both panes stack in one column on desktop (.tg-pane-overview keeps
+       its natural height; .tg-pane-bin only gets whatever's left) — the
+       opened bin's card list would get squeezed down to a sliver, low on
+       the page (confirmed: ~2 cards visible before this fix). Once a bin
+       IS open, the chip row only needs to stay reachable for quick
+       bin-switching, not fully expanded — a single non-wrapping row that
+       scrolls horizontally keeps every bin one scroll away, but bounds
+       the overview pane's height to a fixed, small amount regardless of
+       how many bins exist, so the list reliably gets the rest of the
+       screen. Scoped to the bin-open state only: browsing bins with no
+       bin open yet (data-active-pane="overview") keeps the roomy wrapped
+       grid above untouched, and mobile's own full-screen overview pane
+       (a completely different, un-stacked context) is unaffected. */
+    .tg-layout[data-active-pane="bin"] .tg-chiprow {
+      flex-wrap: nowrap; overflow-x: auto; overflow-y: hidden; max-height: none;
+    }
+    .tg-layout[data-active-pane="bin"] .tg-bin-chip { flex-shrink: 0; }
+
+    /* B6 (Cycle 3) — bring Inbox into the framed page-on-panel treatment
+       (Addendum 2: deeper page background as a frame around a lighter
+       cream panel) on desktop, same as every entity profile. Dropped on
+       mobile below, same as .dmn-inner's own mobile rule — no room for a
+       margin/shadow frame at phone widths. This only re-skins .shell's
+       chrome for this one route; #content (and its already-working event
+       delegation) still renders the exact same Inbox markup untouched. */
+    body[data-route="inbox"] { background: #E7E0D0; }
+    body[data-route="inbox"] .shell {
+      max-width: 1200px;
+      margin: 28px auto;
+      height: calc(100vh - 56px);
+      height: calc(100dvh - 56px);
+      background: #F6F2E9;
+      border-radius: 16px;
+      box-shadow: 0 1px 2px rgba(60,50,30,.05), 0 12px 32px rgba(60,50,30,.10);
+      padding: 24px 28px;
+      /* No overflow:hidden here — Inbox's popovers/toast are positioned
+         relative to elements inside .shell and already clamp themselves
+         to the window viewport (Fix 5/Fix 8); clipping .shell's own box
+         would cut those off near this panel's edges. The unclipped
+         corners are a non-issue in practice — padding already insets
+         everything well clear of the rounded corners. */
+    }
   }
 
   /* ============================================================
@@ -1133,8 +1178,12 @@
   /* Inline Status+Priority pills (Step E) — compact variant of .pf-pill,
      small enough to sit inside a two-column near-square card without
      crowding the title/date. */
-  .dmn-card-pills { display: flex; flex-wrap: wrap; gap: 5px; margin: 8px 0 0; }
-  .dmn-card-pill { font-size: 10px; padding: 3px 8px; cursor: pointer; }
+  .dmn-card-pills { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0 0; }
+  /* Fix 16 (Cycle 3 A2) — these are the in-place triage control (tap to
+     change Status/Priority without opening the record), so they need to
+     read as tappable pills, not plain bold text: sized to match the rest
+     of the app's .pf-pill vocabulary instead of a cramped card-only mini. */
+  .dmn-card-pill { font-size: 12px; padding: 5px 10px; cursor: pointer; }
   .dmn-card-pill:hover { background: var(--tg-sage-deep, #DBE2C1); }
   /* Fix 9 (Appendix B) — Due Date rides in the same pill row but is
      read-only (no popover), so it skips the editable pill's hover/cursor
@@ -1384,7 +1433,7 @@
   // Bumped by hand on every deployed change (Cycle-2 preflight) — logged on
   // load and shown in-app (topbar + framed rail) so it's a glance which
   // build is actually running, instead of inferring it from git history.
-  const BUILD_STAMP = '2026-07-23-c2.1';
+  const BUILD_STAMP = '2026-07-24-c3.1';
   console.log(`RenitaOS build ${BUILD_STAMP}`);
 
   // --- Shared bootstrap: defined once, in one place. -----------------------
@@ -2964,7 +3013,7 @@
       const card = triageState.data.notesCards.find((c) => c.id === cardId);
       if (!card) return;
       try {
-        const page = await notionRequest('/v1/pages', { method: 'POST', body: { parent: { database_id: CONFIG.DB.TAGS }, properties: { [triageState.data.schema.tagTitleProp]: { title: [{ text: { content: name } }] } } } });
+        const page = await createEntityPage(CONFIG.DB.TAGS, { [triageState.data.schema.tagTitleProp]: { title: [{ text: { content: name } }] } });
         triageState.data.tags.list.push({ id: page.id, name });
         triageState.data.tags.byId.set(page.id, name);
         const newIds = [...card.tagIds, page.id];
@@ -3242,7 +3291,7 @@
       const name = rawName.trim();
       if (!name) return;
       try {
-        const page = await notionRequest('/v1/pages', { method: 'POST', body: { parent: { database_id: CONFIG.DB.TAGS }, properties: { [triageState.data.schema.tagTitleProp]: { title: [{ text: { content: name } }] } } } });
+        const page = await createEntityPage(CONFIG.DB.TAGS, { [triageState.data.schema.tagTitleProp]: { title: [{ text: { content: name } }] } });
         triageState.data.tags.list.push({ id: page.id, name });
         triageState.data.tags.byId.set(page.id, name);
         const ids = [...triageState.selected];
@@ -4104,6 +4153,35 @@
     return { type: 'external', external: { url: dbIcon.value } };
   }
 
+  // Cycle 3 A1 (Fix 11) — Project/People/Tags icons landed via
+  // pfeCreateAndLink below, but Task creation lived in two separate inline
+  // POST /pages call sites (Project profile's + New Task, Domain profile's
+  // + New Task) that duplicated the same icon logic, plus Triage's own
+  // tag-create flows (applyNoteNewTag/applyBulkNewTag) never carried it at
+  // all. This is the one create call site all of them now route through,
+  // so a type can't silently ship iconless again just because a call site
+  // forgot to wire it in. Falls back to a fixed per-type glyph when the
+  // target database itself has no icon in Notion to mirror — a new Task
+  // is never icon-less merely because the Tasks database hasn't been
+  // given one. Notes are never routed through this — no icon, per §5.8.
+  const ENTITY_TYPE_BY_DB = {
+    [CONFIG.DB.PROJECTS]: 'project',
+    [CONFIG.DB.TASKS]: 'task',
+    [CONFIG.DB.PEOPLE]: 'person',
+    [CONFIG.DB.TAGS]: 'tag',
+  };
+  const ENTITY_FALLBACK_GLYPH = { project: '🚧', task: '✅', person: '👤', tag: '🏷️' };
+
+  async function createEntityPage(databaseId, properties, children) {
+    const entityType = ENTITY_TYPE_BY_DB[databaseId];
+    const dbIcon = await getDatabaseIcon(databaseId);
+    const icon = pageIconPayload(dbIcon) || (entityType ? { type: 'emoji', emoji: ENTITY_FALLBACK_GLYPH[entityType] } : null);
+    const body = { parent: { database_id: databaseId }, properties };
+    if (icon) body.icon = icon;
+    if (children && children.length) body.children = children;
+    return notionRequest('/v1/pages', { method: 'POST', body });
+  }
+
   // §5.8 icon backfill — one-time migration (Cycle 2 §4). Run once from
   // devtools after Fix 11 is verified live: `RenitaOSBackfillIcons()`.
   // Deliberately console-only, not a UI button — a migration that should
@@ -4154,17 +4232,8 @@
   window.RenitaOSBackfillIcons = runIconBackfill;
 
   async function pfeCreateAndLink(databaseId, name) {
-    const [titleProp, dbIcon] = await Promise.all([titlePropertyName(databaseId), getDatabaseIcon(databaseId)]);
-    const body = { parent: { database_id: databaseId }, properties: titlePropertyPatch(titleProp, name) };
-    const icon = pageIconPayload(dbIcon);
-    if (icon) body.icon = icon;
-    // Fix 11 (Appendix B) diagnostic — §5.8 mirrors whatever icon the
-    // target database itself has set in Notion (never a hardcoded second
-    // source of truth), so a null here means that database has no Notion
-    // icon to mirror yet, not a silent app failure. Logged so that
-    // distinction is a glance in devtools during live verification.
-    else console.warn(`No Notion icon set on database ${databaseId} — new page created without one.`);
-    const page = await notionRequest('/v1/pages', { method: 'POST', body });
+    const titleProp = await titlePropertyName(databaseId);
+    const page = await createEntityPage(databaseId, titlePropertyPatch(titleProp, name));
     const entry = { id: page.id, name };
     const c = pfeLookupCache.get(databaseId);
     if (c && c.loaded) c.entries.push(entry);
@@ -5078,6 +5147,12 @@
     </div>`;
   }
   function renderRtColorPanel() {
+    // Fix 17 (Cycle 3 A3) — Notion has no black; "default" (this app's
+    // olive body text, #2A3408) is a swatch choice like any other, not
+    // something reachable only via the "Clear color" text button below.
+    // Routes through the same data-pfe-color-cmd="default" the Clear
+    // button already uses — applyColorCommand() needs no change.
+    const defaultSwatch = `<button type="button" class="pfe-color-swatch" data-pfe-color-cmd="default" style="background:#2A3408" title="Default" aria-label="Default text color"></button>`;
     const textRow = Object.entries(NOTION_TEXT_COLORS)
       .map(([name, hex]) => `<button type="button" class="pfe-color-swatch" data-pfe-color-cmd="${name}" style="background:${hex}" title="${name}" aria-label="${name} text"></button>`)
       .join('');
@@ -5085,7 +5160,7 @@
       .map(([name, hex]) => `<button type="button" class="pfe-color-swatch" data-pfe-color-cmd="${name}" style="background:${hex}" title="${name.replace('_background', '')} highlight" aria-label="${name.replace('_background', '')} highlight"></button>`)
       .join('');
     return `<div class="pfe-color-panel" id="pfeColorPanel" hidden>
-      <div class="pfe-color-row">${textRow}</div>
+      <div class="pfe-color-row">${defaultSwatch}${textRow}</div>
       <div class="pfe-color-row">${bgRow}</div>
       <button type="button" class="pfe-color-clear" data-pfe-color-cmd="default">Clear color</button>
     </div>`;
@@ -7241,21 +7316,16 @@
         const p = s.data.header;
         const name = window.prompt('New task title:');
         if (!name || !name.trim()) return;
-        const [titleProp, statusTarget, taskIcon] = await Promise.all([
+        const [titleProp, statusTarget] = await Promise.all([
           titlePropertyName(CONFIG.DB.TASKS),
           getInboxStatusFilter(CONFIG.DB.TASKS),
-          getDatabaseIcon(CONFIG.DB.TASKS),
         ]);
         const body = {
           ...titlePropertyPatch(titleProp, name.trim()),
           ...statusPropertyPatch(statusTarget.name, statusTarget.value),
           [p.tasksProjectsProp]: { relation: [{ id: p.id }] },
         };
-        const createBody = { parent: { database_id: CONFIG.DB.TASKS }, properties: body };
-        const taskIconPayload = pageIconPayload(taskIcon);
-        if (taskIconPayload) createBody.icon = taskIconPayload;
-        else console.warn('No Notion icon set on the Tasks database — new task created without one.');
-        await notionRequest('/v1/pages', { method: 'POST', body: createBody });
+        await createEntityPage(CONFIG.DB.TASKS, body);
         showPfeToast('Task created.');
         const tab = s.data.tabs.find((t) => t.key === 'tasks');
         if (tab) {
@@ -7275,17 +7345,12 @@
         if (!s.data) return;
         const name = window.prompt('New project title:');
         if (!name || !name.trim()) return;
-        const [titleProp, domainRelProp, projectIcon] = await Promise.all([
+        const [titleProp, domainRelProp] = await Promise.all([
           titlePropertyName(CONFIG.DB.PROJECTS),
           relationPropertyName(CONFIG.DB.PROJECTS, CONFIG.DB.DOMAINS),
-          getDatabaseIcon(CONFIG.DB.PROJECTS),
         ]);
         const body = { ...titlePropertyPatch(titleProp, name.trim()), [domainRelProp]: { relation: [{ id: s.id }] } };
-        const createBody = { parent: { database_id: CONFIG.DB.PROJECTS }, properties: body };
-        const projectIconPayload = pageIconPayload(projectIcon);
-        if (projectIconPayload) createBody.icon = projectIconPayload;
-        else console.warn('No Notion icon set on the Projects database — new project created without one.');
-        await notionRequest('/v1/pages', { method: 'POST', body: createBody });
+        await createEntityPage(CONFIG.DB.PROJECTS, body);
         showPfeToast('Project created.');
         // Reload the whole Domain profile — simplest way to get the new
         // project correctly grouped into the work spine by its status.
@@ -7299,22 +7364,17 @@
         if (!name || !name.trim()) return;
         const meta = DOMAIN_META.find((d) => normalizeDbId(d.pageId) === normalizeDbId(s.id));
         if (!meta) return;
-        const [titleProp, statusTarget, tasksProjectsProp, taskIcon] = await Promise.all([
+        const [titleProp, statusTarget, tasksProjectsProp] = await Promise.all([
           titlePropertyName(CONFIG.DB.TASKS),
           getInboxStatusFilter(CONFIG.DB.TASKS),
           relationPropertyName(CONFIG.DB.TASKS, CONFIG.DB.PROJECTS),
-          getDatabaseIcon(CONFIG.DB.TASKS),
         ]);
         const body = {
           ...titlePropertyPatch(titleProp, name.trim()),
           ...statusPropertyPatch(statusTarget.name, statusTarget.value),
           [tasksProjectsProp]: { relation: [{ id: meta.catchAllProjectId }] },
         };
-        const createBody = { parent: { database_id: CONFIG.DB.TASKS }, properties: body };
-        const taskIconPayload = pageIconPayload(taskIcon);
-        if (taskIconPayload) createBody.icon = taskIconPayload;
-        else console.warn('No Notion icon set on the Tasks database — new task created without one.');
-        await notionRequest('/v1/pages', { method: 'POST', body: createBody });
+        await createEntityPage(CONFIG.DB.TASKS, body);
         showPfeToast('Task created.');
         mountDomainProfile(s.id);
         return;
