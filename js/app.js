@@ -1,8 +1,8 @@
 import {
   DB, NOTES_PROP, TASKS_PROP, NOTE_STATUS_INBOX, TASK_STATUS_INBOX,
-  TYPE_SET, DOMAIN_CODES, DOMAINS, DAY_MERGE_TYPE,
+  TYPE_SET, DOMAIN_CODES, DOMAINS, DAY_MERGE_TYPE, TYPE_EDGE, TYPE_EDGE_DEFAULT,
 } from './config.js';
-import { queryAllPages, createPage, updatePageProperties, appendBlockChildren, paragraphBlocks } from './notion.js';
+import { queryAllPages, createPage, updatePageProperties, appendBlockChildren, paragraphBlocks, dividerBlock } from './notion.js';
 import { todayISO } from './dateParse.js';
 import { titlePropertyName, relationPropertyName, resolveMultiSelectOption } from './schema.js';
 import { LookupCache } from './cache.js';
@@ -40,6 +40,7 @@ function formatDueDisplay(iso) {
 
 const state = {
   text: '',
+  titleText: '',
   mode: 'type',
   taskManual: false,
   confirmedNew: new Set(),
@@ -52,6 +53,7 @@ const state = {
 const caches = new LookupCache();
 
 const el = {
+  titleInput: document.getElementById('titleInput'),
   textarea: document.getElementById('captureText'),
   autocomplete: document.getElementById('autocomplete'),
   taskPill: document.getElementById('taskPill'),
@@ -154,8 +156,12 @@ function renderThoughtCard(thought) {
     ...thought.tags.map(renderTagChip),
     ...thought.projects.map(renderProjectChip),
   ].filter(Boolean).join('');
+  // B5 (Cycle 3) — retint the card's left border/dot/label to the app's
+  // one canonical Type palette (index.html's Triage TYPE_EDGE) instead of
+  // Capture's pre-palette flat olive for every type.
+  const edgeColor = TYPE_EDGE[thought.typeLabel] || TYPE_EDGE_DEFAULT;
 
-  return `<div class="thought-card" data-type="${escapeHtml(thought.typeLabel)}">
+  return `<div class="thought-card" data-type="${escapeHtml(thought.typeLabel)}" style="--type-color:${edgeColor}">
     <div class="thought-head">
       <span class="thought-dot"></span>
       <span class="thought-type">${escapeHtml(thought.typeLabel)}</span>
@@ -163,7 +169,7 @@ function renderThoughtCard(thought) {
       <div class="spacer"></div>
       ${thought.isTask ? `<span class="due-chip">${thought.dueDateISO ? `Due ${escapeHtml(formatDueDisplay(thought.dueDateISO))}` : '+ Due date'}</span>` : ''}
     </div>
-    <div class="thought-body">${escapeHtml(thought.body)}</div>
+    ${thought.body ? `<div class="thought-body">${escapeHtml(thought.body)}</div>` : ''}
     ${chips ? `<div class="chip-row">${chips}</div>` : ''}
   </div>`;
 }
@@ -173,6 +179,7 @@ function render() {
   // mutate state.text directly — sync it back to the DOM here. Typing itself
   // already keeps el.textarea.value === state.text, so this is a no-op then.
   if (el.textarea.value !== state.text) el.textarea.value = state.text;
+  if (el.titleInput.value !== state.titleText) el.titleInput.value = state.titleText;
 
   const isTask = computeIsTask();
   el.taskPill.textContent = isTask ? 'Task' : 'Note';
@@ -186,9 +193,18 @@ function render() {
   el.saveBtn.disabled = state.saving || state.mode !== 'type';
   el.saveBtn.textContent = state.saving ? 'Saving…' : 'Save to Inbox';
 
-  const thoughts = computeThoughts(state.text, caches, state.confirmedNew);
+  const thoughts = computeThoughts(state.text, caches, state.confirmedNew, state.titleText);
   el.recognizedSection.classList.toggle('hidden', thoughts.length === 0);
   el.thoughtsList.innerHTML = thoughts.map(renderThoughtCard).join('');
+
+  // B3 (Cycle 3) — Dreams never take a typed title (§9); the field is
+  // hidden rather than just ignored, so it's not left sitting there
+  // implying it does something it won't. computeThoughts() already
+  // ignores it for a Dream regardless (parse.js's cascade checks Dream
+  // before an explicit title), so hiding is belt-and-suspenders, not the
+  // only thing preventing it from taking effect.
+  const isDreamCapture = thoughts.some((t) => t.noteType === DAY_MERGE_TYPE);
+  el.titleInput.classList.toggle('hidden', isDreamCapture);
 
   if (state.autocomplete) {
     const names = TRIGGER_SOURCE[state.autocomplete.trigger](caches);
@@ -260,6 +276,11 @@ el.textarea.addEventListener('keyup', (e) => {
 });
 el.textarea.addEventListener('click', () => { updateAutocomplete(); render(); });
 
+el.titleInput.addEventListener('input', () => {
+  state.titleText = el.titleInput.value;
+  render();
+});
+
 el.autocomplete.addEventListener('click', (e) => {
   const item = e.target.closest('.ac-item');
   if (!item) return;
@@ -311,6 +332,7 @@ el.thoughtsList.addEventListener('click', (e) => {
 if (el.closeBtn) {
   el.closeBtn.addEventListener('click', () => {
     state.text = '';
+    state.titleText = '';
     state.confirmedNew.clear();
     state.autocomplete = null;
     render();
@@ -344,6 +366,16 @@ async function resolveAll(chips, list, dbId) {
 }
 
 async function saveThought(thought) {
+  // B1 (Cycle 3) — a capture whose entire body is a single relation token
+  // (!project / #tag / %domain, nothing else) creates just that entity —
+  // resolving/creating it if new — and never a stray Note/Task with an
+  // empty body. A bare %domain has nothing to create (Domains are the
+  // fixed §3 set); recognizing it is enough to suppress the stray note.
+  if (thought.isBareRelation) {
+    if (thought.tags.length) await resolveAll(thought.tags, caches.tags, DB.TAGS);
+    if (thought.projects.length) await resolveAll(thought.projects, caches.projects, DB.PROJECTS);
+    return;
+  }
   const tagIds = await resolveAll(thought.tags, caches.tags, DB.TAGS);
   const peopleIds = await resolveAll(thought.people, caches.people, DB.PEOPLE);
   const projectIds = await resolveAll(thought.projects, caches.projects, DB.PROJECTS);
@@ -403,7 +435,10 @@ async function saveThought(thought) {
     });
     if (existing.length) {
       const page = existing[0];
-      await appendBlockChildren(page.id, paragraphBlocks(thought.body));
+      // B4 (Cycle 3) — a subtle native divider between same-day dream
+      // entries (Backend §12), reusing the existing append call rather
+      // than a bare line break or a second append path.
+      await appendBlockChildren(page.id, [dividerBlock(), ...paragraphBlocks(thought.body)]);
       const existingPeople = (page.properties[notesPeopleProp]?.relation || []).map((r) => r.id);
       const existingTags = (page.properties[notesTagsProp]?.relation || []).map((r) => r.id);
       await updatePageProperties(page.id, {
@@ -422,7 +457,7 @@ async function handleSave() {
     showToast("Voice/Photo capture isn't wired up yet — switch to Type to save.");
     return;
   }
-  const thoughts = computeThoughts(state.text, caches, state.confirmedNew);
+  const thoughts = computeThoughts(state.text, caches, state.confirmedNew, state.titleText);
   if (!thoughts.length) return;
 
   state.saving = true;
@@ -433,12 +468,18 @@ async function handleSave() {
       await saveThought(thought);
     }
     const newRecent = thoughts.map((t) => ({
-      text: t.title || t.body,
+      // A bare-relation capture (B1) has no title/body worth showing —
+      // "Untitled" would be actively misleading — so name what actually
+      // got created/linked instead.
+      text: t.isBareRelation
+        ? `${t.typeLabel}: ${(t.projects[0] || t.tags[0] || t.domain || {}).value || ''}`
+        : (t.title || t.body),
       isTask: t.isTask,
       when: 'Just now',
     }));
     state.recent = [...newRecent, ...state.recent].slice(0, 3);
     state.text = '';
+    state.titleText = '';
     state.taskManual = false;
     state.confirmedNew.clear();
     state.autocomplete = null;

@@ -40,6 +40,37 @@ function matchKnownExact(text, pos, candidates) {
   return null;
 }
 
+// Finds where a genuinely-new (no known candidate) symbol value ends.
+// Never reads past the next symbol trigger or a line break — but within
+// that span there's no delimiter marking where a brand-new Title Case
+// value ("Third Test Project", "Becky Fuller") stops and ordinary prose
+// resumes, so this keeps the first word unconditionally, then keeps
+// consuming additional words only while each one starts with a capital
+// letter or digit — a proper-noun heuristic — stopping at the first
+// lowercase continuation word. Without this, "Talked to !Third Test
+// Project team today" would swallow "team today" into the project name
+// right along with it.
+function captureUntilBoundary(raw, pos) {
+  const nl = raw.indexOf('\n', pos);
+  const hardEnd = nl === -1 ? raw.length : nl;
+  const symRe = /(^|\s)[#@!%/]/g;
+  symRe.lastIndex = pos;
+  const m = symRe.exec(raw);
+  const limit = (m && m.index < hardEnd) ? m.index : hardEnd;
+
+  const slice = raw.slice(pos, limit);
+  const tokenRe = /\S+/g;
+  let end = pos;
+  let first = true;
+  let tm;
+  while ((tm = tokenRe.exec(slice))) {
+    if (!first && !/^[A-Z0-9]/.test(tm[0])) break;
+    end = pos + tm.index + tm[0].length;
+    first = false;
+  }
+  return end;
+}
+
 // Resolves the value following a symbol at `pos`: an exact known-candidate
 // match (possibly multi-word) wins. Otherwise, if everything from `pos` to
 // the end of the entry is itself a case-insensitive prefix of some known
@@ -47,7 +78,11 @@ function matchKnownExact(text, pos, candidates) {
 // as the pending value — so "Becky Fu|" still ghosts as one token instead of
 // truncating to just "Becky". Trailing prose that ISN'T part of a known name
 // breaks the prefix test naturally, so this never swallows a whole sentence.
-// Failing both, fall back to a bare single word.
+// Failing both — a genuinely new value with no known match at all — capture
+// through to the next symbol/line-break/end (§B2) rather than a bare single
+// word, so "!Third Test Project" keeps its full name. Only an empty capture
+// (symbol immediately followed by another symbol/newline) falls back further
+// to a bare single-word match.
 function resolveToken(raw, pos, candidates, wordRe) {
   const exact = matchKnownExact(raw, pos, candidates);
   if (exact) return exact;
@@ -55,6 +90,8 @@ function resolveToken(raw, pos, candidates, wordRe) {
   if (remainder && candidates.some((c) => c.toLowerCase().startsWith(remainder.toLowerCase()))) {
     return { value: remainder, end: raw.length };
   }
+  const boundaryEnd = captureUntilBoundary(raw, pos);
+  if (boundaryEnd > pos) return { value: raw.slice(pos, boundaryEnd), end: boundaryEnd };
   const m = remainder.match(wordRe);
   const word = m ? m[0] : '';
   return { value: word, end: pos + word.length };
@@ -140,7 +177,8 @@ function dreamTitle() {
 // creating (see app.js chip handlers). `offset` is this entry's start index
 // within the full textarea value, used to give each chip an absolute span so
 // a "did you mean?" tap can splice the exact occurrence in the source text.
-export function parseEntry(raw, caches, confirmedNew, offset = 0) {
+// `titleOverride` (B3, Cycle 3) is the optional Capture title field's value.
+export function parseEntry(raw, caches, confirmedNew, offset = 0, titleOverride = '') {
   if (!raw.trim()) return null;
 
   const isTask = /^\s*\+/.test(raw);
@@ -169,6 +207,15 @@ export function parseEntry(raw, caches, confirmedNew, offset = 0) {
       titleSpan = { start: titleMatch.index, end: titleMatch.index + titleMatch[0].length };
     }
   }
+  // B3 (Cycle 3) — the optional Capture title field is another source of
+  // an explicit title, same rule as a typed [bracket]: used verbatim, no
+  // prefix (§9). Overrides a bracket title if both are present; the
+  // bracket (if any) is still stripped from the body either way. Dreams
+  // never take a typed title — the Dream branch below is checked before
+  // explicitTitle in the cascade, so this is silently ignored for a Dream
+  // entry regardless of what the field holds.
+  const fieldTitle = !isTask && titleOverride ? titleOverride.trim() : '';
+  if (fieldTitle) explicitTitle = fieldTitle;
 
   const removeSpans = [];
   if (typeSpan) removeSpans.push(typeSpan);
@@ -226,6 +273,16 @@ export function parseEntry(raw, caches, confirmedNew, offset = 0) {
   body += raw.slice(cursor);
   body = body.replace(/^\s*\+/, '').replace(/\s+/g, ' ').replace(/\s+([.,;:!?])/g, '$1').trim();
 
+  // B1 (Cycle 3) — an entry whose ENTIRE content is a single relation token
+  // (a lone !project, #tag, or %domain — nothing else typed, no /type, no
+  // [title], no @person prose) creates just that entity, not a Note/Task
+  // that then sits stray with an empty body. @person never qualifies here:
+  // its name always stays in the body (§ symbol grammar), so a bare @person
+  // capture still has body text and a Note is exactly right for it.
+  const relationCount = (domain ? 1 : 0) + tags.length + projects.length;
+  const isBareRelation = !isTask && !typeName && !explicitTitle && !body && people.length === 0 && relationCount === 1;
+  const bareRelationLabel = isBareRelation ? (projects.length ? 'Project' : tags.length ? 'Tag' : 'Domain') : null;
+
   const dueDateISO = isTask ? parseLocalDate(body) : null;
   // §9 — the prefix decorates only the auto-generated snippet default,
   // never an explicit/typed title (checked first, below) and never Dream
@@ -242,7 +299,7 @@ export function parseEntry(raw, caches, confirmedNew, offset = 0) {
   return {
     raw,
     isTask,
-    typeLabel: typeName || (isTask ? 'Task' : 'Note'),
+    typeLabel: bareRelationLabel || typeName || (isTask ? 'Task' : 'Note'),
     noteType: !isTask ? typeName : null,
     domain,
     tags,
@@ -251,12 +308,13 @@ export function parseEntry(raw, caches, confirmedNew, offset = 0) {
     title,
     body,
     dueDateISO,
+    isBareRelation,
   };
 }
 
-export function computeThoughts(text, caches, confirmedNew) {
+export function computeThoughts(text, caches, confirmedNew, titleOverride = '') {
   if (!text.trim()) return [];
   return splitEntries(text)
-    .map((entry) => parseEntry(entry.text, caches, confirmedNew, entry.offset))
+    .map((entry) => parseEntry(entry.text, caches, confirmedNew, entry.offset, titleOverride))
     .filter(Boolean);
 }

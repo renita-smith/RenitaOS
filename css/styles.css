@@ -131,6 +131,24 @@ body {
 
 .composer { position: relative; }
 
+/* B3 (Cycle 3) — optional title field: empty auto-titles (§9), typed is
+   used verbatim. Kept visually quiet (small, bottom hairline only) so it
+   doesn't compete with the textarea, which stays the primary surface. */
+.capture-title-input {
+  display: block;
+  width: 100%;
+  border: none;
+  outline: none;
+  background: transparent;
+  font-family: 'IBM Plex Sans', sans-serif;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text);
+  padding: 0 0 10px;
+  margin-bottom: 10px;
+  border-bottom: 1px solid var(--hairline);
+}
+
 .capture-textarea {
   width: 100%;
   min-height: 160px;
@@ -559,9 +577,21 @@ body {
    composer, cards, and footer all stay exactly as sized on mobile; only the
    surrounding margin grows. No field or card ever stretches edge to edge. */
 @media (min-width: 768px) {
+  /* B6 (Cycle 3) — bring Capture into the framed page-on-panel treatment
+     (Addendum 2: a deeper page background as a frame around a lighter
+     cream panel), matching every other screen on desktop. Dropped below
+     this breakpoint — mobile stays the existing edge-to-edge full-screen
+     composer; there's no room for a margin/shadow frame at phone widths. */
+  body { background: #E7E0D0; }
   .capture-screen {
     max-width: 720px;
     padding: 0 40px;
+    margin: 28px auto;
+    height: calc(100vh - 56px);
+    height: calc(100dvh - 56px);
+    background: #F6F2E9;
+    border-radius: 16px;
+    box-shadow: 0 1px 2px rgba(60,50,30,.05), 0 12px 32px rgba(60,50,30,.10);
   }
 
   .capture-scroll {

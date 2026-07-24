@@ -59,3 +59,9 @@ export function paragraphBlocks(text) {
     paragraph: { rich_text: line ? [{ type: 'text', text: { content: line } }] : [] },
   }));
 }
+
+// B4 (Cycle 3) — a native Notion divider block, used to separate same-day
+// dream entries (Backend §12) instead of a bare line break.
+export function dividerBlock() {
+  return { object: 'block', type: 'divider', divider: {} };
+}
