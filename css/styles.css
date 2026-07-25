@@ -51,15 +51,6 @@ body {
   padding: 0 20px;
 }
 
-/* Fix 21 (Cycle 4, round 2) — on mobile there's no rail on any screen, so
-   the placeholder is simply not there and .capture-col contributes no box
-   of its own (display:contents), leaving .capture-scroll/.capture-footer
-   as direct flex children of .capture-screen exactly as before this
-   wrapper existed. Both come alive only at the desktop breakpoint below,
-   where they reserve the same rail-shaped space every other screen has. */
-.capture-rail { display: none; }
-.capture-col { display: contents; }
-
 .capture-scroll {
   flex: 1;
   min-height: 0;
@@ -603,22 +594,13 @@ body {
      this breakpoint — mobile stays the existing edge-to-edge full-screen
      composer; there's no room for a margin/shadow frame at phone widths. */
   body { background: #E7E0D0; }
-  /* Fix 21 (Cycle 4, round 2) — Capture carries no nav rail (confirmed by
-     design), but its CONTENT column must still land at the exact same
-     width/position as every other screen's, so switching to/from Capture
-     never shifts the text or reflows to a different width. Every other
-     screen is "nav rail + content column" inside the shared 1200px/
-     200px-rail/32px-gap frame (index.html's .shell, used by Inbox — the
-     other screen sharing this exact panel-wrap treatment); Capture
-     reproduces that same grid math here (a separate stylesheet, so it
-     can't literally share index.html's CSS) with the rail column left
-     empty via .capture-rail, rather than widening to fill the space the
-     rail would have used. Do not change this max-width without changing
-     .shell's matching value in index.html — they're meant to stay equal. */
+  /* Fix 21 (Cycle 4, round 3) — matching the shared shell's rail+content
+     column split (round 2) left a wide empty gutter on the left where the
+     rail would sit — reserving that space read as wasted, not "aligned."
+     Capture has no rail at all, so its content now just uses the full
+     panel width (minus padding) instead of budgeting room for a column
+     that never renders anything. */
   .capture-screen {
-    display: grid;
-    grid-template-columns: 200px minmax(0, 1fr);
-    column-gap: 32px;
     max-width: 1200px;
     padding: 24px 28px;
     margin: 28px auto;
@@ -628,8 +610,6 @@ body {
     border-radius: 16px;
     box-shadow: 0 1px 2px rgba(60,50,30,.05), 0 12px 32px rgba(60,50,30,.10);
   }
-  .capture-rail { display: block; }
-  .capture-col { display: flex; flex-direction: column; min-height: 0; min-width: 0; }
 
   .capture-scroll {
     padding-top: 32px;

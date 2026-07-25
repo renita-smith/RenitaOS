@@ -12,14 +12,6 @@
 </head>
 <body>
 <div class="capture-screen">
-  <!-- Fix 21 (Cycle 4, round 2) — reserves the same rail-shaped space the
-       nav rail occupies on every other screen, left empty (Capture has no
-       rail by design), so the content column below lands at the exact
-       same width/position as everywhere else instead of Capture reading
-       as a differently-sized screen. -->
-  <div class="capture-rail" aria-hidden="true"></div>
-
-  <div class="capture-col">
   <div class="capture-scroll">
     <header class="capture-header">
       <button id="closeBtn" class="icon-circle" aria-label="Clear">✕</button>
@@ -89,7 +81,6 @@
     </nav>
 
     <div id="toast" class="toast hidden"></div>
-  </div>
   </div>
 
 </div>
