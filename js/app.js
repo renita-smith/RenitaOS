@@ -47,6 +47,7 @@ const state = {
   autocomplete: null,
   recent: [],
   toast: '',
+  toastAction: null,
   saving: false,
 };
 
@@ -174,6 +175,25 @@ function renderThoughtCard(thought) {
   </div>`;
 }
 
+// Fix 24 (Cycle 4) — the title field only ever applies to a capture that
+// resolves to exactly one plain Note: a Task titles from its own text, a
+// bare !project names from its token, a Dream's title names the day it
+// merges into (§9), and a multi-entry braindump has no single target for
+// one title. Parsed once with no override to check eligibility by SHAPE
+// (title text never affects segmentation/isTask/isBareRelation/noteType),
+// then — only if eligible — re-parsed with the override applied. This
+// keeps the field not just hidden but functionally inert the moment the
+// capture stops qualifying, instead of a stale typed title silently
+// reattaching itself if the shape flickers back and forth while typing.
+function computeVisibleThoughts() {
+  const bare = computeThoughts(state.text, caches, state.confirmedNew, '');
+  const eligible = bare.length === 1 && !bare[0].isTask && !bare[0].isBareRelation && bare[0].noteType !== DAY_MERGE_TYPE;
+  const thoughts = eligible && state.titleText
+    ? computeThoughts(state.text, caches, state.confirmedNew, state.titleText)
+    : bare;
+  return { thoughts, eligible };
+}
+
 function render() {
   // Programmatic edits (autocomplete pick, accept-suggestion, clear, save)
   // mutate state.text directly — sync it back to the DOM here. Typing itself
@@ -193,18 +213,11 @@ function render() {
   el.saveBtn.disabled = state.saving || state.mode !== 'type';
   el.saveBtn.textContent = state.saving ? 'Saving…' : 'Save to Inbox';
 
-  const thoughts = computeThoughts(state.text, caches, state.confirmedNew, state.titleText);
+  const { thoughts, eligible } = computeVisibleThoughts();
   el.recognizedSection.classList.toggle('hidden', thoughts.length === 0);
   el.thoughtsList.innerHTML = thoughts.map(renderThoughtCard).join('');
 
-  // B3 (Cycle 3) — Dreams never take a typed title (§9); the field is
-  // hidden rather than just ignored, so it's not left sitting there
-  // implying it does something it won't. computeThoughts() already
-  // ignores it for a Dream regardless (parse.js's cascade checks Dream
-  // before an explicit title), so hiding is belt-and-suspenders, not the
-  // only thing preventing it from taking effect.
-  const isDreamCapture = thoughts.some((t) => t.noteType === DAY_MERGE_TYPE);
-  el.titleInput.classList.toggle('hidden', isDreamCapture);
+  el.titleInput.classList.toggle('hidden', !eligible);
 
   if (state.autocomplete) {
     const names = TRIGGER_SOURCE[state.autocomplete.trigger](caches);
@@ -232,15 +245,26 @@ function render() {
   </div>`).join('');
 
   el.toast.classList.toggle('hidden', !state.toast);
+  el.toast.classList.toggle('toast--link', !!state.toastAction);
   el.toast.textContent = state.toast;
 }
 
-function showToast(message, ms = 2200) {
+// `action`, when given, makes the toast clickable (Fix 23) — e.g. the
+// post-save confirmation links to the Inbox. Guardrail: if the user starts
+// a new capture before the toast clears on its own, the textarea's input
+// handler below dismisses it early, so a stray tap can't yank them away
+// from a draft they've already started typing.
+function showToast(message, ms = 2200, action = null) {
   clearTimeout(toastTimer);
   state.toast = message;
+  state.toastAction = action;
   render();
-  toastTimer = setTimeout(() => { state.toast = ''; render(); }, ms);
+  toastTimer = setTimeout(() => { state.toast = ''; state.toastAction = null; render(); }, ms);
 }
+
+el.toast.addEventListener('click', () => {
+  if (state.toastAction) state.toastAction();
+});
 
 function updateAutocomplete() {
   const pos = el.textarea.selectionStart;
@@ -265,6 +289,10 @@ function pickAutocomplete(name) {
 
 el.textarea.addEventListener('input', () => {
   state.text = el.textarea.value;
+  // Fix 23 guardrail — a fresh keystroke means a new capture is under way;
+  // drop any still-showing "Saved to Inbox" link early so it can't be
+  // mistapped mid-typing and yank the user away from this draft.
+  if (state.toastAction) { clearTimeout(toastTimer); state.toast = ''; state.toastAction = null; }
   updateAutocomplete();
   render();
 });
@@ -329,14 +357,23 @@ el.thoughtsList.addEventListener('click', (e) => {
   }
 });
 
+// Fix 20 (Cycle 4) — Capture is a persistent affordance invoked from
+// anywhere (the topbar "+"), not a nav destination, so "close" means
+// dismiss back to wherever it was opened from — history.back() — not a
+// fixed destination. Falls back to Home only when there's nothing to go
+// back to (e.g. capture.html opened directly/deep-linked).
+function dismissCapture() {
+  if (window.history.length > 1) window.history.back();
+  else window.location.href = './index.html#/home';
+}
+
 if (el.closeBtn) {
   el.closeBtn.addEventListener('click', () => {
     state.text = '';
     state.titleText = '';
     state.confirmedNew.clear();
     state.autocomplete = null;
-    render();
-    el.textarea.focus();
+    dismissCapture();
   });
 }
 
@@ -457,7 +494,7 @@ async function handleSave() {
     showToast("Voice/Photo capture isn't wired up yet — switch to Type to save.");
     return;
   }
-  const thoughts = computeThoughts(state.text, caches, state.confirmedNew, state.titleText);
+  const { thoughts } = computeVisibleThoughts();
   if (!thoughts.length) return;
 
   state.saving = true;
@@ -486,7 +523,7 @@ async function handleSave() {
     state.saving = false;
     render();
     el.textarea.focus();
-    showToast('Saved to Inbox');
+    showToast('Saved to Inbox — tap to view', 2200, () => { window.location.href = './index.html#/inbox'; });
   } catch (err) {
     state.saving = false;
     render();

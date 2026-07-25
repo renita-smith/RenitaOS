@@ -611,6 +611,53 @@
        shrink and scroll internally first to make it happen. */
     .tg-pane-bin > .tg-view { min-height: 220px; }
 
+    /* Fix 18 (Cycle 4) — B6's chip-row fix (below) reduced the squeeze but
+       didn't solve it: confirmed live, the opened bin's own .tg-stack
+       still scrolled internally, capped to a small budgeted slice of the
+       layout height — only ~2 records visible with a realistic bin size,
+       same symptom as before.
+
+       Root cause, found by measuring the live layout: every level in the
+       chain (.tg-layout -> .tg-pane-bin -> the opened bin's own .tg-view
+       -> .tg-stack) is a flex item with `flex: 1 1 0%; min-height: 0`, so
+       each one's rendered height is a *computed flex distribution*, not
+       its content's actual size — turning off .tg-stack's own internal
+       scroll (an earlier attempt) didn't help because the very next
+       ancestor up (the bin's own .tg-view) is still clamped to that same
+       small computed height and just became the new scroll trap in its
+       place (confirmed: its overflow-y still computes to 'auto' — CSS
+       forces a mixed overflow-x:hidden/overflow-y:visible pair to
+       overflow-y:auto, it can't stay 'visible' — so a fixed-size flex
+       item's own overflow:auto/hidden always wins over any attempt to
+       just "open up" overflow-y while it's still sized by flex-basis).
+
+       Fix: stop distributing height through flex at every level once a
+       bin is open — `flex: none` lets each container size to its actual
+       content instead of a flex-computed share, so the natural height
+       (list included) bubbles all the way up. #content/.shell-content —
+       the app's one real scroll container (its overflow-y:auto is
+       already there, and paintTriage() already saves/restores ITS
+       scrollTop across re-renders, so this was already anticipated) then
+       scrolls the whole page using the real content height instead of a
+       budgeted slice of it. The opened-bin .tg-view keeps overflow-x
+       hidden (adjustPopoverPosition's horizontal popover clamping
+       depends on it, per its own comment) — with height now content-
+       sized rather than flex-clamped, the coercion to overflow-y:auto is
+       harmless (nothing is left small enough to scroll internally). The
+       outermost .tg-view sits in a ROW-direction flex container
+       (.shell-content) where cross-axis (height) sizing comes from
+       align-items:stretch, not flex-basis — align-self escapes that the
+       same way flex:none escapes flex-basis in the column-direction
+       levels below it. :has() scopes the outermost .tg-view (not a
+       descendant of .tg-layout, so it's the only way to key its style to
+       the inner attribute) — well within this app's existing baseline,
+       already relying on oklch()/color-mix() elsewhere. */
+    .tg-layout[data-active-pane="bin"] { flex: none; height: auto; }
+    .tg-layout[data-active-pane="bin"] .tg-pane-bin { flex: none; height: auto; }
+    .tg-layout[data-active-pane="bin"] .tg-pane-bin > .tg-view { flex: none; height: auto; overflow-x: hidden; }
+    .tg-layout[data-active-pane="bin"] .tg-stack { flex: none; height: auto; max-height: none; overflow: visible; }
+    #content > .tg-view:has(.tg-layout[data-active-pane="bin"]) { align-self: flex-start; height: auto; overflow-x: hidden; }
+
     /* B6 (Cycle 3) — scroll fix. With a realistic number of Type/Domain
        bins, the wrapped chip row above grows to 2+ rows, and — because
        both panes stack in one column on desktop (.tg-pane-overview keeps
@@ -819,6 +866,11 @@
   .pfe-block--bulleted_list_item .pfe-block-text { display: flex; }
   .pfe-block--numbered_list_item .pfe-block-text { padding-left: 4px; }
   .pfe-block--readonly { font-family: 'Newsreader', serif; font-size: 17px; line-height: 1.65; color: var(--muted-text); font-style: italic; padding: 3px 0; }
+  /* Fix 22 (Cycle 4) — a real divider rule, not the generic unsupported-
+     block text fallback. Matches .dmn-divider's subtle weight elsewhere
+     in the app. */
+  .pfe-block--divider { padding: 10px 0; }
+  .pfe-divider-rule { flex: 1; border: none; border-top: 1px solid #DED8CA; margin: 0; }
   .pfe-block-todo {
     flex-shrink: 0; width: 18px; height: 18px; margin-top: 3px; border-radius: 5px;
     border: 1.5px solid var(--muted-text); display: flex; align-items: center; justify-content: center;
@@ -1433,7 +1485,7 @@
   // Bumped by hand on every deployed change (Cycle-2 preflight) — logged on
   // load and shown in-app (topbar + framed rail) so it's a glance which
   // build is actually running, instead of inferring it from git history.
-  const BUILD_STAMP = '2026-07-24-c3.1';
+  const BUILD_STAMP = '2026-07-25-c4.1';
   console.log(`RenitaOS build ${BUILD_STAMP}`);
 
   // --- Shared bootstrap: defined once, in one place. -----------------------
@@ -4983,6 +5035,17 @@
       return `<div class="pfe-block pfe-block--${type}" data-pfe-block="${escapeHtml(id)}">
         <div class="pfe-block-text" contenteditable="true" data-pfe-block-edit="${escapeHtml(id)}" data-pfe-block-type="${type}">${richTextToEditableHtml(rich)}</div>
         <button type="button" class="pfe-block-del" data-pfe-block-delete="${escapeHtml(id)}" aria-label="Delete line">×</button>
+      </div>`;
+    }
+    // Fix 22 (Cycle 4) — a divider has no rich_text, so it fell through to
+    // the generic unsupported-block fallback below and rendered as the
+    // literal text "(divider)" instead of an actual rule. It's not in
+    // PFE_EDITABLE_BLOCK_TYPES (nothing to edit — no text), but it still
+    // needs its own visual, not the read-only text fallback.
+    if (type === 'divider') {
+      return `<div class="pfe-block pfe-block--divider" data-pfe-block="${escapeHtml(id)}">
+        <hr class="pfe-divider-rule">
+        <button type="button" class="pfe-block-del" data-pfe-block-delete="${escapeHtml(id)}" aria-label="Delete divider">×</button>
       </div>`;
     }
     // Unsupported block type (image, table, code, nested toggle, etc.) —

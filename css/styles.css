@@ -566,6 +566,8 @@ body {
   white-space: nowrap;
   z-index: 40;
 }
+/* Fix 23 (Cycle 4) — the post-save toast doubles as a link to the Inbox. */
+.toast--link { cursor: pointer; text-decoration: underline; text-underline-offset: 2px; }
 
 /* This app is locked to its light design — it must not invert under the
    browser/OS dark-mode preference (card body text was unreadable when it did). */
@@ -584,7 +586,11 @@ body {
      composer; there's no room for a margin/shadow frame at phone widths. */
   body { background: #E7E0D0; }
   .capture-screen {
-    max-width: 720px;
+    /* Fix 21 (Cycle 4) — Capture carries no nav rail (confirmed by
+       design), so unlike the shared shell's frame this one doesn't need
+       to reserve room for one; widened accordingly. Capture-specific —
+       index.html's own .dmn-inner/.shell frame widths are untouched. */
+    max-width: 960px;
     padding: 0 40px;
     margin: 28px auto;
     height: calc(100vh - 56px);
