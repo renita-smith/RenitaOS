@@ -143,49 +143,16 @@
     color: var(--faint-text);
   }
 
-  .shell-nav {
-    flex-shrink: 0;
-    display: flex;
-    justify-content: center;
-    padding: 10px 0 max(16px, env(safe-area-inset-bottom));
-    background: var(--surface);
-  }
-
-  .nav-track {
-    display: flex;
-    width: 100%;
-    background: var(--surface-soft);
-    border-radius: var(--radius-sm);
-    padding: 3px;
-    gap: 2px;
-  }
-
-  .nav-btn {
-    flex: 1;
-    text-align: center;
-    padding: 10px 12px;
-    border-radius: var(--radius-sm);
-    font-size: 13px;
-    font-weight: 600;
-    cursor: pointer;
-    border: none;
-    background: transparent;
-    color: var(--muted-text);
-    font-family: inherit;
-    text-decoration: none;
-  }
-  .nav-btn.active {
-    background: #fff;
-    color: var(--text);
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
-  }
-
-  /* Today/Domains/Search (RenitaOS-Conventions.md's full rail list) aren't
-     routable yet — shown as inert placeholders so the rail's eventual shape
-     is visible without pretending they work. Hidden on the mobile bottom
-     nav (unchanged, 3 items); shown greyed-out once the rail appears at
-     the desktop breakpoint. */
-  .nav-btn--soon { display: none; opacity: .45; cursor: default; }
+  /* Refinement Pass 1, item 2 — .shell-nav is now just a mount point; its
+     look (icon-led rows, the mobile fixed bottom-tab bar, the desktop
+     sticky rail) comes entirely from .dmn-rail (the framed shell's own
+     rail — see the "Framed shell" CSS block below), shared verbatim via
+     renderNavRailInner() instead of a separate .nav-track/.nav-btn set
+     (removed; was the old bold-text/boxed-active treatment Inbox and
+     Today's rails used to disagree on). flex-shrink only matters at
+     desktop-grid widths above .dmn-rail's own 820px mobile breakpoint,
+     where .shell-nav stays a normal (non-fixed) grid/flex item. */
+  .shell-nav { flex-shrink: 0; }
 
   /* ============================================================
      Triage — read/display slice. Adapted from triage-view.html;
@@ -562,22 +529,18 @@
     .shell-topbar { grid-area: topbar; }
     .shell-content { grid-area: content; }
 
-    .shell-nav {
-      grid-area: nav;
-      justify-content: flex-start;
-      padding: 20px 0;
-      background: transparent;
-    }
-    /* The rail sits directly on the cream canvas — no filled sage slab
-       housing it (that treatment stays on the mobile bottom bar, which is
-       a different, unrelated segmented-control pattern). Nav items are
-       plain olive text; only the active one gets the standard active-state
-       treatment (deeper sage + olive keyline), same language as Triage's
-       bin chips below. */
-    .nav-track { flex-direction: column; width: 100%; background: transparent; padding: 0; gap: 2px; }
-    .nav-btn { flex: 0 0 auto; text-align: left; padding: 8px 14px; font-size: 15px; color: var(--text); }
-    .nav-btn.active { background: #DBE2C1; box-shadow: inset 0 0 0 1px color-mix(in oklch, #3A4410 45%, transparent); }
-    .nav-btn--soon { display: block; }
+    /* Refinement Pass 1, item 2 — .dmn-rail itself supplies the sticky-
+       rail look at this width (its own base rule, position:sticky) and
+       switches back to a fixed bottom-tab bar below its own 820px
+       breakpoint; grid-area is the only thing .shell's grid needs to add
+       so the shared rail lands in the right column. Note: .shell's own
+       desktop breakpoint (768px) starts slightly before .dmn-rail's
+       (820px) — a narrow, rarely-hit viewport band where the rail is
+       still the mobile fixed bar while .shell has already gone to its
+       grid layout. Left as-is (cosmetic-only, no functional break) rather
+       than touching the shared 768px breakpoint every other rule in this
+       block also keys off. */
+    .shell-nav { grid-area: nav; }
 
     /* Content stays a comfortable bounded width on desktop — except
        Triage's own stretch layout, which now spans the full content width
@@ -1106,6 +1069,12 @@
   /* ---- Nav rail — on the cream panel, not a sage slab (Addendum 2) ---- */
   .dmn-rail { position: sticky; top: 24px; align-self: start; }
   .dmn-brand { font-family: 'Newsreader', Georgia, serif; font-size: 17px; margin: 2px 0 18px 10px; color: #2A3408; }
+  /* Refinement Pass 1, item 2 — .shell's own .shell-topbar already shows
+     the "RenitaOS" wordmark + build stamp (with the Capture/inbox-pill
+     actions beside it); the shared rail's own .dmn-brand would just
+     repeat it right below, so it's hidden specifically in that context.
+     framedRoot has no topbar of its own, so its copy keeps the brand. */
+  .shell-nav .dmn-brand { display: none; }
   .dmn-rail nav { display: flex; flex-direction: column; gap: 2px; }
   .dmn-rail a {
     display: flex; align-items: center; gap: 9px;
@@ -1114,10 +1083,14 @@
     border: 1px solid transparent;
   }
   .dmn-rail a:hover { background: #DBE2C1; }
-  /* Addendum 2 / Conventions "Rail treatment": no rail item is ever active
-     on a record profile, so .dmn-rail never renders an .active state — the
-     class/CSS below is kept only for parity with the retrofit's shared
-     stylesheet, in case a future non-profile screen mounts this same rail. */
+  /* Addendum 2 / Conventions "Rail treatment": no rail item is active on a
+     record profile (an entity route never matches Home/Today/Inbox/
+     Explore/Search, so this simply never fires there) — but Refinement
+     Pass 1 item 2 made this rail the ONE nav component app-wide, and it
+     DOES apply on the non-profile screens that are actually rail
+     destinations (Home, Today, Inbox), where it's the deliberately
+     lighter alternative to the old .nav-btn.active's heavier boxed/
+     shadowed treatment: a soft fill + thin keyline, nothing more. */
   .dmn-rail a.active { background: #DBE2C1; border-color: #2A3408; }
   .dmn-rail a .dmn-ic { width: 16px; height: 16px; color: #3A4410; flex: none; }
   .dmn-rail a .dmn-n { margin-left: auto; font-family: 'IBM Plex Sans', sans-serif; font-size: 13px; color: oklch(0.55 0.012 75); }
@@ -1439,6 +1412,18 @@
       padding: 16px 16px calc(92px + env(safe-area-inset-bottom));
     }
 
+    /* Refinement Pass 1, item 2 — .shell-nav now shares this same fixed
+       bottom-tab-bar treatment (.dmn-rail, above) instead of sitting in
+       normal flex flow the way the old .nav-track bar did, so
+       .shell-content (Home/Inbox) needs the same bottom-clearance
+       .dmn-shell reserves above, on both its plain and .stretch/.profile
+       variants (which otherwise zero out padding entirely). */
+    .shell-content,
+    .shell-content.stretch,
+    .shell-content.profile {
+      padding-bottom: calc(92px + env(safe-area-inset-bottom));
+    }
+
     /* Fixed bottom tab bar — all five items always visible, evenly
        distributed, icon above a short label (the compact shape that
        reliably fits five tabs on a phone width without clipping). */
@@ -1552,20 +1537,12 @@
 
   <main id="content" class="shell-content"></main>
 
-  <!-- Addendum 2 nav set (Home · Today · Inbox (N) · Explore · Search) —
-       Domains dropped (browse role -> Explore) and Capture is no longer a
-       rail tab (see .topbar-capture above). Home and Inbox are the only two
-       routes still using this rail; every other route uses the framed
-       shell's own rail (#framedRoot .dmn-rail), which carries the same set. -->
-  <nav class="shell-nav">
-    <div class="nav-track">
-      <a href="#/home" class="nav-btn" data-route="home">Home</a>
-      <a href="#/today" class="nav-btn" data-route="today">Today</a>
-      <a href="#/inbox" class="nav-btn" data-route="inbox" id="navInboxItem">Inbox (…)</a>
-      <span class="nav-btn nav-btn--soon" aria-disabled="true" title="Coming soon">Explore</span>
-      <span class="nav-btn nav-btn--soon" aria-disabled="true" title="Coming soon">Search</span>
-    </div>
-  </nav>
+  <!-- Refinement Pass 1, item 2 — Home and Inbox are the only two routes
+       still using this rail; every other route uses the framed shell's own
+       rail (#framedRoot .dmn-rail). Both now render the SAME markup (see
+       renderNavRailInner, populated on load) so there's one nav-rail
+       component/style app-wide instead of two divergent ones. -->
+  <div class="shell-nav dmn-rail" id="shellNavRail"></div>
 
 </div>
 
@@ -1996,8 +1973,29 @@
     return pages.length;
   }
 
+  // Refinement Pass 1, item 2 — the ONE nav rail, used by both the old
+  // .shell (Home/Inbox — the only two routes still outside the framed
+  // shell) and #framedRoot (every entity profile + Today). Previously each
+  // had its own markup/CSS (a horizontal bold-text pill row vs. this
+  // icon-led vertical rail); this is now the single source of that markup,
+  // injected into both mount points so there's one component, one style,
+  // app-wide, per the brief. `data-nav-inbox-count`/`data-nav-build-stamp`
+  // are attribute hooks (not ids) since both copies exist in the DOM
+  // simultaneously and both need updating together.
+  function renderNavRailInner() {
+    return `
+      <div class="dmn-brand">RenitaOS<span class="build-stamp" data-nav-build-stamp></span></div>
+      <nav aria-label="Primary">
+        <a href="#/home" data-route="home"><svg class="dmn-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 11l9-8 9 8M5 9v11h14V9"/></svg>Home</a>
+        <a href="#/today" data-route="today"><svg class="dmn-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M3 10h18M8 2v4M16 2v4"/></svg>Today</a>
+        <a href="#/inbox" data-route="inbox"><svg class="dmn-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 12h5l2 3h4l2-3h5M4 5h16v14H4z"/></svg>Inbox <span class="dmn-n" data-nav-inbox-count>(…)</span></a>
+        <a href="#/explore" data-route="explore"><svg class="dmn-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="11" cy="11" r="7"/><path d="M11 6l2.5 5L11 11l-5 2.5z" fill="currentColor" stroke="none"/></svg>Explore</a>
+        <a href="#/search" data-route="search"><svg class="dmn-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>Search</a>
+      </nav>
+    `;
+  }
+
   const inboxPill = document.getElementById('inboxPill');
-  const navInboxItem = document.getElementById('navInboxItem');
   const content = document.getElementById('content');
   // The framed shell's own root — present from load (see its comment in
   // the body markup) even though its inner rail/columns aren't built until
@@ -2006,6 +2004,12 @@
   const framedRoot = document.getElementById('framedRoot');
   const buildStampTopEl = document.getElementById('buildStampTop');
   if (buildStampTopEl) buildStampTopEl.textContent = BUILD_STAMP;
+  // Refinement Pass 1, item 2 — the .shell copy of the shared rail (see
+  // renderNavRailInner above); the framedRoot copy is built lazily by
+  // ensureFramedShell() the first time any framed route mounts.
+  const shellNavRail = document.getElementById('shellNavRail');
+  if (shellNavRail) shellNavRail.innerHTML = renderNavRailInner();
+  document.querySelectorAll('[data-nav-build-stamp]').forEach((el) => { el.textContent = BUILD_STAMP; });
 
   async function refreshInboxCount() {
     try {
@@ -2015,22 +2019,13 @@
       ]);
       const total = notesCount + tasksCount;
       inboxPill.textContent = `${total} to Sort`;
-      // Rail only — the Inbox screen's own "N waiting · One bin at a time."
-      // heading (renderOverview's tg-ov-sub) stays un-parenthesized.
-      navInboxItem.textContent = `Inbox (${total})`;
-      // The framed shell's own rail (only present once a Domain profile has
-      // mounted at least once) mirrors the same "(N)" convention on its own
-      // element, rather than overwriting the whole link's text like the old
-      // rail does above — id lookup rather than a cached reference since
-      // ensureFramedShell() may not have built it yet.
-      const dmnCount = document.getElementById('dmnNavInboxCount');
-      if (dmnCount) dmnCount.textContent = `(${total})`;
+      // Both rail copies (whichever exist at call time — framedRoot's may
+      // not be mounted yet) share the same "(N)" convention.
+      document.querySelectorAll('[data-nav-inbox-count]').forEach((el) => { el.textContent = `(${total})`; });
     } catch (err) {
       console.error('Failed to refresh inbox count', err);
       inboxPill.textContent = '— to Sort';
-      navInboxItem.textContent = 'Inbox (—)';
-      const dmnCount = document.getElementById('dmnNavInboxCount');
-      if (dmnCount) dmnCount.textContent = '(—)';
+      document.querySelectorAll('[data-nav-inbox-count]').forEach((el) => { el.textContent = '(—)'; });
     }
   }
 
@@ -8041,16 +8036,7 @@
     if (framedMounted) return;
     framedRoot.innerHTML = `
       <div class="dmn-inner"><div class="dmn-shell">
-        <div class="dmn-rail">
-          <div class="dmn-brand">RenitaOS<span class="build-stamp" id="buildStampRail"></span></div>
-          <nav aria-label="Primary">
-            <a href="#/home"><svg class="dmn-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 11l9-8 9 8M5 9v11h14V9"/></svg>Home</a>
-            <a href="#/today"><svg class="dmn-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M3 10h18M8 2v4M16 2v4"/></svg>Today</a>
-            <a href="#/inbox"><svg class="dmn-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 12h5l2 3h4l2-3h5M4 5h16v14H4z"/></svg>Inbox <span class="dmn-n" id="dmnNavInboxCount">(…)</span></a>
-            <a href="#/explore"><svg class="dmn-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="11" cy="11" r="7"/><path d="M11 6l2.5 5L11 11l-5 2.5z" fill="currentColor" stroke="none"/></svg>Explore</a>
-            <a href="#/search"><svg class="dmn-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>Search</a>
-          </nav>
-        </div>
+        <div class="dmn-rail">${renderNavRailInner()}</div>
         <div class="dmn-col" id="dmnMain"></div>
         <aside class="dmn-props" id="dmnProps"></aside>
       </div></div>
@@ -8061,8 +8047,13 @@
     dmnMain = document.getElementById('dmnMain');
     dmnProps = document.getElementById('dmnProps');
     framedMounted = true;
-    const buildStampRailEl = document.getElementById('buildStampRail');
-    if (buildStampRailEl) buildStampRailEl.textContent = BUILD_STAMP;
+    // The build-stamp span shares one attribute hook across both rail
+    // copies (see renderNavRailInner) — re-run it now that this copy's
+    // span exists too. The inbox count needs no equivalent call here:
+    // render() already fires refreshInboxCount() unconditionally after
+    // every mount (including the one that got us here), and it updates
+    // every [data-nav-inbox-count] it finds at call time.
+    document.querySelectorAll('[data-nav-build-stamp]').forEach((el) => { el.textContent = BUILD_STAMP; });
   }
 
   function paintDomainProfile() {
@@ -9432,9 +9423,6 @@
     pfeState.query = '';
     pfeCardPopover.taskId = null; pfeCardPopover.field = null;
     const route = parseRoute();
-    document.querySelectorAll('.nav-btn').forEach((btn) => {
-      btn.classList.toggle('active', btn.dataset.route === route.name);
-    });
     content.classList.toggle('stretch', route.name === 'inbox');
     // The Inbox-triage "N to Sort" pill doesn't belong on a record's own
     // profile (real or still-stubbed) — Home and Inbox keep it. Today has
@@ -9476,6 +9464,18 @@
     // The inbox count can change on any screen (Capture adds to it, Triage
     // will resolve it later), so it's refreshed on every route change.
     refreshInboxCount();
+    // Refinement Pass 1, item 2 — both rail copies (renderNavRailInner)
+    // use [data-route] on their <a> tags, no dedicated class needed. Runs
+    // AFTER the dispatch above (not before, where it used to sit) because
+    // a route's first-ever mount is exactly when ensureFramedShell() just
+    // built the framedRoot copy from scratch — toggling before that point
+    // would set .active on a rail element that doesn't exist yet, leaving
+    // the very first framed navigation (e.g. the first-ever click into
+    // Today or any entity profile) with no active indicator until the
+    // next route change.
+    document.querySelectorAll('.dmn-rail a[data-route]').forEach((btn) => {
+      btn.classList.toggle('active', btn.dataset.route === route.name);
+    });
   }
 
   window.addEventListener('hashchange', render);
