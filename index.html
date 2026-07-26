@@ -1581,7 +1581,7 @@
   // Bumped by hand on every deployed change (Cycle-2 preflight) — logged on
   // load and shown in-app (topbar + framed rail) so it's a glance which
   // build is actually running, instead of inferring it from git history.
-  const BUILD_STAMP = '2026-07-26-today1';
+  const BUILD_STAMP = '2026-07-26-today2';
   console.log(`RenitaOS build ${BUILD_STAMP}`);
 
   // --- Shared bootstrap: defined once, in one place. -----------------------
@@ -8577,6 +8577,26 @@
     const clampedDay = Math.min(day, prevMonthLastDay);
     return isoOf(new Date(y, m - 2, clampedDay));
   }
+  // Refinement Pass 1, item 1 — a Notion `date` property's `start` value is
+  // a bare 'YYYY-MM-DD' ONLY when the page never had a time set on it; the
+  // moment a time is (or was ever) attached, Notion returns a full
+  // datetime-with-offset string instead (e.g. '2026-07-26T14:00:00.000-04:00').
+  // Every exact-equality bucket check below (`placeDate === ctx.today`) and
+  // every string range compare (`tdIsBetween`) silently breaks against that
+  // shape, which is exactly how a same-day/tomorrow task can vanish from
+  // every bucket without erroring. Truncate to the calendar-day prefix at
+  // the data boundary (tdMapTaskPage / the project deadline read) so
+  // everything downstream only ever sees 'YYYY-MM-DD' — the same defense
+  // formatDateShort/parseLocalDate already apply elsewhere in this file.
+  function tdDateOnly(dateStr) {
+    return dateStr ? dateStr.slice(0, 10) : dateStr;
+  }
+  // Normalizes a raw Notion date-property value ({ start, end, time_zone }
+  // or null) to the same shape with `start` truncated to 'YYYY-MM-DD'.
+  function tdNormalizeDate(dateVal) {
+    if (!dateVal || !dateVal.start) return dateVal;
+    return { ...dateVal, start: tdDateOnly(dateVal.start) };
+  }
 
   const TD_WEEKDAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
   const TD_MONTH_NAMES = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
@@ -8654,9 +8674,9 @@
     const statusName = (statusProp && statusProp.status && statusProp.status.name) || null;
     const priorityVal = schema.priorityProp ? p.properties[schema.priorityProp] : null;
     const priorityName = (priorityVal && priorityVal.select && priorityVal.select.name) || null;
-    const doDate = schema.doDateProp ? ((p.properties[schema.doDateProp] || {}).date || null) : null;
-    const dueDate = schema.dueDateProp ? ((p.properties[schema.dueDateProp] || {}).date || null) : null;
-    const completedDate = schema.completedProp ? ((p.properties[schema.completedProp] || {}).date || null) : null;
+    const doDate = tdNormalizeDate(schema.doDateProp ? ((p.properties[schema.doDateProp] || {}).date || null) : null);
+    const dueDate = tdNormalizeDate(schema.dueDateProp ? ((p.properties[schema.dueDateProp] || {}).date || null) : null);
+    const completedDate = tdNormalizeDate(schema.completedProp ? ((p.properties[schema.completedProp] || {}).date || null) : null);
     const timeSlotVal = schema.timeSlotProp ? (p.properties[schema.timeSlotProp] || {}).multi_select : null;
     const timeSlot = (timeSlotVal || []).map((o) => o.name);
     const projRel = (p.properties[schema.tasksProjectsProp] || {}).relation || [];
@@ -8712,7 +8732,7 @@
       const uniqueId = uv ? formatUniqueId(uv.prefix, uv.number) : null;
       const statusProp = p.properties[schema.projStatusSchema.name];
       const statusName = (statusProp && statusProp.status && statusProp.status.name) || null;
-      const deadline = (p.properties[schema.deadlineProp] || {}).date || null;
+      const deadline = tdNormalizeDate((p.properties[schema.deadlineProp] || {}).date || null);
       const domRel = (p.properties[schema.projectsDomainsProp] || {}).relation || [];
       const domainId = domRel[0] ? domRel[0].id : null;
       return { id: p.id, title, uniqueId, statusName, deadline, domainId, domainCode: null };
@@ -8784,8 +8804,13 @@
     else if (isOverdue) bucket = 'overdue';
     else if (placeDate === ctx.tomorrow) bucket = 'tomorrow';
     else if (tdIsBetween(placeDate, ctx.weekStart, ctx.weekEnd)) bucket = 'week';
-    else return null; // falls in the month-only window — §7 shows project
-    // deadlines + domain distribution there, not individual tasks.
+    // Refinement Pass 1, item 1 — anything later in the month than "this
+    // week" used to fall through and be silently dropped (a gap between
+    // the Sunday-anchored week boundary and the month boundary). This is
+    // the fix: everything through end-of-month gets a 'month' bucket
+    // instead of nothing.
+    else if (tdIsBetween(placeDate, ctx.monthStart, ctx.monthEnd)) bucket = 'month';
+    else return null; // genuinely outside the fetched window
     return { bucket, isOverdue, placeDate };
   }
   function deriveTodayBuckets(tasks, ctx) {
@@ -8793,6 +8818,7 @@
     const todayPool = [];
     const tomorrowPool = [];
     const week = [];
+    const month = [];
     tasks.forEach((t) => {
       const placed = tdPlaceTask(t, ctx);
       if (!placed) return;
@@ -8800,29 +8826,36 @@
       if (placed.bucket === 'today') todayPool.push(rec);
       else if (placed.bucket === 'overdue') overdue.push(rec);
       else if (placed.bucket === 'tomorrow') tomorrowPool.push(rec);
-      else week.push(rec);
+      else if (placed.bucket === 'week') week.push(rec);
+      else month.push(rec);
     });
-    week.sort((a, b) => (a.placeDate < b.placeDate ? -1 : a.placeDate > b.placeDate ? 1 : 0));
-    return { overdue, todayPool, tomorrowPool, week };
+    const byPlaceDate = (a, b) => (a.placeDate < b.placeDate ? -1 : a.placeDate > b.placeDate ? 1 : 0);
+    week.sort(byPlaceDate);
+    month.sort(byPlaceDate);
+    return { overdue, todayPool, tomorrowPool, week, month };
   }
   function tdRebucketTask(d, task) {
     const placed = tdPlaceTask(task, d);
     if (!placed) return; // rescheduled beyond this window — drops off Today.
     const rec = { ...task, isOverdue: placed.isOverdue, placeDate: placed.placeDate };
+    const byPlaceDate = (a, b) => (a.placeDate < b.placeDate ? -1 : a.placeDate > b.placeDate ? 1 : 0);
     if (placed.bucket === 'today') d.todayPool.push(rec);
     else if (placed.bucket === 'overdue') d.overdue.push(rec);
     else if (placed.bucket === 'tomorrow') d.tomorrowPool.push(rec);
-    else { d.week.push(rec); d.week.sort((a, b) => (a.placeDate < b.placeDate ? -1 : a.placeDate > b.placeDate ? 1 : 0)); }
+    else if (placed.bucket === 'week') { d.week.push(rec); d.week.sort(byPlaceDate); }
+    else { d.month.push(rec); d.month.sort(byPlaceDate); }
   }
   function tdFindTask(d, taskId) {
     return d.overdue.find((t) => t.id === taskId) || d.todayPool.find((t) => t.id === taskId)
-      || d.tomorrowPool.find((t) => t.id === taskId) || d.week.find((t) => t.id === taskId) || null;
+      || d.tomorrowPool.find((t) => t.id === taskId) || d.week.find((t) => t.id === taskId)
+      || d.month.find((t) => t.id === taskId) || null;
   }
   function tdRemoveTask(d, taskId) {
     d.overdue = d.overdue.filter((t) => t.id !== taskId);
     d.todayPool = d.todayPool.filter((t) => t.id !== taskId);
     d.tomorrowPool = d.tomorrowPool.filter((t) => t.id !== taskId);
     d.week = d.week.filter((t) => t.id !== taskId);
+    d.month = d.month.filter((t) => t.id !== taskId);
   }
 
   // §8 metrics — week/month comparisons are neutral-reference (no ahead/
@@ -8867,7 +8900,7 @@
       p.domainCode = meta ? meta.code : null;
     });
 
-    const buckets = deriveTodayBuckets(tasks, { today, tomorrow, weekStart, weekEnd });
+    const buckets = deriveTodayBuckets(tasks, { today, tomorrow, weekStart, weekEnd, monthStart, monthEnd });
     const metrics = deriveTodayMetrics(completions, { today, weekStart, monthStart, lastMonthAnchor });
 
     const domainCompletionCounts = {};
@@ -8880,7 +8913,7 @@
 
     return {
       today, tomorrow, weekStart, weekEnd, monthStart, monthEnd, lastMonthAnchor,
-      overdue: buckets.overdue, todayPool: buckets.todayPool, tomorrowPool: buckets.tomorrowPool, week: buckets.week,
+      overdue: buckets.overdue, todayPool: buckets.todayPool, tomorrowPool: buckets.tomorrowPool, week: buckets.week, month: buckets.month,
       projects, domainCompletionCounts, metrics,
       slotColumns: schema.slotColumns, statusOptions: schema.statusSchema.options, priorityOptions: schema.priorityOptions,
       timeSlotProp: schema.timeSlotProp,
@@ -9231,10 +9264,18 @@
     const projBody = projects.length
       ? projects.map((p) => renderTodayProjectDeadlineRow(p)).join('')
       : `<div class="dmn-empty">No deadlines this month.</div>`;
+    // Refinement Pass 1, item 1 — tasks placed later in the month than
+    // "this week" (§4's 'month' bucket) render here, the same row style
+    // This Week uses (renderTodayCompactRow: checkbox, pills, reschedule).
+    const monthTasks = applyTodayDomainFilter(d.month, s.domainFilter);
+    const taskBody = monthTasks.length
+      ? `<div class="today-strip">${monthTasks.map((t) => renderTodayCompactRow(t, d)).join('')}</div>`
+      : '';
     return `<section class="dmn-sec today-month-sec">
       <h2 class="dmn-sec-hd">This Month</h2>
       ${renderTodayMonthComparisonMetric(d.metrics.monthToDate, d.metrics.lastMonthSamePoint, d.lastMonthAnchor)}
       <div class="today-strip">${projBody}</div>
+      ${taskBody}
       ${renderTodayDomainDistribution(d.domainCompletionCounts, s.domainFilter)}
     </section>`;
   }
