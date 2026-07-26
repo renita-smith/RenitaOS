@@ -80,7 +80,6 @@
      can be checked against what's actually running rather than taken on
      faith. Muted on purpose: informational chrome, not a UI element. */
   .build-stamp { margin-left: 6px; font-weight: 400; text-transform: none; letter-spacing: normal; opacity: .55; font-size: 0.85em; }
-  .dmn-brand .build-stamp { display: block; font-size: 10px; margin: -2px 0 0; }
 
   .inbox-pill {
     display: inline-flex;
@@ -409,6 +408,10 @@
      behind a long list of matches. */
   .tg-pop-opt--create { color: var(--tg-ghost); margin-top: 4px; }
   .tg-pop-opt--clear { color: oklch(0.5 0.15 25); margin-top: 4px; }
+  /* Today's per-task "Delete task" row (renderPfeCardSelectPopover's
+     `deletable` option) — same destructive tone as Clear, plus a hairline
+     to separate it from the status options above it. */
+  .tg-pop-opt--delete { color: oklch(0.5 0.15 25); margin-top: 4px; border-top: 1px solid var(--hairline); padding-top: 10px; border-radius: 0 0 var(--radius-sm) var(--radius-sm); }
   .tg-pop-date { width: 100%; border: none; outline: none; background: oklch(0.97 0.005 75); border-radius: var(--radius-sm); padding: 9px 11px; font-size: 13px; color: #2A3408; font-family: inherit; box-sizing: border-box; margin-top: 6px; }
   /* Fix 6 (Appendix A) — a native date input's displayed value renders
      through WebKit's own shadow-DOM sub-parts, which don't reliably
@@ -1068,7 +1071,16 @@
 
   /* ---- Nav rail — on the cream panel, not a sage slab (Addendum 2) ---- */
   .dmn-rail { position: sticky; top: 24px; align-self: start; }
-  .dmn-brand { font-family: 'Newsreader', Georgia, serif; font-size: 17px; margin: 2px 0 18px 10px; color: #2A3408; }
+  /* Live-testing request — standardized to exactly match .shell-title
+     (Home/Inbox's topbar brand mark): this rail brand mark is Today/every
+     entity profile's ONLY brand mark (they have no separate topbar), so
+     it needs to look the same as the one Home/Inbox shows, not its own
+     larger serif/full-color treatment. */
+  .dmn-brand {
+    font-size: 11px; letter-spacing: .08em; text-transform: uppercase;
+    color: oklch(0.62 0.012 75); font-weight: 600;
+    margin: 2px 0 18px 10px;
+  }
   /* Refinement Pass 1, item 2 — .shell's own .shell-topbar already shows
      the "RenitaOS" wordmark + build stamp (with the Capture/inbox-pill
      actions beside it); the shared rail's own .dmn-brand would just
@@ -1353,6 +1365,19 @@
     background: var(--tg-sage-deep, #DBE2C1);
     border-color: transparent;
   }
+  /* Live-testing fix — the date pill (leading 🗓 emoji) rendered visibly
+     taller than its plain-text siblings (Status/Priority): an emoji glyph
+     carries its own font metrics, and .pf-pill's line-height is otherwise
+     unset, so the browser computes a taller line box for that one pill
+     even though every pill is display:inline-flex;align-items:center.
+     A fixed height (not just min-height, so the emoji's own box can't
+     push the pill taller) makes every pill in a row match regardless of
+     whether its content is an emoji+text or plain text. */
+  .today-row .dmn-card-pill,
+  .today-board-card .dmn-card-pill {
+    height: 26px;
+    line-height: 1;
+  }
 
   /* ---- Today/Tomorrow board ---- */
   .today-toggle { display: inline-flex; background: #E7ECD6; border-radius: 4px; padding: 3px; gap: 2px; margin-bottom: 14px; }
@@ -1618,7 +1643,7 @@
   // Bumped by hand on every deployed change (Cycle-2 preflight) — logged on
   // load and shown in-app (topbar + framed rail) so it's a glance which
   // build is actually running, instead of inferring it from git history.
-  const BUILD_STAMP = '2026-07-26-today3';
+  const BUILD_STAMP = '2026-07-26-today4';
   console.log(`RenitaOS build ${BUILD_STAMP}`);
 
   // --- Shared bootstrap: defined once, in one place. -----------------------
@@ -7035,7 +7060,13 @@
   function renderPfeCardSelectPopover(taskId, options, currentValue, opts = {}) {
     const rows = (options || []).map((o) => `<div class="tg-pop-opt${o.name === currentValue ? ' on' : ''}" data-pfe-card-opt="${escapeHtml(o.name)}" data-pfe-card-id="${escapeHtml(taskId)}">${escapeHtml(o.name)}</div>`).join('');
     const clearHtml = opts.clearable ? `<div class="tg-pop-opt tg-pop-opt--clear" data-pfe-card-clear="true" data-pfe-card-id="${escapeHtml(taskId)}">Clear</div>` : '';
-    return `<div class="tg-popover">${opts.label ? `<div class="tg-pop-label">${escapeHtml(opts.label)}</div>` : ''}<div class="tg-pop-list">${rows}</div>${clearHtml}</div>`;
+    // Live-testing request (Today) — `deletable` appends a "Delete task"
+    // row, same shape as `clearable`'s "Clear" row above; unset/false for
+    // every existing caller (Project/Domain), so this is purely additive.
+    // Delete = archive (`{ archived: true }`, Notion's own soft-delete/
+    // trash), same mechanism every other Delete action in the app uses.
+    const deleteHtml = opts.deletable ? `<div class="tg-pop-opt tg-pop-opt--delete" data-pfe-card-delete="true" data-pfe-card-id="${escapeHtml(taskId)}">Delete task</div>` : '';
+    return `<div class="tg-popover">${opts.label ? `<div class="tg-pop-label">${escapeHtml(opts.label)}</div>` : ''}<div class="tg-pop-list">${rows}</div>${clearHtml}${deleteHtml}</div>`;
   }
   // `priorityOptions` is null when the tab/card context hasn't resolved a
   // Priority property at all (never rendered in that case, same
@@ -8323,6 +8354,18 @@
       }
       return;
     }
+    // Live-testing request — "Delete task" row inside Today's Status
+    // popover (renderPfeCardSelectPopover's `deletable` option, only ever
+    // rendered there today, so no route check is strictly needed — but
+    // one's kept for the same reason every other Today dispatch has one:
+    // explicit is safer than "happens to be the only caller" if that
+    // ever changes).
+    const cardDelete = e.target.closest('[data-pfe-card-delete]');
+    if (cardDelete) {
+      e.stopPropagation();
+      if (!pfeState.busy && currentRoute() === 'today') applyTodayTaskDelete(cardDelete.dataset.pfeCardId);
+      return;
+    }
     // Today's Time Slot picker (mobile/always-available alternative to
     // desktop drag, §5) — a plain option list under the card's slot pill,
     // reusing the generic data-pfe-card-action popover-toggle machinery
@@ -9162,6 +9205,28 @@
     }
   });
 
+  // Live-testing request — delete a task straight from Today, reached via
+  // the Status popover's "Delete task" row (renderPfeCardSelectPopover's
+  // `deletable` option). Same write every other Delete in the app uses
+  // (`{ archived: true }` — Notion's own soft-delete/trash), no confirm
+  // dialog, matching applyProjectBulkDelete/applyBulkDelete's own
+  // immediate-then-toast shape.
+  const applyTodayTaskDelete = withPfeBusy(async (taskId) => {
+    const s = todayDashboardState;
+    if (!s.data) return;
+    const task = tdFindTask(s.data, taskId);
+    if (!task) return;
+    try {
+      await notionRequest(`/v1/pages/${taskId}`, { method: 'PATCH', body: { archived: true } });
+      tdRemoveTask(s.data, taskId);
+      pfeCardPopover.taskId = null; pfeCardPopover.field = null;
+      showPfeToast('Task deleted.');
+    } catch (err) {
+      console.error('Failed to delete task', err);
+      showPfeToast(err.message || 'Could not delete that task — try again.');
+    }
+  });
+
   // --- Render ----------------------------------------------------------------
   function applyTodayDomainFilter(list, filter) {
     if (filter === 'all') return list;
@@ -9212,7 +9277,10 @@
   // Domain's own task-grid cards still call it directly and are out of
   // this pass's scope.
   function renderTodayValuePills(t, statusOptions, priorityOptions) {
-    const statusPop = pfeCardOpenFor(t.id, 'status') ? renderPfeCardSelectPopover(t.id, statusOptions, t.statusName, { label: 'Status' }) : '';
+    // Live-testing request — Delete lives in the Status popover (the same
+    // spot a picker-driven "select option" already exists per task), so
+    // no new UI chrome is needed just to make it reachable.
+    const statusPop = pfeCardOpenFor(t.id, 'status') ? renderPfeCardSelectPopover(t.id, statusOptions, t.statusName, { label: 'Status', deletable: true }) : '';
     const statusHtml = `<span class="tg-pop-wrap"><span class="pf-pill pf-pill--value dmn-card-pill" data-pfe-card-action="status" data-pfe-card-id="${escapeHtml(t.id)}">${escapeHtml(t.statusName || 'No status')}</span>${statusPop}</span>`;
     let priorityHtml = '';
     if (priorityOptions && priorityOptions.length) {
