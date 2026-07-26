@@ -6,6 +6,13 @@
 // Dates are 'YYYY-MM-DD' strings throughout. Because ISO date strings sort
 // lexicographically, range comparisons elsewhere in the app can stay plain
 // string compares against these outputs.
+//
+// This is the tested spec for that math (run it with plain `node` — no
+// bundler, no DOM). index.html is a self-contained, no-imports file (see
+// its own header comment), so it can't `import` this module directly — its
+// Today dashboard section re-declares the same functions inline, prefixed
+// `td*` (tdAddDays, tdStartOfWeek, ...), built on index.html's own isoOf().
+// If the rule here ever changes, mirror the change into that section too.
 
 function toLocalDateObj(dateStr) {
   const [y, m, d] = dateStr.split('-').map(Number);
