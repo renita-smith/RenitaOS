@@ -1321,6 +1321,102 @@
     margin-right: 6px; vertical-align: middle;
   }
 
+  /* ================================================================
+     Today / This Week / This Month dashboard — a composition of the
+     shared components above (task cards, .dmn-bar, the framed shell),
+     plus the handful of screen-only pieces the build brief calls out
+     in §11 (the toggle, the board, the domain filter, the overdue
+     strip, the week/month sections, the agenda). ================== */
+  .today-head { display: flex; flex-direction: column; gap: 8px; }
+  .today-metric { font-family: 'IBM Plex Sans', sans-serif; font-size: 13px; color: oklch(0.55 0.012 75); }
+  .today-domain-filter { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }
+  .today-domain-pill {
+    font: inherit; font-size: 12px; font-weight: 600; padding: 5px 12px; border-radius: 4px;
+    background: #E7ECD6; color: #2A3408; border: 1px solid transparent; cursor: pointer;
+  }
+  .today-domain-pill:hover { background: #DBE2C1; }
+  .today-domain-pill.active { border-color: #2A3408; }
+
+  .today-strip { display: flex; flex-direction: column; gap: 6px; }
+  .today-row {
+    display: flex; align-items: center; flex-wrap: wrap; gap: 8px;
+    background: #E7ECD6; border-radius: 10px; padding: 10px 12px; cursor: pointer;
+    border: 1px solid transparent;
+  }
+  .today-row:hover { border-color: #DBE2C1; }
+  .today-row-title { font-family: 'Newsreader', serif; font-size: 15px; flex: 1; min-width: 120px; }
+  .today-daytag {
+    font-family: 'IBM Plex Sans', sans-serif; font-size: 11px; font-weight: 600; color: oklch(0.55 0.012 75);
+    text-transform: uppercase; letter-spacing: .04em;
+  }
+  .today-badge {
+    font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em;
+    padding: 3px 8px; border-radius: 4px;
+  }
+  .today-badge--overdue { background: oklch(0.93 0.05 35); color: oklch(0.42 0.14 35); }
+  .today-domain-chip { font-size: 10px; font-weight: 600; padding: 2px 8px; border-radius: 4px; }
+
+  /* ---- Today/Tomorrow board ---- */
+  .today-toggle { display: inline-flex; background: #E7ECD6; border-radius: 4px; padding: 3px; gap: 2px; margin-bottom: 14px; }
+  .today-toggle-btn {
+    font: inherit; font-size: 13px; font-weight: 600; padding: 8px 20px; border-radius: 4px;
+    border: none; background: transparent; color: oklch(0.5 0.012 75); cursor: pointer;
+  }
+  .today-toggle-btn.active { background: #fff; color: #2A3408; box-shadow: 0 1px 3px rgba(0,0,0,.12); }
+  .today-board { display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: 14px; }
+  .today-col { min-width: 0; }
+  .today-col-hd {
+    font-family: 'IBM Plex Sans', sans-serif; font-size: 11px; font-weight: 600; letter-spacing: .06em;
+    text-transform: uppercase; color: oklch(0.55 0.012 75); margin-bottom: 8px;
+  }
+  .today-col--bank .today-col-hd { color: #2A3408; }
+  .today-col-body {
+    display: flex; flex-direction: column; gap: 8px; min-height: 64px;
+    border-radius: 10px; padding: 4px; transition: background-color .1s;
+  }
+  .today-col-empty { font-family: 'Newsreader', serif; font-style: italic; font-size: 13px; color: oklch(0.62 0.012 75); padding: 8px 6px; }
+  .today-dropzone--over { background: #DBE2C1; }
+  .today-board-card { cursor: grab; }
+  .today-board-card:active { cursor: grabbing; }
+  .today-date-pill, .today-slot-pill { cursor: pointer; }
+
+  /* ---- This Week / This Month metrics — neutral reference, no delta
+     mid-week (§8): the number is the record, the reference line beside
+     it is context, never an ahead/behind judgment. ---- */
+  .today-metric-row { display: flex; align-items: baseline; gap: 10px; margin: 4px 0 14px; }
+  .today-metric-num { font-family: 'Newsreader', serif; font-size: 28px; color: #2A3408; }
+  .today-metric-ref { font-family: 'IBM Plex Sans', sans-serif; font-size: 12px; color: oklch(0.55 0.012 75); }
+
+  /* ---- Calendar (read-only, §5.5) ---- */
+  .today-cal-week { display: flex; flex-direction: column; gap: 4px; margin-bottom: 14px; }
+  .today-cal-row { display: flex; align-items: baseline; gap: 8px; font-size: 13px; padding: 2px 0; }
+  .today-cal-time { font-family: 'IBM Plex Sans', sans-serif; font-size: 11px; color: oklch(0.55 0.012 75); flex-shrink: 0; min-width: 58px; }
+  .today-cal-name { flex: 1; }
+  .today-cal-date { font-family: 'IBM Plex Sans', sans-serif; font-size: 11px; color: oklch(0.55 0.012 75); }
+  .today-cal-more { font-size: 11px; color: oklch(0.55 0.012 75); padding-top: 2px; }
+  .today-cal-unavailable, .today-cal-loading { font-family: 'Newsreader', serif; font-style: italic; font-size: 13px; color: oklch(0.55 0.012 75); }
+
+  /* ---- Domain load distribution — reuses .dmn-bar's percentage-bar
+     visual language (one row per domain instead of one per project). ---- */
+  .today-dist { margin-top: 18px; }
+  .today-dist-cap { font-size: 11px; color: oklch(0.55 0.012 75); margin-bottom: 8px; }
+  .today-dist-row { display: flex; align-items: center; gap: 10px; padding: 4px 0; transition: opacity .1s; }
+  .today-dist-row--dim { opacity: .35; }
+  .today-dist-code { font-family: 'IBM Plex Sans', sans-serif; font-size: 11px; font-weight: 700; width: 42px; flex-shrink: 0; }
+  .today-dist-n { font-family: 'IBM Plex Sans', sans-serif; font-size: 12px; color: oklch(0.55 0.012 75); width: 20px; text-align: right; flex-shrink: 0; }
+
+  /* ---- Mobile: board columns stack; agenda sits directly under the
+     board (§1) — Today isn't a record profile (no Progress/Activity/
+     Properties/Log sections render), so it needs its own small order
+     override rather than falling into the default note/task/project
+     rule set above. ---- */
+  @media (max-width: 820px) {
+    .today-board { grid-template-columns: 1fr; }
+    body[data-route="today"] .dmn-capture { order: 1; }
+    body[data-route="today"] .dmn-col { order: 2; }
+    body[data-route="today"] .dmn-prop-sec--agenda { order: 3; }
+  }
+
   /* ---- Mobile: single column. Nav becomes a fixed bottom tab bar (mobile
      fixes pass) instead of the horizontally-scrolling top strip — the same
      "fixed, safe-area-aware, evenly distributed" shape as the old shell's
@@ -1464,7 +1560,7 @@
   <nav class="shell-nav">
     <div class="nav-track">
       <a href="#/home" class="nav-btn" data-route="home">Home</a>
-      <span class="nav-btn nav-btn--soon" aria-disabled="true" title="Coming soon">Today</span>
+      <a href="#/today" class="nav-btn" data-route="today">Today</a>
       <a href="#/inbox" class="nav-btn" data-route="inbox" id="navInboxItem">Inbox (…)</a>
       <span class="nav-btn nav-btn--soon" aria-disabled="true" title="Coming soon">Explore</span>
       <span class="nav-btn nav-btn--soon" aria-disabled="true" title="Coming soon">Search</span>
@@ -1485,7 +1581,7 @@
   // Bumped by hand on every deployed change (Cycle-2 preflight) — logged on
   // load and shown in-app (topbar + framed rail) so it's a glance which
   // build is actually running, instead of inferring it from git history.
-  const BUILD_STAMP = '2026-07-25-c4.4';
+  const BUILD_STAMP = '2026-07-26-today1';
   console.log(`RenitaOS build ${BUILD_STAMP}`);
 
   // --- Shared bootstrap: defined once, in one place. -----------------------
@@ -3971,6 +4067,13 @@
   // for a route name added to ENTITY_ROUTES before its profile exists.
   const ENTITY_ROUTES = ['note', 'task', 'project', 'domain', 'person', 'tag', 'collection'];
   const ENTITY_LABELS = { note: 'Note', task: 'Task', project: 'Project', domain: 'Domain', person: 'Person', tag: 'Tag', collection: 'Collection' };
+  // Today is the first non-entity screen to render into the framed shell
+  // (§1 of the Today Dashboard Build Brief calls for the same three-zone
+  // shell, repurposing the properties rail for the day agenda) — every
+  // ENTITY_ROUTES-gated "does this route use the frame" check below also
+  // needs to admit 'today' without treating it as a real Notion entity
+  // (renderEntityStub/mountXProfile dispatch), hence this separate set.
+  const FRAMED_ROUTES = new Set([...ENTITY_ROUTES, 'today']);
 
   function renderEntityStub(entityName) {
     const label = ENTITY_LABELS[entityName] || entityName;
@@ -4056,6 +4159,7 @@
     else if (name === 'task') paintTaskProfile();
     else if (name === 'project') paintProjectProfile();
     else if (name === 'domain') paintDomainProfile();
+    else if (name === 'today') paintTodayDashboard();
     adjustPfePopoverPosition();
   }
 
@@ -6941,8 +7045,9 @@
   });
 
   function applyPfeCardOptionSelect(taskId, value) {
-    if (pfeCardPopover.field === 'status') return applyTaskCardStatusEdit(taskId, value);
-    if (pfeCardPopover.field === 'priority') return applyTaskCardPriorityEdit(taskId, value, false);
+    const isToday = currentRoute() === 'today';
+    if (pfeCardPopover.field === 'status') return isToday ? applyTodayTaskStatusEdit(taskId, value) : applyTaskCardStatusEdit(taskId, value);
+    if (pfeCardPopover.field === 'priority') return isToday ? applyTodayTaskPriorityEdit(taskId, value, false) : applyTaskCardPriorityEdit(taskId, value, false);
   }
 
   // --- Mass-select bulk actions — Project's Tasks tab. Sequential
@@ -8117,7 +8222,10 @@
     const taskToggleEl = e.target.closest('[data-pfe-task-toggle]');
     if (taskToggleEl) {
       e.stopPropagation();
-      if (!pfeState.busy) applyTaskCardCompletionToggle(taskToggleEl.dataset.pfeTaskToggle, taskToggleEl.dataset.pfeTaskDone);
+      if (!pfeState.busy) {
+        if (currentRoute() === 'today') applyTodayTaskCompletionToggle(taskToggleEl.dataset.pfeTaskToggle, taskToggleEl.dataset.pfeTaskDone);
+        else applyTaskCardCompletionToggle(taskToggleEl.dataset.pfeTaskToggle, taskToggleEl.dataset.pfeTaskDone);
+      }
       return;
     }
     // Step F — body block ops (Note/Task profile). A to-do checkbox or
@@ -8156,7 +8264,35 @@
     const cardOpt = e.target.closest('[data-pfe-card-opt]');
     if (cardOpt) { e.stopPropagation(); if (!pfeState.busy) applyPfeCardOptionSelect(cardOpt.dataset.pfeCardId, cardOpt.dataset.pfeCardOpt); return; }
     const cardClear = e.target.closest('[data-pfe-card-clear]');
-    if (cardClear) { e.stopPropagation(); if (!pfeState.busy) applyTaskCardPriorityEdit(cardClear.dataset.pfeCardId, null, true); return; }
+    if (cardClear) {
+      e.stopPropagation();
+      if (!pfeState.busy) {
+        if (currentRoute() === 'today') applyTodayTaskPriorityEdit(cardClear.dataset.pfeCardId, null, true);
+        else applyTaskCardPriorityEdit(cardClear.dataset.pfeCardId, null, true);
+      }
+      return;
+    }
+    // Today's Time Slot picker (mobile/always-available alternative to
+    // desktop drag, §5) — a plain option list under the card's slot pill,
+    // reusing the generic data-pfe-card-action popover-toggle machinery
+    // below to open, but its own dispatch to close+write since the value
+    // isn't a Status/Priority option.
+    const cardSlotOpt = e.target.closest('[data-pfe-card-slot]');
+    if (cardSlotOpt) {
+      e.stopPropagation();
+      if (!pfeState.busy) {
+        applyTodayTaskSlot(cardSlotOpt.dataset.pfeCardId, cardSlotOpt.dataset.pfeCardSlot);
+        pfeCardPopover.taskId = null; pfeCardPopover.field = null;
+      }
+      return;
+    }
+    // Today's domain filter + Today/Tomorrow toggle — screen-local state,
+    // not a Notion write, so these paint directly rather than round-
+    // tripping through an apply* write helper.
+    const todayDomainBtn = e.target.closest('[data-today-domain]');
+    if (todayDomainBtn) { e.stopPropagation(); todayDashboardState.domainFilter = todayDomainBtn.dataset.todayDomain; paintActiveProfile(); return; }
+    const todayDayBtn = e.target.closest('[data-today-day]');
+    if (todayDayBtn) { e.stopPropagation(); todayDashboardState.activeDay = todayDayBtn.dataset.todayDay; paintActiveProfile(); return; }
     // Mass-select (Step E carry-over) — toggle/checkbox/bulk-action clicks
     // sit inside cards and bulk bars that also carry data-pf-nav, so these
     // must claim the click before the generic nav/action checks below.
@@ -8297,6 +8433,11 @@
   framedRoot.addEventListener('change', (e) => {
     if (e.target.matches('[data-pfe-date-input]') && e.target.value) {
       applyPfeDateInput(e.target.value);
+    } else if (e.target.matches('[data-pfe-card-date-input]') && e.target.value) {
+      // Today's card-level reschedule pill (§5) — writes Do Date straight
+      // from the taskId carried on the input itself, no mounted profile
+      // involved (mirrors the card-level status/priority popovers above).
+      applyTodayTaskReschedule(e.target.dataset.pfeCardId, e.target.value);
     }
   });
 
@@ -8378,6 +8519,821 @@
   });
   window.addEventListener('scroll', hidePfeFloatingUi, true);
 
+  // ==========================================================================
+  // Today / Tomorrow / This Week / This Month dashboard (Today Dashboard
+  // Build Brief) — a composition screen, not a Notion entity profile: it
+  // fires the brief's 4 queries via Promise.all, derives every bucket/
+  // metric client-side (§4, §8), and reuses the task-grid card, the shared
+  // write layer (resolveOptionValue, the property-patch builders), and the
+  // framed shell wholesale — see §11's reuse map. Mounted into the same
+  // #framedRoot as the entity profiles (ensureFramedShell/dmnMain/dmnProps)
+  // even though it isn't one, because the brief's own layout (§1) is the
+  // three-zone shell with the properties rail repurposed for the day
+  // agenda.
+  // ==========================================================================
+
+  // --- §2 date module — pure, local, Sunday-anchored. Every "this week/
+  // month" computation on this screen routes through these (never
+  // toISOString). Namespaced `td*` (Today Dashboard) because this file
+  // already has an `addDays(d, n)`/`isoOf(d)` pair with a Date-object
+  // signature (the Quick Due-date options, §3 above) — these instead take
+  // and return 'YYYY-MM-DD' strings throughout, so range comparisons
+  // elsewhere on this screen stay plain string compares. Built on isoOf
+  // (already defined above) rather than re-deriving Date->string.
+  function tdParseDateStr(dateStr) {
+    const [y, m, d] = dateStr.split('-').map(Number);
+    return new Date(y, m - 1, d);
+  }
+  function tdAddDays(dateStr, n) {
+    const dt = tdParseDateStr(dateStr);
+    dt.setDate(dt.getDate() + n);
+    return isoOf(dt);
+  }
+  function tdStartOfWeek(dateStr = todayIsoLocal()) {
+    return tdAddDays(dateStr, -tdParseDateStr(dateStr).getDay());
+  }
+  function tdEndOfWeek(dateStr = todayIsoLocal()) {
+    return tdAddDays(dateStr, 6 - tdParseDateStr(dateStr).getDay());
+  }
+  function tdStartOfMonth(dateStr = todayIsoLocal()) {
+    const [y, m] = dateStr.split('-');
+    return `${y}-${m}-01`;
+  }
+  function tdEndOfMonth(dateStr = todayIsoLocal()) {
+    const [y, m] = dateStr.split('-').map(Number);
+    return isoOf(new Date(y, m, 0));
+  }
+  function tdIsBetween(dateStr, start, end) {
+    return dateStr >= start && dateStr <= end;
+  }
+  function tdSameWeekdayLastWeek(dateStr) {
+    return tdAddDays(dateStr, -7);
+  }
+  // Clamped (e.g. Mar 31 -> Feb 28/29) — see js/dateLocal.js's unit checks
+  // for the boundary cases this mirrors.
+  function tdSameDayLastMonth(dateStr) {
+    const [y, m, day] = dateStr.split('-').map(Number);
+    const prevMonthLastDay = new Date(y, m - 1, 0).getDate();
+    const clampedDay = Math.min(day, prevMonthLastDay);
+    return isoOf(new Date(y, m - 2, clampedDay));
+  }
+
+  const TD_WEEKDAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+  const TD_MONTH_NAMES = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+  function tdLongDateLabel(dateStr) {
+    const dt = tdParseDateStr(dateStr);
+    return `${TD_WEEKDAY_NAMES[dt.getDay()]}, ${TD_MONTH_NAMES[dt.getMonth()]} ${dt.getDate()}`;
+  }
+  // RFC3339 with the browser's own local offset (never a bare 'Z' — that
+  // would silently shift "start of today" to a UTC day boundary instead of
+  // the local one), for the Worker's calendar `timeMin`/`timeMax` (§16).
+  function tdRfc3339(dt, h, m, sec) {
+    const local = new Date(dt.getFullYear(), dt.getMonth(), dt.getDate(), h, m, sec);
+    const offsetMin = -local.getTimezoneOffset();
+    const sign = offsetMin >= 0 ? '+' : '-';
+    const abs = Math.abs(offsetMin);
+    const pad = (n) => String(n).padStart(2, '0');
+    return `${local.getFullYear()}-${pad(local.getMonth() + 1)}-${pad(local.getDate())}T${pad(local.getHours())}:${pad(local.getMinutes())}:${pad(local.getSeconds())}${sign}${pad(Math.floor(abs / 60))}:${pad(abs % 60)}`;
+  }
+  function tdRfc3339DayStart(dateStr) { return tdRfc3339(tdParseDateStr(dateStr), 0, 0, 0); }
+  function tdRfc3339DayEnd(dateStr) { return tdRfc3339(tdParseDateStr(dateStr), 23, 59, 59); }
+
+  // --- §3 query plan + property/schema resolution -------------------------
+  // Fixed order (rendered as 3 columns; deliberately no midday/afternoon
+  // slot, §4). `optionName` resolves each column to Time Slot's live,
+  // possibly-emoji-suffixed stored string — never hardcoded, same principle
+  // as every other select/multi_select option elsewhere in this file.
+  const TODAY_SLOT_COLUMNS = [
+    { key: 'earlyMorning', label: 'Early Morning', keyword: 'early morning' },
+    { key: 'earlyEvening', label: 'Early Evening', keyword: 'early evening' },
+    { key: 'lateEvening', label: 'Late Evening', keyword: 'late evening' },
+  ];
+
+  async function resolveTodaySchema() {
+    const [
+      statusSchema, doDateProp, dueDateProp, completedProp, priorityProp, timeSlotProp,
+      tasksProjectsProp, tasksTitleProp, tasksUniqueIdProp,
+      projTitleProp, projUniqueIdProp, projStatusSchema, deadlineProp, projectsDomainsProp,
+    ] = await Promise.all([
+      getStatusSchema(CONFIG.DB.TASKS),
+      getDatePropByKeyword(CONFIG.DB.TASKS, 'do date'),
+      getDatePropByKeyword(CONFIG.DB.TASKS, 'due date'),
+      getDatePropByKeyword(CONFIG.DB.TASKS, 'completed'),
+      getTasksPriorityProp(CONFIG.DB.TASKS),
+      getMultiSelectPropByKeyword(CONFIG.DB.TASKS, 'time slot'),
+      relationPropertyName(CONFIG.DB.TASKS, CONFIG.DB.PROJECTS),
+      titlePropertyName(CONFIG.DB.TASKS),
+      uniqueIdPropertyName(CONFIG.DB.TASKS),
+      titlePropertyName(CONFIG.DB.PROJECTS),
+      uniqueIdPropertyName(CONFIG.DB.PROJECTS),
+      getStatusSchema(CONFIG.DB.PROJECTS),
+      getDatePropByKeyword(CONFIG.DB.PROJECTS, 'deadline'),
+      relationPropertyName(CONFIG.DB.PROJECTS, CONFIG.DB.DOMAINS),
+    ]);
+    const [priorityOptions, timeSlotOptionsRaw] = await Promise.all([
+      getSelectOptions(CONFIG.DB.TASKS, priorityProp),
+      timeSlotProp ? getMultiSelectOptions(CONFIG.DB.TASKS, timeSlotProp) : [],
+    ]);
+    const slotColumns = TODAY_SLOT_COLUMNS.map((c) => {
+      const opt = timeSlotOptionsRaw.find((o) => normalizePropKeyword(o.name).includes(c.keyword));
+      return { ...c, optionName: opt ? opt.name : null };
+    });
+    return {
+      statusSchema, doDateProp, dueDateProp, completedProp, priorityProp, timeSlotProp,
+      tasksProjectsProp, tasksTitleProp, tasksUniqueIdProp,
+      projTitleProp, projUniqueIdProp, projStatusSchema, deadlineProp, projectsDomainsProp,
+      priorityOptions, slotColumns,
+    };
+  }
+
+  function tdMapTaskPage(p, schema) {
+    const title = plainTitle(p, schema.tasksTitleProp);
+    const uv = schema.tasksUniqueIdProp ? (p.properties[schema.tasksUniqueIdProp] || {}).unique_id : null;
+    const uniqueId = uv ? formatUniqueId(uv.prefix, uv.number) : null;
+    const statusProp = p.properties[schema.statusSchema.name];
+    const statusName = (statusProp && statusProp.status && statusProp.status.name) || null;
+    const priorityVal = schema.priorityProp ? p.properties[schema.priorityProp] : null;
+    const priorityName = (priorityVal && priorityVal.select && priorityVal.select.name) || null;
+    const doDate = schema.doDateProp ? ((p.properties[schema.doDateProp] || {}).date || null) : null;
+    const dueDate = schema.dueDateProp ? ((p.properties[schema.dueDateProp] || {}).date || null) : null;
+    const completedDate = schema.completedProp ? ((p.properties[schema.completedProp] || {}).date || null) : null;
+    const timeSlotVal = schema.timeSlotProp ? (p.properties[schema.timeSlotProp] || {}).multi_select : null;
+    const timeSlot = (timeSlotVal || []).map((o) => o.name);
+    const projRel = (p.properties[schema.tasksProjectsProp] || {}).relation || [];
+    const projectId = projRel[0] ? projRel[0].id : null;
+    return {
+      id: p.id, title, uniqueId, statusName, priorityName, doDate, dueDate, completedDate, timeSlot,
+      projectId, domainCode: null, lastEditedTime: p.last_edited_time,
+    };
+  }
+
+  // Q1 — task superset: not Done, and (Do Date or Due Date) on-or-before
+  // this month's end. Drives the boards + week + overdue (§3, §4).
+  async function queryTodayTasks(schema, endOfMonthStr) {
+    if (!schema.doDateProp && !schema.dueDateProp) return [];
+    const doneName = findStatusOption(schema.statusSchema.options, 'done', CONFIG.DB.TASKS);
+    const dateOr = [];
+    if (schema.doDateProp) dateOr.push({ property: schema.doDateProp, date: { on_or_before: endOfMonthStr } });
+    if (schema.dueDateProp) dateOr.push({ property: schema.dueDateProp, date: { on_or_before: endOfMonthStr } });
+    const filter = { and: [
+      { property: schema.statusSchema.name, status: { does_not_equal: doneName } },
+      { or: dateOr },
+    ] };
+    const pages = await queryAllPages(CONFIG.DB.TASKS, filter);
+    return pages.map((p) => tdMapTaskPage(p, schema));
+  }
+
+  // Q2 — completions in range (pace metrics only, §8). One query covering
+  // the widest range (last month's start -> today), partitioned client-side
+  // into the week/month sub-ranges by deriveTodayMetrics below.
+  async function queryTodayCompletions(schema, rangeStartStr, todayStr) {
+    if (!schema.completedProp) return [];
+    const filter = { and: [
+      { property: schema.completedProp, date: { on_or_after: rangeStartStr } },
+      { property: schema.completedProp, date: { on_or_before: todayStr } },
+    ] };
+    const pages = await queryAllPages(CONFIG.DB.TASKS, filter);
+    return pages.map((p) => tdMapTaskPage(p, schema));
+  }
+
+  // Q3 — active/paused projects with a deadline this month (project
+  // deadlines + This Week deadline flags).
+  async function queryTodayProjects(schema, endOfMonthStr) {
+    if (!schema.deadlineProp) return [];
+    const doneName = findStatusOption(schema.projStatusSchema.options, 'done', CONFIG.DB.PROJECTS);
+    const filter = { and: [
+      { property: schema.projStatusSchema.name, status: { does_not_equal: doneName } },
+      { property: schema.deadlineProp, date: { on_or_before: endOfMonthStr } },
+    ] };
+    const pages = await queryAllPages(CONFIG.DB.PROJECTS, filter);
+    return pages.map((p) => {
+      const title = plainTitle(p, schema.projTitleProp);
+      const uv = schema.projUniqueIdProp ? (p.properties[schema.projUniqueIdProp] || {}).unique_id : null;
+      const uniqueId = uv ? formatUniqueId(uv.prefix, uv.number) : null;
+      const statusProp = p.properties[schema.projStatusSchema.name];
+      const statusName = (statusProp && statusProp.status && statusProp.status.name) || null;
+      const deadline = (p.properties[schema.deadlineProp] || {}).date || null;
+      const domRel = (p.properties[schema.projectsDomainsProp] || {}).relation || [];
+      const domainId = domRel[0] ? domRel[0].id : null;
+      return { id: p.id, title, uniqueId, statusName, deadline, domainId, domainCode: null };
+    });
+  }
+
+  // Q4 — Google Calendar events, read-only, via the Worker (§16 companion
+  // spec — a Worker-side endpoint outside this repo). Never blocks Q1-Q3
+  // (§12); a failed/missing endpoint degrades to the "Calendar unavailable"
+  // placeholder rather than erroring the whole screen (§5.5 failure mode).
+  async function fetchTodayCalendar(timeMinIso, timeMaxIso) {
+    try {
+      const res = await fetch(`${CONFIG.WORKER_URL}/calendar/events?timeMin=${encodeURIComponent(timeMinIso)}&timeMax=${encodeURIComponent(timeMaxIso)}`);
+      if (!res.ok) throw new Error(`Calendar request failed (${res.status})`);
+      const body = await res.json();
+      return { events: body.events || [], errors: body.errors || [], failed: false };
+    } catch (err) {
+      console.error('Calendar read failed', err);
+      return { events: [], errors: [{ message: err.message || 'Calendar unavailable' }], failed: true };
+    }
+  }
+  function calDayStr(e) { return e.allDay ? e.start : isoOf(new Date(e.start)); }
+  function partitionCalendarEvents(events, ctx) {
+    const byDay = (dateStr) => events
+      .filter((e) => calDayStr(e) === dateStr)
+      .sort((a, b) => (a.allDay === b.allDay ? (a.start < b.start ? -1 : a.start > b.start ? 1 : 0) : (a.allDay ? -1 : 1)));
+    const week = events
+      .filter((e) => tdIsBetween(calDayStr(e), ctx.weekStart, ctx.weekEnd))
+      .sort((a, b) => (calDayStr(a) < calDayStr(b) ? -1 : calDayStr(a) > calDayStr(b) ? 1 : 0));
+    return { today: byDay(ctx.today), tomorrow: byDay(ctx.tomorrow), week };
+  }
+
+  // Domain resolution — a rollup through Project (§3a), never a task-level
+  // field. Batched over the UNIQUE set of referenced projects (one Notion
+  // GET per distinct project, not per task) to avoid an N+1 fetch across a
+  // whole day/week/month's worth of tasks.
+  async function resolveDomainsForTasks(tasks, projectsDomainsProp) {
+    const uniqueProjectIds = [...new Set(tasks.map((t) => t.projectId).filter(Boolean))];
+    if (!uniqueProjectIds.length) return;
+    const pages = await Promise.all(uniqueProjectIds.map(async (id) => {
+      try { return await notionRequest(`/v1/pages/${id}`); } catch (err) { console.error('Failed to resolve project for domain', id, err); return null; }
+    }));
+    const projectDomainMap = new Map();
+    pages.forEach((p) => {
+      if (!p) return;
+      const domRel = (p.properties[projectsDomainsProp] || {}).relation || [];
+      projectDomainMap.set(p.id, domRel[0] ? domRel[0].id : null);
+    });
+    tasks.forEach((t) => {
+      if (!t.projectId) return;
+      const domainId = projectDomainMap.get(t.projectId);
+      const meta = domainId ? DOMAIN_META.find((d) => normalizeDbId(d.pageId) === normalizeDbId(domainId)) : null;
+      t.domainCode = meta ? meta.code : null;
+    });
+  }
+
+  // --- §4/§8 derivations ----------------------------------------------------
+  // Do Date drives placement, Due Date drives urgency (§4). Shared by the
+  // initial load AND by a reschedule write (tdRebucketTask below), so the
+  // placement rule can't drift between the two call sites.
+  function tdPlaceTask(task, ctx) {
+    const doDateStr = task.doDate && task.doDate.start;
+    const dueDateStr = task.dueDate && task.dueDate.start;
+    const placeDate = doDateStr || dueDateStr;
+    if (!placeDate) return null;
+    const isOverdue = !!(dueDateStr && dueDateStr < ctx.today);
+    let bucket;
+    if (placeDate === ctx.today || (isOverdue && doDateStr === ctx.today)) bucket = 'today';
+    else if (isOverdue) bucket = 'overdue';
+    else if (placeDate === ctx.tomorrow) bucket = 'tomorrow';
+    else if (tdIsBetween(placeDate, ctx.weekStart, ctx.weekEnd)) bucket = 'week';
+    else return null; // falls in the month-only window — §7 shows project
+    // deadlines + domain distribution there, not individual tasks.
+    return { bucket, isOverdue, placeDate };
+  }
+  function deriveTodayBuckets(tasks, ctx) {
+    const overdue = [];
+    const todayPool = [];
+    const tomorrowPool = [];
+    const week = [];
+    tasks.forEach((t) => {
+      const placed = tdPlaceTask(t, ctx);
+      if (!placed) return;
+      const rec = { ...t, isOverdue: placed.isOverdue, placeDate: placed.placeDate };
+      if (placed.bucket === 'today') todayPool.push(rec);
+      else if (placed.bucket === 'overdue') overdue.push(rec);
+      else if (placed.bucket === 'tomorrow') tomorrowPool.push(rec);
+      else week.push(rec);
+    });
+    week.sort((a, b) => (a.placeDate < b.placeDate ? -1 : a.placeDate > b.placeDate ? 1 : 0));
+    return { overdue, todayPool, tomorrowPool, week };
+  }
+  function tdRebucketTask(d, task) {
+    const placed = tdPlaceTask(task, d);
+    if (!placed) return; // rescheduled beyond this window — drops off Today.
+    const rec = { ...task, isOverdue: placed.isOverdue, placeDate: placed.placeDate };
+    if (placed.bucket === 'today') d.todayPool.push(rec);
+    else if (placed.bucket === 'overdue') d.overdue.push(rec);
+    else if (placed.bucket === 'tomorrow') d.tomorrowPool.push(rec);
+    else { d.week.push(rec); d.week.sort((a, b) => (a.placeDate < b.placeDate ? -1 : a.placeDate > b.placeDate ? 1 : 0)); }
+  }
+  function tdFindTask(d, taskId) {
+    return d.overdue.find((t) => t.id === taskId) || d.todayPool.find((t) => t.id === taskId)
+      || d.tomorrowPool.find((t) => t.id === taskId) || d.week.find((t) => t.id === taskId) || null;
+  }
+  function tdRemoveTask(d, taskId) {
+    d.overdue = d.overdue.filter((t) => t.id !== taskId);
+    d.todayPool = d.todayPool.filter((t) => t.id !== taskId);
+    d.tomorrowPool = d.tomorrowPool.filter((t) => t.id !== taskId);
+    d.week = d.week.filter((t) => t.id !== taskId);
+  }
+
+  // §8 metrics — week/month comparisons are neutral-reference (no ahead/
+  // behind delta) until the week has actually closed (Saturday); the month
+  // comparison is always neutral-reference (no monthly close concept here).
+  function deriveTodayMetrics(completions, ctx) {
+    const countInRange = (start, end) => completions.filter((t) => {
+      const cs = t.completedDate && t.completedDate.start;
+      return cs && tdIsBetween(cs, start, end);
+    }).length;
+    const todayDone = countInRange(ctx.today, ctx.today);
+    const weekToDate = countInRange(ctx.weekStart, ctx.today);
+    const lastWeekSamePoint = countInRange(tdAddDays(ctx.weekStart, -7), tdSameWeekdayLastWeek(ctx.today));
+    const weekClosed = ctx.today === tdEndOfWeek(ctx.today);
+    const monthToDate = countInRange(ctx.monthStart, ctx.today);
+    const lastMonthSamePoint = countInRange(tdStartOfMonth(ctx.lastMonthAnchor), ctx.lastMonthAnchor);
+    return { todayDone, weekToDate, lastWeekSamePoint, weekClosed, monthToDate, lastMonthSamePoint };
+  }
+
+  // --- Load / mount ---------------------------------------------------------
+  async function loadTodayDashboard() {
+    const today = todayIsoLocal();
+    const tomorrow = tdAddDays(today, 1);
+    const weekStart = tdStartOfWeek(today);
+    const weekEnd = tdEndOfWeek(today);
+    const monthStart = tdStartOfMonth(today);
+    const monthEnd = tdEndOfMonth(today);
+    const lastMonthAnchor = tdSameDayLastMonth(today);
+    const q2RangeStart = tdStartOfMonth(lastMonthAnchor);
+
+    const schema = await resolveTodaySchema();
+
+    const [tasks, completions, projects] = await Promise.all([
+      queryTodayTasks(schema, monthEnd),
+      queryTodayCompletions(schema, q2RangeStart, today),
+      queryTodayProjects(schema, monthEnd),
+    ]);
+
+    await resolveDomainsForTasks([...tasks, ...completions], schema.projectsDomainsProp);
+    projects.forEach((p) => {
+      const meta = p.domainId ? DOMAIN_META.find((dm) => normalizeDbId(dm.pageId) === normalizeDbId(p.domainId)) : null;
+      p.domainCode = meta ? meta.code : null;
+    });
+
+    const buckets = deriveTodayBuckets(tasks, { today, tomorrow, weekStart, weekEnd });
+    const metrics = deriveTodayMetrics(completions, { today, weekStart, monthStart, lastMonthAnchor });
+
+    const domainCompletionCounts = {};
+    DOMAIN_META.forEach((dm) => { domainCompletionCounts[dm.code] = 0; });
+    completions.forEach((t) => {
+      const cs = t.completedDate && t.completedDate.start;
+      if (!cs || !tdIsBetween(cs, monthStart, today)) return;
+      if (t.domainCode && domainCompletionCounts[t.domainCode] != null) domainCompletionCounts[t.domainCode] += 1;
+    });
+
+    return {
+      today, tomorrow, weekStart, weekEnd, monthStart, monthEnd, lastMonthAnchor,
+      overdue: buckets.overdue, todayPool: buckets.todayPool, tomorrowPool: buckets.tomorrowPool, week: buckets.week,
+      projects, domainCompletionCounts, metrics,
+      slotColumns: schema.slotColumns, statusOptions: schema.statusSchema.options, priorityOptions: schema.priorityOptions,
+      timeSlotProp: schema.timeSlotProp,
+      calendar: null, calendarErrors: [], calendarFailed: false,
+    };
+  }
+
+  const todayDashboardState = { loading: false, error: null, data: null, activeDay: 'today', domainFilter: 'all', _loadToken: null };
+
+  async function mountTodayDashboard() {
+    const s = todayDashboardState;
+    s.loading = true;
+    s.error = null;
+    ensureFramedShell();
+    paintTodayDashboard();
+    const token = {};
+    s._loadToken = token;
+    try {
+      const data = await loadTodayDashboard();
+      if (s._loadToken !== token) return; // route moved on while this was in flight
+      s.data = data;
+      s.loading = false;
+      paintTodayDashboard();
+      // Calendar (Q4) fires after Q1-Q3 resolve and paints separately — it
+      // must never block the rest of the screen (§12).
+      const calMaxDay = data.weekEnd > data.tomorrow ? data.weekEnd : data.tomorrow;
+      const calResult = await fetchTodayCalendar(tdRfc3339DayStart(data.today), tdRfc3339DayEnd(calMaxDay));
+      if (s._loadToken !== token) return;
+      s.data.calendar = partitionCalendarEvents(calResult.events, data);
+      s.data.calendarErrors = calResult.errors;
+      s.data.calendarFailed = calResult.failed;
+      paintTodayDashboard();
+    } catch (err) {
+      console.error('Failed to load Today dashboard', err);
+      if (s._loadToken !== token) return;
+      s.error = err.message || 'Could not load Today — check the Worker.';
+      s.loading = false;
+      paintTodayDashboard();
+    }
+  }
+
+  // --- Writes — completion invariant, Status/Priority pills, Time Slot,
+  // reschedule. Each is a Today-specific sibling of the shared
+  // applyTaskCard*/pfeUpdateCardRecordEverywhere functions, for the same
+  // reason Project/Domain already got their own per-screen copies: a
+  // Today board card is neither the Project Tasks tab nor Domain's
+  // Inbox/Admin grid, and completing one must additionally REMOVE it from
+  // whichever bucket array holds it (and bump the local metrics) — a plain
+  // in-place statusName mutation isn't enough here.
+  // ==========================================================================
+
+  const applyTodayTaskCompletionToggle = withPfeBusy(async (taskId, wasDoneStr) => {
+    const wasDone = wasDoneStr === 'true';
+    const s = todayDashboardState;
+    if (!s.data || wasDone) return; // Q1 only ever surfaces not-done tasks
+    const task = tdFindTask(s.data, taskId);
+    if (!task) return;
+    try {
+      const statusSchema = await getStatusSchema(CONFIG.DB.TASKS);
+      const doneName = await resolveOptionValue(CONFIG.DB.TASKS, statusSchema.name, 'Done');
+      const completedProp = await getDatePropByKeyword(CONFIG.DB.TASKS, 'completed');
+      const today = todayIsoLocal();
+      const props = { ...statusPropertyPatch(statusSchema.name, doneName) };
+      if (completedProp) Object.assign(props, datePropertyPatch(completedProp, today));
+      await patchProperties(taskId, props);
+      tdRemoveTask(s.data, taskId);
+      s.data.metrics.todayDone += 1;
+      s.data.metrics.weekToDate += 1;
+      s.data.metrics.monthToDate += 1;
+      if (task.domainCode && s.data.domainCompletionCounts[task.domainCode] != null) s.data.domainCompletionCounts[task.domainCode] += 1;
+      paintActiveProfile();
+    } catch (err) {
+      console.error('Failed to complete task', err);
+      showPfeToast(err.message || 'Could not complete that task — try again.');
+    }
+  });
+
+  const applyTodayTaskStatusEdit = withPfeBusy(async (taskId, value) => {
+    const s = todayDashboardState;
+    if (!s.data) return;
+    const task = tdFindTask(s.data, taskId);
+    if (!task) return;
+    try {
+      const statusSchema = await getStatusSchema(CONFIG.DB.TASKS);
+      const resolved = await resolveOptionValue(CONFIG.DB.TASKS, statusSchema.name, value);
+      const isDone = resolved.toLowerCase() === 'done';
+      const today = todayIsoLocal();
+      const props = { ...statusPropertyPatch(statusSchema.name, resolved) };
+      if (isDone) {
+        const completedProp = await getDatePropByKeyword(CONFIG.DB.TASKS, 'completed');
+        if (completedProp) Object.assign(props, datePropertyPatch(completedProp, today));
+      }
+      await patchProperties(taskId, props);
+      if (isDone) {
+        tdRemoveTask(s.data, taskId);
+        s.data.metrics.todayDone += 1;
+        s.data.metrics.weekToDate += 1;
+        s.data.metrics.monthToDate += 1;
+        if (task.domainCode && s.data.domainCompletionCounts[task.domainCode] != null) s.data.domainCompletionCounts[task.domainCode] += 1;
+      } else {
+        task.statusName = resolved;
+      }
+      pfeCardPopover.taskId = null; pfeCardPopover.field = null;
+      paintActiveProfile();
+    } catch (err) {
+      console.error('Failed to update Status', err);
+      showPfeToast(err.message || 'Could not update Status — try again.');
+    }
+  });
+
+  const applyTodayTaskPriorityEdit = withPfeBusy(async (taskId, value, clear) => {
+    const s = todayDashboardState;
+    if (!s.data) return;
+    const task = tdFindTask(s.data, taskId);
+    if (!task) return;
+    try {
+      const priorityProp = await getTasksPriorityProp(CONFIG.DB.TASKS);
+      if (!priorityProp) return;
+      const resolved = clear ? null : await resolveOptionValue(CONFIG.DB.TASKS, priorityProp, value);
+      await patchProperties(taskId, selectPropertyPatch(priorityProp, resolved));
+      task.priorityName = resolved;
+      pfeCardPopover.taskId = null; pfeCardPopover.field = null;
+      paintActiveProfile();
+    } catch (err) {
+      console.error('Failed to update Priority', err);
+      showPfeToast(err.message || 'Could not update Priority — try again.');
+    }
+  });
+
+  // Slot write — whole-array replacement through resolveOptionValue (§5,
+  // §9): a column drop resolves to exactly that one option; Bank clears it.
+  // Shared by desktop drag AND the mobile/always-available slot pill picker.
+  const applyTodayTaskSlot = withPfeBusy(async (taskId, zoneKey) => {
+    const s = todayDashboardState;
+    if (!s.data) return;
+    const task = tdFindTask(s.data, taskId);
+    if (!task) return;
+    try {
+      let newSlot = [];
+      if (zoneKey !== 'bank') {
+        const col = s.data.slotColumns.find((c) => c.key === zoneKey);
+        if (!col || !col.optionName) { showPfeToast('That time slot isn’t set up in Notion yet.'); return; }
+        const resolved = await resolveOptionValue(CONFIG.DB.TASKS, s.data.timeSlotProp, col.optionName);
+        newSlot = [resolved];
+      }
+      await patchProperties(taskId, multiSelectPropertyPatch(s.data.timeSlotProp, newSlot));
+      task.timeSlot = newSlot;
+      paintActiveProfile();
+    } catch (err) {
+      console.error('Failed to update Time Slot', err);
+      showPfeToast(err.message || 'Could not move that task — try again.');
+    }
+  });
+
+  // Reschedule — the date pill writes Do Date (§5) and moves the task
+  // between day boards/week/overdue by re-running the same placement rule
+  // the initial load used (tdRebucketTask), never a full reload.
+  const applyTodayTaskReschedule = withPfeBusy(async (taskId, iso) => {
+    const s = todayDashboardState;
+    if (!s.data) return;
+    const task = tdFindTask(s.data, taskId);
+    if (!task) return;
+    try {
+      const doDateProp = await getDatePropByKeyword(CONFIG.DB.TASKS, 'do date');
+      if (!doDateProp) { showPfeToast('Could not find Do Date on the Notion schema — try again.'); return; }
+      await patchProperties(taskId, datePropertyPatch(doDateProp, iso));
+      task.doDate = { start: iso };
+      tdRemoveTask(s.data, taskId);
+      tdRebucketTask(s.data, task);
+      pfeCardPopover.taskId = null; pfeCardPopover.field = null;
+      paintActiveProfile();
+    } catch (err) {
+      console.error('Failed to reschedule', err);
+      showPfeToast(err.message || 'Could not reschedule — try again.');
+    }
+  });
+
+  // --- Render ----------------------------------------------------------------
+  function applyTodayDomainFilter(list, filter) {
+    if (filter === 'all') return list;
+    return list.filter((t) => t.domainCode === filter);
+  }
+
+  function renderTodayDomainFilter(active) {
+    const allBtn = `<button type="button" class="today-domain-pill${active === 'all' ? ' active' : ''}" data-today-domain="all">All</button>`;
+    const domBtns = DOMAIN_META.map((dm) => `<button type="button" class="today-domain-pill${active === dm.code ? ' active' : ''}" data-today-domain="${dm.code}" style="${active === dm.code ? `background:${dm.fill};color:${dm.text};` : ''}">${escapeHtml(dm.code)}</button>`).join('');
+    return `<div class="today-domain-filter" role="group" aria-label="Filter by domain">${allBtn}${domBtns}</div>`;
+  }
+
+  function renderTodayHeader(d, s) {
+    const planned = applyTodayDomainFilter(d.todayPool, s.domainFilter).length;
+    const overdueCount = applyTodayDomainFilter(d.overdue, s.domainFilter).length;
+    return `<div class="dmn-head today-head">
+      <div class="dmn-idline">${escapeHtml(tdLongDateLabel(d.today))}</div>
+      <div class="dmn-title-row"><h1 class="dmn-title">Today</h1></div>
+      <div class="today-metric">${planned} planned · ${d.metrics.todayDone} done today · ${overdueCount} overdue</div>
+      ${renderTodayDomainFilter(s.domainFilter)}
+    </div>`;
+  }
+
+  function renderTodayDatePill(t) {
+    const iso = t.doDate && t.doDate.start;
+    const pop = pfeCardOpenFor(t.id, 'date') ? `<div class="tg-popover"><input type="date" class="tg-pop-date" data-pfe-card-date-input data-pfe-card-id="${escapeHtml(t.id)}" value="${iso ? escapeHtml(iso) : ''}"></div>` : '';
+    return `<span class="tg-pop-wrap"><span class="pf-pill pf-pill--value dmn-card-pill today-date-pill" data-pfe-card-action="date" data-pfe-card-id="${escapeHtml(t.id)}">🗓 ${iso ? escapeHtml(formatDateShort(iso)) : 'Reschedule'}</span>${pop}</span>`;
+  }
+
+  function renderTodaySlotPill(t, slotColumns) {
+    const label = t.timeSlot.length
+      ? (slotColumns.filter((c) => c.optionName && t.timeSlot.includes(c.optionName)).map((c) => c.label).join(', ') || 'Slot')
+      : 'Bank';
+    const pop = pfeCardOpenFor(t.id, 'slot') ? renderTodaySlotPopover(t.id, t.timeSlot, slotColumns) : '';
+    return `<span class="tg-pop-wrap"><span class="pf-pill pf-pill--value dmn-card-pill today-slot-pill" data-pfe-card-action="slot" data-pfe-card-id="${escapeHtml(t.id)}">${escapeHtml(label)}</span>${pop}</span>`;
+  }
+  function renderTodaySlotPopover(taskId, currentSlot, slotColumns) {
+    const noneRow = `<div class="tg-pop-opt${!currentSlot.length ? ' on' : ''}" data-pfe-card-slot="bank" data-pfe-card-id="${escapeHtml(taskId)}">None (Bank)</div>`;
+    const rows = slotColumns.map((c) => `<div class="tg-pop-opt${c.optionName && currentSlot.includes(c.optionName) ? ' on' : ''}" data-pfe-card-slot="${escapeHtml(c.key)}" data-pfe-card-id="${escapeHtml(taskId)}">${escapeHtml(c.label)}</div>`).join('');
+    return `<div class="tg-popover"><div class="tg-pop-label">Time Slot</div><div class="tg-pop-list">${noneRow}${rows}</div></div>`;
+  }
+
+  function renderTodayTaskCard(t, d) {
+    const badge = t.isOverdue ? `<span class="today-badge today-badge--overdue">Overdue</span>` : '';
+    return `<div class="dmn-task today-board-card" draggable="true" data-today-drag="${escapeHtml(t.id)}" data-pf-nav="task/${escapeHtml(t.id)}">
+      <div class="dmn-top">
+        <span class="dmn-box" data-pfe-task-toggle="${escapeHtml(t.id)}" data-pfe-task-done="false" role="checkbox" aria-checked="false"></span>
+        <span class="dmn-tname">${escapeHtml(t.title || 'Untitled')}</span>
+      </div>
+      ${badge}
+      <div class="dmn-card-pills">${renderTodayDatePill(t)}${renderTodaySlotPill(t, d.slotColumns)}</div>
+      ${renderPfeCardValuePills(t, d.statusOptions, d.priorityOptions)}
+    </div>`;
+  }
+
+  function renderTodayCompactRow(t, d, opts = {}) {
+    const badge = t.isOverdue ? `<span class="today-badge today-badge--overdue">Overdue</span>` : '';
+    const dayTag = opts.dayTag ? `<span class="today-daytag">${escapeHtml(opts.dayTag)}</span>` : '';
+    return `<div class="today-row" data-pf-nav="task/${escapeHtml(t.id)}">
+      <span class="dmn-box" data-pfe-task-toggle="${escapeHtml(t.id)}" data-pfe-task-done="false" role="checkbox" aria-checked="false"></span>
+      <span class="today-row-title">${escapeHtml(t.title || 'Untitled')}</span>
+      ${dayTag}${badge}
+      ${renderTodayDatePill(t)}
+      ${renderPfeCardValuePills(t, d.statusOptions, d.priorityOptions)}
+    </div>`;
+  }
+
+  function renderOverdueStrip(d, s) {
+    const items = applyTodayDomainFilter(d.overdue, s.domainFilter);
+    if (!items.length) return '';
+    const rows = items.map((t) => renderTodayCompactRow(t, d)).join('');
+    return `<section class="dmn-sec today-overdue"><h2 class="dmn-sec-hd">Overdue</h2><div class="today-strip">${rows}</div></section>`;
+  }
+
+  function renderTodayBoardSection(d, s) {
+    const dayKey = s.activeDay;
+    const pool = applyTodayDomainFilter(dayKey === 'today' ? d.todayPool : d.tomorrowPool, s.domainFilter);
+    const bank = pool.filter((t) => !t.timeSlot.length);
+    const columnsHtml = d.slotColumns.map((col) => {
+      const items = col.optionName ? pool.filter((t) => t.timeSlot.includes(col.optionName)) : [];
+      return `<div class="today-col">
+        <div class="today-col-hd">${escapeHtml(col.label)}</div>
+        <div class="today-col-body" data-today-dropzone="${escapeHtml(col.key)}">
+          ${items.length ? items.map((t) => renderTodayTaskCard(t, d)).join('') : `<div class="today-col-empty">—</div>`}
+        </div>
+      </div>`;
+    }).join('');
+    const bankHtml = `<div class="today-col today-col--bank">
+      <div class="today-col-hd">Bank</div>
+      <div class="today-col-body" data-today-dropzone="bank">
+        ${bank.length ? bank.map((t) => renderTodayTaskCard(t, d)).join('') : `<div class="today-col-empty">Bank's clear</div>`}
+      </div>
+    </div>`;
+    const boardEmpty = !pool.length ? `<div class="dmn-empty">${dayKey === 'today' ? 'Nothing planned for today.' : 'Nothing planned for tomorrow.'}</div>` : '';
+    return `<section class="dmn-sec today-board-sec">
+      <div class="today-toggle" role="tablist">
+        <button type="button" class="today-toggle-btn${dayKey === 'today' ? ' active' : ''}" data-today-day="today" role="tab" aria-selected="${dayKey === 'today'}">Today</button>
+        <button type="button" class="today-toggle-btn${dayKey === 'tomorrow' ? ' active' : ''}" data-today-day="tomorrow" role="tab" aria-selected="${dayKey === 'tomorrow'}">Tomorrow</button>
+      </div>
+      ${boardEmpty}
+      <div class="today-board">${bankHtml}${columnsHtml}</div>
+    </section>`;
+  }
+
+  function renderTodayComparisonMetric(toDate, lastPoint, closed, todayStr) {
+    const weekdayShort = TD_WEEKDAY_NAMES[tdParseDateStr(todayStr).getDay()].slice(0, 3);
+    const compareLabel = closed ? `last week: ${lastPoint}` : `last wk to ${weekdayShort}: ${lastPoint}`;
+    return `<div class="today-metric-row"><span class="today-metric-num">${toDate}</span><span class="today-metric-ref">${escapeHtml(compareLabel)}</span></div>`;
+  }
+  function renderTodayMonthComparisonMetric(toDate, lastPoint, lastMonthAnchorStr) {
+    const anchor = tdParseDateStr(lastMonthAnchorStr);
+    const anchorLabel = `${TD_MONTH_NAMES[anchor.getMonth()].slice(0, 3)} ${anchor.getDate()}`;
+    return `<div class="today-metric-row"><span class="today-metric-num">${toDate}</span><span class="today-metric-ref">last mo to ${escapeHtml(anchorLabel)}: ${lastPoint}</span></div>`;
+  }
+
+  function renderTodayWeekEvents(d) {
+    if (d.calendarFailed) return `<div class="today-cal-unavailable">Calendar unavailable.</div>`;
+    if (!d.calendar) return `<div class="today-cal-loading">Loading calendar…</div>`;
+    const events = d.calendar.week;
+    if (!events.length) return '';
+    const CAP = 6;
+    const shown = events.slice(0, CAP);
+    const rows = shown.map((e) => `<div class="today-cal-row"><span class="today-cal-name">${escapeHtml(e.title || 'Untitled')}</span><span class="today-cal-date">${escapeHtml(formatDateShort(calDayStr(e)))}</span></div>`).join('');
+    const more = events.length > CAP ? `<div class="today-cal-more">+${events.length - CAP} more</div>` : '';
+    return `<div class="today-cal-week">${rows}${more}</div>`;
+  }
+
+  function renderTodayWeekSection(d, s) {
+    const items = applyTodayDomainFilter(d.week, s.domainFilter);
+    const body = items.length
+      ? items.map((t) => renderTodayCompactRow(t, d, { dayTag: TD_WEEKDAY_NAMES[tdParseDateStr(t.placeDate).getDay()].slice(0, 3) })).join('')
+      : `<div class="dmn-empty">Nothing scheduled this week.</div>`;
+    return `<section class="dmn-sec today-week-sec">
+      <h2 class="dmn-sec-hd">This Week</h2>
+      ${renderTodayComparisonMetric(d.metrics.weekToDate, d.metrics.lastWeekSamePoint, d.metrics.weekClosed, d.today)}
+      ${renderTodayWeekEvents(d)}
+      <div class="today-strip">${body}</div>
+    </section>`;
+  }
+
+  function renderTodayProjectDeadlineRow(p) {
+    const meta = p.domainCode ? DOMAIN_META.find((m) => m.code === p.domainCode) : null;
+    const chip = meta ? `<span class="today-domain-chip" style="background:${meta.fill};color:${meta.text};">${escapeHtml(p.domainCode)}</span>` : '';
+    const deadline = p.deadline && p.deadline.start ? `<span class="dmn-card-pill dmn-card-pill--due">🗓 ${escapeHtml(formatDateShort(p.deadline.start))}</span>` : '';
+    return `<div class="today-row" data-pf-nav="project/${escapeHtml(p.id)}">
+      <span class="today-row-title">${escapeHtml(p.title || 'Untitled')}</span>
+      ${chip}${deadline}
+    </div>`;
+  }
+
+  // Reuses the Domain profile's own percentage-bar visual language
+  // (.dmn-bar, per renderDomainProjectCard/renderProgressSection) rather
+  // than a new chart — one row per domain instead of one row per project.
+  function renderTodayDomainDistribution(counts, activeFilter) {
+    const max = Math.max(1, ...Object.values(counts));
+    const rows = DOMAIN_META.map((dm) => {
+      const n = counts[dm.code] || 0;
+      const pct = Math.round((n / max) * 100);
+      const dim = (activeFilter !== 'all' && activeFilter !== dm.code) ? ' today-dist-row--dim' : '';
+      return `<div class="today-dist-row${dim}">
+        <span class="today-dist-code">${escapeHtml(dm.code)}</span>
+        <span class="dmn-bar"><i style="width:${pct}%;background:${dm.fill};opacity:1;"></i></span>
+        <span class="today-dist-n">${n}</span>
+      </div>`;
+    }).join('');
+    return `<div class="today-dist"><div class="today-dist-cap">Domain load · this month's completions</div>${rows}</div>`;
+  }
+
+  function renderTodayMonthSection(d, s) {
+    const projects = applyTodayDomainFilter(d.projects, s.domainFilter);
+    const projBody = projects.length
+      ? projects.map((p) => renderTodayProjectDeadlineRow(p)).join('')
+      : `<div class="dmn-empty">No deadlines this month.</div>`;
+    return `<section class="dmn-sec today-month-sec">
+      <h2 class="dmn-sec-hd">This Month</h2>
+      ${renderTodayMonthComparisonMetric(d.metrics.monthToDate, d.metrics.lastMonthSamePoint, d.lastMonthAnchor)}
+      <div class="today-strip">${projBody}</div>
+      ${renderTodayDomainDistribution(d.domainCompletionCounts, s.domainFilter)}
+    </section>`;
+  }
+
+  function formatEventTime(iso) {
+    const dt = new Date(iso);
+    const h12 = ((dt.getHours() + 11) % 12) + 1;
+    const ampm = dt.getHours() < 12 ? 'AM' : 'PM';
+    const mins = String(dt.getMinutes()).padStart(2, '0');
+    return `${h12}:${mins} ${ampm}`;
+  }
+  function renderTodayAgendaSection(d, s) {
+    const dayLabel = s.activeDay === 'today' ? 'Today' : 'Tomorrow';
+    let body;
+    if (d.calendarFailed) {
+      body = `<div class="today-cal-unavailable">Calendar unavailable.</div>`;
+    } else if (!d.calendar) {
+      body = `<div class="today-cal-loading">Loading…</div>`;
+    } else {
+      const events = s.activeDay === 'today' ? d.calendar.today : d.calendar.tomorrow;
+      body = events.length
+        ? events.map((e) => `<div class="today-cal-row"><span class="today-cal-time">${e.allDay ? 'All day' : escapeHtml(formatEventTime(e.start))}</span><span class="today-cal-name">${escapeHtml(e.title || 'Untitled')}</span></div>`).join('')
+        : `<div class="dmn-empty">No events.</div>`;
+    }
+    return `<section class="dmn-prop-sec dmn-prop-sec--agenda">
+      <h3>${escapeHtml(dayLabel)}'s agenda</h3>
+      ${body}
+    </section>`;
+  }
+
+  function paintTodayDashboard() {
+    const s = todayDashboardState;
+    if (s.loading) {
+      dmnMain.innerHTML = `<div class="dmn-status">Loading…</div>`;
+      dmnProps.innerHTML = renderCaptureAffordance();
+      return;
+    }
+    if (s.error) {
+      dmnMain.innerHTML = `<div class="dmn-status dmn-status--error">${escapeHtml(s.error)}</div>`;
+      dmnProps.innerHTML = renderCaptureAffordance();
+      return;
+    }
+    const d = s.data;
+    dmnMain.innerHTML = `
+      ${renderTodayHeader(d, s)}
+      ${renderOverdueStrip(d, s)}
+      ${renderTodayBoardSection(d, s)}
+      ${renderTodayWeekSection(d, s)}
+      ${renderTodayMonthSection(d, s)}
+      ${renderPfeToast()}
+    `;
+    dmnProps.innerHTML = `
+      ${renderCaptureAffordance()}
+      ${renderTodayAgendaSection(d, s)}
+    `;
+  }
+
+  // --- Desktop drag controller (framedRoot-scoped, mirrors the framedRoot
+  // click listener's own "guard by data attribute" shape). Only ever
+  // active while a [data-today-drag] card is being dragged, so it's a
+  // no-op on every other route without needing its own route guard. ---
+  let tdDragTaskId = null;
+  let tdDragOverZone = null;
+  framedRoot.addEventListener('dragstart', (e) => {
+    const el = e.target.closest('[data-today-drag]');
+    if (!el) return;
+    tdDragTaskId = el.dataset.todayDrag;
+    if (e.dataTransfer) e.dataTransfer.effectAllowed = 'move';
+  });
+  framedRoot.addEventListener('dragover', (e) => {
+    if (!tdDragTaskId) return;
+    const zone = e.target.closest('[data-today-dropzone]');
+    if (!zone) return;
+    e.preventDefault();
+    if (e.dataTransfer) e.dataTransfer.dropEffect = 'move';
+    if (tdDragOverZone && tdDragOverZone !== zone) tdDragOverZone.classList.remove('today-dropzone--over');
+    zone.classList.add('today-dropzone--over');
+    tdDragOverZone = zone;
+  });
+  framedRoot.addEventListener('dragleave', (e) => {
+    const zone = e.target.closest('[data-today-dropzone]');
+    if (zone && zone === tdDragOverZone) { zone.classList.remove('today-dropzone--over'); tdDragOverZone = null; }
+  });
+  framedRoot.addEventListener('drop', (e) => {
+    if (!tdDragTaskId) return;
+    const zone = e.target.closest('[data-today-dropzone]');
+    if (tdDragOverZone) { tdDragOverZone.classList.remove('today-dropzone--over'); tdDragOverZone = null; }
+    const taskId = tdDragTaskId;
+    tdDragTaskId = null;
+    if (!zone) return;
+    e.preventDefault();
+    applyTodayTaskSlot(taskId, zone.dataset.todayDropzone);
+  });
+  framedRoot.addEventListener('dragend', () => {
+    if (tdDragOverZone) { tdDragOverZone.classList.remove('today-dropzone--over'); tdDragOverZone = null; }
+    tdDragTaskId = null;
+  });
+
+
   // --- Views ----------------------------------------------------------------
   // Capture isn't an in-shell route: the nav links straight to capture.html
   // until the Capture screen is migrated in here. Triage is a real screen
@@ -8398,7 +9354,7 @@
   // on "/" rather than matched against a fixed list, since the id half is
   // arbitrary. Anything unrecognized (including a bare entity name with no
   // id) falls back to Home rather than erroring.
-  const STATIC_ROUTES = ['home', 'inbox'];
+  const STATIC_ROUTES = ['home', 'inbox', 'today'];
 
   function parseRoute() {
     const hash = location.hash.replace(/^#\/?/, '');
@@ -8440,15 +9396,18 @@
     });
     content.classList.toggle('stretch', route.name === 'inbox');
     // The Inbox-triage "N to Sort" pill doesn't belong on a record's own
-    // profile (real or still-stubbed) — Home and Inbox keep it.
-    inboxPill.classList.toggle('hidden', ENTITY_ROUTES.includes(route.name));
+    // profile (real or still-stubbed) — Home and Inbox keep it. Today has
+    // its own "N planned" header metric, so it's out too (FRAMED_ROUTES).
+    inboxPill.classList.toggle('hidden', FRAMED_ROUTES.has(route.name));
     // Every entity profile (Note/Task/Project/Domain/Tag/Collection/Person)
     // renders into the framed shell as of the Framed-Layout Retrofit sprint
     // — Domain was the only one scoped to it before. body.dmn-route swaps
     // which of .shell / #framedRoot is visible (see the "Framed shell" CSS
     // block); Home and Inbox are explicitly out of scope for panel-wrapping
-    // this sprint and keep rendering into #content exactly as before.
-    document.body.classList.toggle('dmn-route', ENTITY_ROUTES.includes(route.name));
+    // this sprint and keep rendering into #content exactly as before. Today
+    // (Today Dashboard Build Brief §1) is the first non-entity screen that
+    // also wants the frame, hence FRAMED_ROUTES rather than ENTITY_ROUTES.
+    document.body.classList.toggle('dmn-route', FRAMED_ROUTES.has(route.name));
     // Lets a profile-specific mobile CSS override target just its own
     // route (e.g. Note's "Dates above the body" reorder below) without
     // touching the shared .dmn-col/.dmn-prop-sec--* rules every other
@@ -8466,6 +9425,8 @@
       mountDomainProfile(route.id);
     } else if (route.name === 'tag' || route.name === 'collection' || route.name === 'person') {
       mountRelationProfile(route.name, route.id);
+    } else if (route.name === 'today') {
+      mountTodayDashboard();
     } else if (ENTITY_ROUTES.includes(route.name)) {
       content.innerHTML = renderEntityStub(route.name);
     } else {
