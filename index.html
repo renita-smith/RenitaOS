@@ -1479,14 +1479,32 @@
      (§1) — Today isn't a record profile (no Progress/Activity/
      Properties/Log sections render), so it needs its own small order
      override rather than falling into the default note/task/project
-     rule set above. ---- */
+     rule set above.
+
+     Live-testing request — Today's Agenda moves ABOVE the Today/Tomorrow
+     toggle+board (header/overdue stay put); This Week's Events moves to
+     sit directly above This Week's own task list instead — the two
+     "this week" sections (calendar events, then tasks) read as one pair,
+     rather than grouping both right-rail sections with the day agenda.
+     Desktop is untouched (its own right-rail order is unaffected — this
+     block is mobile-only). .dmn-col becomes display:contents (same
+     technique the project route above already uses) so its own top-level
+     sections — .today-head/.today-overdue/.today-board-sec/
+     .today-week-sec/.today-month-sec — can each take an independent
+     order alongside the right-rail sections, instead of moving as one
+     fixed block. ---- */
   @media (max-width: 820px) {
     .today-board { grid-template-columns: 1fr; }
+    body[data-route="today"] .dmn-col { display: contents; }
     body[data-route="today"] .dmn-capture { order: 1; }
-    body[data-route="today"] .dmn-col { order: 2; }
-    body[data-route="today"] .dmn-prop-sec--agenda { order: 3; }
-    body[data-route="today"] .dmn-prop-sec--week-events { order: 4; }
-    body[data-route="today"] .dmn-prop-sec--domain-load { order: 5; }
+    body[data-route="today"] .today-head { order: 2; }
+    body[data-route="today"] .today-overdue { order: 3; }
+    body[data-route="today"] .dmn-prop-sec--agenda { order: 4; }
+    body[data-route="today"] .today-board-sec { order: 5; }
+    body[data-route="today"] .dmn-prop-sec--week-events { order: 6; }
+    body[data-route="today"] .today-week-sec { order: 7; }
+    body[data-route="today"] .today-month-sec { order: 8; }
+    body[data-route="today"] .dmn-prop-sec--domain-load { order: 9; }
   }
 
   /* ---- Mobile: single column. Nav becomes a fixed bottom tab bar (mobile
@@ -1657,7 +1675,7 @@
   // Bumped by hand on every deployed change (Cycle-2 preflight) — logged on
   // load and shown in-app (topbar + framed rail) so it's a glance which
   // build is actually running, instead of inferring it from git history.
-  const BUILD_STAMP = '2026-07-26-today5';
+  const BUILD_STAMP = '2026-07-26-today6';
   console.log(`RenitaOS build ${BUILD_STAMP}`);
 
   // --- Shared bootstrap: defined once, in one place. -----------------------
