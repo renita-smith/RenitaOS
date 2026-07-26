@@ -1378,6 +1378,20 @@
     height: 26px;
     line-height: 1;
   }
+  /* The actual remaining cause of the date-pill misalignment: .dmn-card-
+     pills carries margin-top:8px for its original context (stacked below
+     a card's title row). On a .today-row, it's instead a horizontal
+     sibling of the date pill within one flex row (align-items:center) —
+     that top margin pushes its whole box (Status+Priority) down inside
+     its own centered slot, while the date pill (no such margin) doesn't
+     move, so the two visibly don't align. display:contents drops the
+     wrapper's own box (margin included) and promotes its Status/Priority
+     children to direct flex items of .today-row, so they align exactly
+     like every other pill in the row instead of through an extra,
+     differently-margined layer. (Left untouched for board cards, where
+     .dmn-card-pills is still genuinely stacked below .dmn-top and needs
+     that gap — see .today-board-card .dmn-card-pills below.) */
+  .today-row .dmn-card-pills { display: contents; }
 
   /* ---- Today/Tomorrow board ---- */
   .today-toggle { display: inline-flex; background: #E7ECD6; border-radius: 4px; padding: 3px; gap: 2px; margin-bottom: 14px; }
@@ -1643,7 +1657,7 @@
   // Bumped by hand on every deployed change (Cycle-2 preflight) — logged on
   // load and shown in-app (topbar + framed rail) so it's a glance which
   // build is actually running, instead of inferring it from git history.
-  const BUILD_STAMP = '2026-07-26-today4';
+  const BUILD_STAMP = '2026-07-26-today5';
   console.log(`RenitaOS build ${BUILD_STAMP}`);
 
   // --- Shared bootstrap: defined once, in one place. -----------------------
