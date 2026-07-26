@@ -1329,6 +1329,31 @@
   .today-badge--overdue { background: oklch(0.93 0.05 35); color: oklch(0.42 0.14 35); }
   .today-domain-chip { font-size: 10px; font-weight: 600; padding: 2px 8px; border-radius: 4px; }
 
+  /* Refinement Pass 1, item 5 — .dmn-card-pill's only background comes
+     from the shared .pf-pill rule (var(--surface-soft), #E7ECD6) — the
+     exact same hex as .today-row/.dmn-task's own fill, so on Today the
+     pill was technically still there, just invisible (zero contrast
+     against its own container) and read as plain bold text instead. A
+     light contrasting fill + thin border makes it read as a pill again.
+     Scoped to Today's own row/card contexts rather than changing
+     .dmn-card-pill itself, which Project/Domain's task-grid cards (out
+     of this pass's scope) also depend on. */
+  /* :not(.dmn-card-pill--due) — This Month's project-deadline row (see
+     renderTodayProjectDeadlineRow) reuses that read-only due-pill variant
+     inside .today-row too; it must keep its own deliberately transparent/
+     borderless styling (it isn't editable, no data-pfe-card-action on
+     it), not pick up this rule just by matching the broader selector. */
+  .today-row .dmn-card-pill:not(.dmn-card-pill--due),
+  .today-board-card .dmn-card-pill:not(.dmn-card-pill--due) {
+    background: rgba(255, 255, 255, .6);
+    border: 1px solid rgba(42, 52, 8, .14);
+  }
+  .today-row .dmn-card-pill:not(.dmn-card-pill--due):hover,
+  .today-board-card .dmn-card-pill:not(.dmn-card-pill--due):hover {
+    background: var(--tg-sage-deep, #DBE2C1);
+    border-color: transparent;
+  }
+
   /* ---- Today/Tomorrow board ---- */
   .today-toggle { display: inline-flex; background: #E7ECD6; border-radius: 4px; padding: 3px; gap: 2px; margin-bottom: 14px; }
   .today-toggle-btn {
@@ -1349,9 +1374,32 @@
   }
   .today-col-empty { font-family: 'Newsreader', serif; font-style: italic; font-size: 13px; color: oklch(0.62 0.012 75); padding: 8px 6px; }
   .today-dropzone--over { background: #DBE2C1; }
-  .today-board-card { cursor: grab; }
+  .today-date-pill { cursor: pointer; }
+
+  /* Refinement Pass 1, item 6 — compact board cards: no min-height floor
+     (the shared .dmn-task rule sets 104px, sized for the wider 2-column
+     Project/Domain grid card, not this dense 4-column board), tighter
+     internal spacing, name/priority/status/project only. */
+  .today-board-card { cursor: grab; min-height: 0; padding: 10px; }
   .today-board-card:active { cursor: grabbing; }
-  .today-date-pill, .today-slot-pill { cursor: pointer; }
+  .today-board-card .dmn-top { gap: 6px; align-items: center; }
+  .today-board-card .dmn-tname { font-size: 13px; line-height: 1.25; }
+  .today-board-card .dmn-card-pills { margin-top: 6px; gap: 5px; }
+  .today-card-project {
+    font-family: 'IBM Plex Sans', sans-serif; font-size: 11px; color: oklch(0.5 0.012 75);
+    margin: 4px 0 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  /* Icon-only reschedule/slot triggers (replace the old full-text "Bank"/
+     date pills that repeated the column name back at the card) — small,
+     bordered, no label; the tap target is still full data-pfe-card-action
+     dispatch, same popover machinery as everywhere else. */
+  .today-card-icons { display: flex; gap: 4px; margin-left: auto; flex-shrink: 0; }
+  .today-card-icon-btn {
+    width: 22px; height: 22px; border-radius: 4px; padding: 0;
+    background: rgba(255, 255, 255, .6); border: 1px solid rgba(42, 52, 8, .14);
+    color: #3A4410; display: flex; align-items: center; justify-content: center; cursor: pointer;
+  }
+  .today-card-icon-btn:hover { background: var(--tg-sage-deep, #DBE2C1); }
 
   /* ---- This Week / This Month metrics — neutral reference, no delta
      mid-week (§8): the number is the record, the reference line beside
@@ -1360,8 +1408,9 @@
   .today-metric-num { font-family: 'Newsreader', serif; font-size: 28px; color: #2A3408; }
   .today-metric-ref { font-family: 'IBM Plex Sans', sans-serif; font-size: 12px; color: oklch(0.55 0.012 75); }
 
-  /* ---- Calendar (read-only, §5.5) ---- */
-  .today-cal-week { display: flex; flex-direction: column; gap: 4px; margin-bottom: 14px; }
+  /* ---- Calendar (read-only, §5.5) — the day agenda (right rail) and
+     the week-event list (both right rail, item 3) share this. ---- */
+  .today-cal-week { display: flex; flex-direction: column; gap: 4px; }
   .today-cal-row { display: flex; align-items: baseline; gap: 8px; font-size: 13px; padding: 2px 0; }
   .today-cal-time { font-family: 'IBM Plex Sans', sans-serif; font-size: 11px; color: oklch(0.55 0.012 75); flex-shrink: 0; min-width: 58px; }
   .today-cal-name { flex: 1; }
@@ -1369,17 +1418,26 @@
   .today-cal-more { font-size: 11px; color: oklch(0.55 0.012 75); padding-top: 2px; }
   .today-cal-unavailable, .today-cal-loading { font-family: 'Newsreader', serif; font-style: italic; font-size: 13px; color: oklch(0.55 0.012 75); }
 
-  /* ---- Domain load distribution — reuses .dmn-bar's percentage-bar
-     visual language (one row per domain instead of one per project). ---- */
-  .today-dist { margin-top: 18px; }
-  .today-dist-cap { font-size: 11px; color: oklch(0.55 0.012 75); margin-bottom: 8px; }
+  /* ---- Domain load distribution (right rail, item 3) — reuses .dmn-bar's
+     percentage-bar visual language (one row per domain instead of one
+     per project); the Week/Month toggle sits beside the section heading,
+     same shape as the Today/Tomorrow board toggle only smaller. ---- */
+  .today-dist-hd-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+  .today-dist-hd-row h3 { margin: 0; }
+  .today-dist-toggle { display: inline-flex; background: #E7ECD6; border-radius: 4px; padding: 2px; gap: 2px; }
+  .today-dist-toggle-btn {
+    font: inherit; font-size: 11px; font-weight: 600; padding: 4px 10px; border-radius: 3px;
+    border: none; background: transparent; color: oklch(0.5 0.012 75); cursor: pointer;
+  }
+  .today-dist-toggle-btn.active { background: #fff; color: #2A3408; box-shadow: 0 1px 2px rgba(0,0,0,.12); }
   .today-dist-row { display: flex; align-items: center; gap: 10px; padding: 4px 0; transition: opacity .1s; }
   .today-dist-row--dim { opacity: .35; }
   .today-dist-code { font-family: 'IBM Plex Sans', sans-serif; font-size: 11px; font-weight: 700; width: 42px; flex-shrink: 0; }
   .today-dist-n { font-family: 'IBM Plex Sans', sans-serif; font-size: 12px; color: oklch(0.55 0.012 75); width: 20px; text-align: right; flex-shrink: 0; }
 
-  /* ---- Mobile: board columns stack; agenda sits directly under the
-     board (§1) — Today isn't a record profile (no Progress/Activity/
+  /* ---- Mobile: board columns stack; the right-rail "glance" stack
+     (agenda, week events, domain load) sits directly under the board
+     (§1) — Today isn't a record profile (no Progress/Activity/
      Properties/Log sections render), so it needs its own small order
      override rather than falling into the default note/task/project
      rule set above. ---- */
@@ -1388,6 +1446,8 @@
     body[data-route="today"] .dmn-capture { order: 1; }
     body[data-route="today"] .dmn-col { order: 2; }
     body[data-route="today"] .dmn-prop-sec--agenda { order: 3; }
+    body[data-route="today"] .dmn-prop-sec--week-events { order: 4; }
+    body[data-route="today"] .dmn-prop-sec--domain-load { order: 5; }
   }
 
   /* ---- Mobile: single column. Nav becomes a fixed bottom tab bar (mobile
@@ -1558,7 +1618,7 @@
   // Bumped by hand on every deployed change (Cycle-2 preflight) — logged on
   // load and shown in-app (topbar + framed rail) so it's a glance which
   // build is actually running, instead of inferring it from git history.
-  const BUILD_STAMP = '2026-07-26-today2';
+  const BUILD_STAMP = '2026-07-26-today3';
   console.log(`RenitaOS build ${BUILD_STAMP}`);
 
   // --- Shared bootstrap: defined once, in one place. -----------------------
@@ -8284,6 +8344,10 @@
     if (todayDomainBtn) { e.stopPropagation(); todayDashboardState.domainFilter = todayDomainBtn.dataset.todayDomain; paintActiveProfile(); return; }
     const todayDayBtn = e.target.closest('[data-today-day]');
     if (todayDayBtn) { e.stopPropagation(); todayDashboardState.activeDay = todayDayBtn.dataset.todayDay; paintActiveProfile(); return; }
+    // Refinement Pass 1, item 3 — the right rail's Domain load Week/Month
+    // toggle, same screen-local-state shape as the two above.
+    const todayDomainLoadBtn = e.target.closest('[data-today-domain-load]');
+    if (todayDomainLoadBtn) { e.stopPropagation(); todayDashboardState.domainLoadWindow = todayDomainLoadBtn.dataset.todayDomainLoad; paintActiveProfile(); return; }
     // Mass-select (Step E carry-over) — toggle/checkbox/bulk-action clicks
     // sit inside cards and bulk bars that also carry data-pf-nav, so these
     // must claim the click before the generic nav/action checks below.
@@ -8760,23 +8824,29 @@
   // field. Batched over the UNIQUE set of referenced projects (one Notion
   // GET per distinct project, not per task) to avoid an N+1 fetch across a
   // whole day/week/month's worth of tasks.
-  async function resolveDomainsForTasks(tasks, projectsDomainsProp) {
+  // Refinement Pass 1, item 6 — also resolves each task's project TITLE
+  // (for the compact board card), off the exact same batched project-page
+  // fetch already done here for domain resolution — no extra network call.
+  async function resolveDomainsForTasks(tasks, projectsDomainsProp, projTitleProp) {
     const uniqueProjectIds = [...new Set(tasks.map((t) => t.projectId).filter(Boolean))];
     if (!uniqueProjectIds.length) return;
     const pages = await Promise.all(uniqueProjectIds.map(async (id) => {
       try { return await notionRequest(`/v1/pages/${id}`); } catch (err) { console.error('Failed to resolve project for domain', id, err); return null; }
     }));
     const projectDomainMap = new Map();
+    const projectTitleMap = new Map();
     pages.forEach((p) => {
       if (!p) return;
       const domRel = (p.properties[projectsDomainsProp] || {}).relation || [];
       projectDomainMap.set(p.id, domRel[0] ? domRel[0].id : null);
+      projectTitleMap.set(p.id, plainTitle(p, projTitleProp));
     });
     tasks.forEach((t) => {
       if (!t.projectId) return;
       const domainId = projectDomainMap.get(t.projectId);
       const meta = domainId ? DOMAIN_META.find((d) => normalizeDbId(d.pageId) === normalizeDbId(domainId)) : null;
       t.domainCode = meta ? meta.code : null;
+      t.projectName = projectTitleMap.get(t.projectId) || null;
     });
   }
 
@@ -8885,7 +8955,7 @@
       queryTodayProjects(schema, monthEnd),
     ]);
 
-    await resolveDomainsForTasks([...tasks, ...completions], schema.projectsDomainsProp);
+    await resolveDomainsForTasks([...tasks, ...completions], schema.projectsDomainsProp, schema.projTitleProp);
     projects.forEach((p) => {
       const meta = p.domainId ? DOMAIN_META.find((dm) => normalizeDbId(dm.pageId) === normalizeDbId(p.domainId)) : null;
       p.domainCode = meta ? meta.code : null;
@@ -8894,25 +8964,35 @@
     const buckets = deriveTodayBuckets(tasks, { today, tomorrow, weekStart, weekEnd, monthStart, monthEnd });
     const metrics = deriveTodayMetrics(completions, { today, weekStart, monthStart, lastMonthAnchor });
 
-    const domainCompletionCounts = {};
-    DOMAIN_META.forEach((dm) => { domainCompletionCounts[dm.code] = 0; });
+    // Refinement Pass 1, item 3 — the right rail's domain-load block has a
+    // Week/Month toggle (default Week), so both windows' counts are built
+    // up front off the one Q2 completions set already fetched, rather than
+    // re-deriving on every toggle click.
+    const domainCompletionCountsWeek = {};
+    const domainCompletionCountsMonth = {};
+    DOMAIN_META.forEach((dm) => { domainCompletionCountsWeek[dm.code] = 0; domainCompletionCountsMonth[dm.code] = 0; });
     completions.forEach((t) => {
       const cs = t.completedDate && t.completedDate.start;
-      if (!cs || !tdIsBetween(cs, monthStart, today)) return;
-      if (t.domainCode && domainCompletionCounts[t.domainCode] != null) domainCompletionCounts[t.domainCode] += 1;
+      if (!cs || !t.domainCode) return;
+      if (tdIsBetween(cs, weekStart, today) && domainCompletionCountsWeek[t.domainCode] != null) domainCompletionCountsWeek[t.domainCode] += 1;
+      if (tdIsBetween(cs, monthStart, today) && domainCompletionCountsMonth[t.domainCode] != null) domainCompletionCountsMonth[t.domainCode] += 1;
     });
 
     return {
       today, tomorrow, weekStart, weekEnd, monthStart, monthEnd, lastMonthAnchor,
       overdue: buckets.overdue, todayPool: buckets.todayPool, tomorrowPool: buckets.tomorrowPool, week: buckets.week, month: buckets.month,
-      projects, domainCompletionCounts, metrics,
+      projects, domainCompletionCounts: { week: domainCompletionCountsWeek, month: domainCompletionCountsMonth }, metrics,
       slotColumns: schema.slotColumns, statusOptions: schema.statusSchema.options, priorityOptions: schema.priorityOptions,
       timeSlotProp: schema.timeSlotProp,
       calendar: null, calendarErrors: [], calendarFailed: false,
     };
   }
 
-  const todayDashboardState = { loading: false, error: null, data: null, activeDay: 'today', domainFilter: 'all', _loadToken: null };
+  const todayDashboardState = {
+    loading: false, error: null, data: null, activeDay: 'today', domainFilter: 'all', _loadToken: null,
+    // Refinement Pass 1, item 3 — the right rail's domain-load toggle; default Week.
+    domainLoadWindow: 'week',
+  };
 
   async function mountTodayDashboard() {
     const s = todayDashboardState;
@@ -9105,47 +9185,90 @@
     </div>`;
   }
 
+  // Refinement Pass 1, item 4 — one editable date pill, not two. Displays
+  // Do Date when set, else falls back to showing Due Date (informational
+  // — an overdue row with no Do Date yet still shows *something* useful
+  // instead of a bare "Reschedule" label); the picker it opens always
+  // edits Do Date, same as before ("Reschedule" = re-plan when to do it,
+  // never touches the deadline itself).
   function renderTodayDatePill(t) {
-    const iso = t.doDate && t.doDate.start;
-    const pop = pfeCardOpenFor(t.id, 'date') ? `<div class="tg-popover"><input type="date" class="tg-pop-date" data-pfe-card-date-input data-pfe-card-id="${escapeHtml(t.id)}" value="${iso ? escapeHtml(iso) : ''}"></div>` : '';
-    return `<span class="tg-pop-wrap"><span class="pf-pill pf-pill--value dmn-card-pill today-date-pill" data-pfe-card-action="date" data-pfe-card-id="${escapeHtml(t.id)}">🗓 ${iso ? escapeHtml(formatDateShort(iso)) : 'Reschedule'}</span>${pop}</span>`;
+    const doIso = t.doDate && t.doDate.start;
+    const dueIso = t.dueDate && t.dueDate.start;
+    const displayIso = doIso || dueIso || null;
+    const pop = pfeCardOpenFor(t.id, 'date') ? `<div class="tg-popover"><input type="date" class="tg-pop-date" data-pfe-card-date-input data-pfe-card-id="${escapeHtml(t.id)}" value="${doIso ? escapeHtml(doIso) : ''}"></div>` : '';
+    return `<span class="tg-pop-wrap"><span class="pf-pill pf-pill--value dmn-card-pill today-date-pill" data-pfe-card-action="date" data-pfe-card-id="${escapeHtml(t.id)}">🗓 ${displayIso ? escapeHtml(formatDateShort(displayIso)) : 'Reschedule'}</span>${pop}</span>`;
   }
 
-  function renderTodaySlotPill(t, slotColumns) {
-    const label = t.timeSlot.length
-      ? (slotColumns.filter((c) => c.optionName && t.timeSlot.includes(c.optionName)).map((c) => c.label).join(', ') || 'Slot')
-      : 'Bank';
-    const pop = pfeCardOpenFor(t.id, 'slot') ? renderTodaySlotPopover(t.id, t.timeSlot, slotColumns) : '';
-    return `<span class="tg-pop-wrap"><span class="pf-pill pf-pill--value dmn-card-pill today-slot-pill" data-pfe-card-action="slot" data-pfe-card-id="${escapeHtml(t.id)}">${escapeHtml(label)}</span>${pop}</span>`;
-  }
   function renderTodaySlotPopover(taskId, currentSlot, slotColumns) {
     const noneRow = `<div class="tg-pop-opt${!currentSlot.length ? ' on' : ''}" data-pfe-card-slot="bank" data-pfe-card-id="${escapeHtml(taskId)}">None (Bank)</div>`;
     const rows = slotColumns.map((c) => `<div class="tg-pop-opt${c.optionName && currentSlot.includes(c.optionName) ? ' on' : ''}" data-pfe-card-slot="${escapeHtml(c.key)}" data-pfe-card-id="${escapeHtml(taskId)}">${escapeHtml(c.label)}</div>`).join('');
     return `<div class="tg-popover"><div class="tg-pop-label">Time Slot</div><div class="tg-pop-list">${noneRow}${rows}</div></div>`;
   }
 
+  // Refinement Pass 1, item 5 — Status/Priority as visible editable pills.
+  // This is a Today-specific sibling of renderPfeCardValuePills (drops its
+  // read-only due-date branch, now folded into the date pill above by
+  // item 4) rather than a change to that shared function, since Project/
+  // Domain's own task-grid cards still call it directly and are out of
+  // this pass's scope.
+  function renderTodayValuePills(t, statusOptions, priorityOptions) {
+    const statusPop = pfeCardOpenFor(t.id, 'status') ? renderPfeCardSelectPopover(t.id, statusOptions, t.statusName, { label: 'Status' }) : '';
+    const statusHtml = `<span class="tg-pop-wrap"><span class="pf-pill pf-pill--value dmn-card-pill" data-pfe-card-action="status" data-pfe-card-id="${escapeHtml(t.id)}">${escapeHtml(t.statusName || 'No status')}</span>${statusPop}</span>`;
+    let priorityHtml = '';
+    if (priorityOptions && priorityOptions.length) {
+      const priorityPop = pfeCardOpenFor(t.id, 'priority') ? renderPfeCardSelectPopover(t.id, priorityOptions, t.priorityName, { label: 'Priority', clearable: !!t.priorityName }) : '';
+      priorityHtml = `<span class="tg-pop-wrap"><span class="pf-pill pf-pill--value dmn-card-pill" data-pfe-card-action="priority" data-pfe-card-id="${escapeHtml(t.id)}">${escapeHtml(t.priorityName || 'No priority')}</span>${priorityPop}</span>`;
+    }
+    return `<div class="dmn-card-pills">${statusHtml}${priorityHtml}</div>`;
+  }
+
+  // Refinement Pass 1, item 6 — compact board cards. Icon-only (no label
+  // text) reschedule/slot buttons replace the old full-text pills (the
+  // "Bank" pill inside a card already sitting in the Bank column was pure
+  // redundant label) — both stay functional (required interactions per
+  // the original build brief: reschedule moves a task between boards, the
+  // slot picker is the only way to change Time Slot without drag/mobile),
+  // just no longer competing with name/priority/status/project for space.
+  const TODAY_ICON_DATE = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M3 10h18M8 2v4M16 2v4"/></svg>';
+  const TODAY_ICON_SLOT = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>';
+  function renderTodayCardIconBtn(t, field, iconSvg, popoverHtml, title) {
+    const pop = pfeCardOpenFor(t.id, field) ? popoverHtml : '';
+    return `<span class="tg-pop-wrap"><button type="button" class="today-card-icon-btn" data-pfe-card-action="${field}" data-pfe-card-id="${escapeHtml(t.id)}" title="${escapeHtml(title)}" aria-label="${escapeHtml(title)}">${iconSvg}</button>${pop}</span>`;
+  }
+  function renderTodayCardIcons(t, slotColumns) {
+    const doIso = t.doDate && t.doDate.start;
+    const datePop = `<div class="tg-popover"><input type="date" class="tg-pop-date" data-pfe-card-date-input data-pfe-card-id="${escapeHtml(t.id)}" value="${doIso ? escapeHtml(doIso) : ''}"></div>`;
+    const slotPop = renderTodaySlotPopover(t.id, t.timeSlot, slotColumns);
+    return `<span class="today-card-icons">${renderTodayCardIconBtn(t, 'date', TODAY_ICON_DATE, datePop, 'Reschedule')}${renderTodayCardIconBtn(t, 'slot', TODAY_ICON_SLOT, slotPop, 'Change time slot')}</span>`;
+  }
+
   function renderTodayTaskCard(t, d) {
     const badge = t.isOverdue ? `<span class="today-badge today-badge--overdue">Overdue</span>` : '';
+    const projectHtml = t.projectName ? `<div class="today-card-project">${escapeHtml(t.projectName)}</div>` : '';
     return `<div class="dmn-task today-board-card" draggable="true" data-today-drag="${escapeHtml(t.id)}" data-pf-nav="task/${escapeHtml(t.id)}">
       <div class="dmn-top">
         <span class="dmn-box" data-pfe-task-toggle="${escapeHtml(t.id)}" data-pfe-task-done="false" role="checkbox" aria-checked="false"></span>
         <span class="dmn-tname">${escapeHtml(t.title || 'Untitled')}</span>
+        ${renderTodayCardIcons(t, d.slotColumns)}
       </div>
       ${badge}
-      <div class="dmn-card-pills">${renderTodayDatePill(t)}${renderTodaySlotPill(t, d.slotColumns)}</div>
-      ${renderPfeCardValuePills(t, d.statusOptions, d.priorityOptions)}
+      ${projectHtml}
+      ${renderTodayValuePills(t, d.statusOptions, d.priorityOptions)}
     </div>`;
   }
 
+  // Refinement Pass 1, item 4 — no per-row OVERDUE badge (the strip's own
+  // "OVERDUE" heading already says it; isOverdue is never true for a
+  // week/month-bucketed row, only ever for this strip's own rows, so this
+  // never needed a context flag to drop safely).
   function renderTodayCompactRow(t, d, opts = {}) {
-    const badge = t.isOverdue ? `<span class="today-badge today-badge--overdue">Overdue</span>` : '';
     const dayTag = opts.dayTag ? `<span class="today-daytag">${escapeHtml(opts.dayTag)}</span>` : '';
     return `<div class="today-row" data-pf-nav="task/${escapeHtml(t.id)}">
       <span class="dmn-box" data-pfe-task-toggle="${escapeHtml(t.id)}" data-pfe-task-done="false" role="checkbox" aria-checked="false"></span>
       <span class="today-row-title">${escapeHtml(t.title || 'Untitled')}</span>
-      ${dayTag}${badge}
+      ${dayTag}
       ${renderTodayDatePill(t)}
-      ${renderPfeCardValuePills(t, d.statusOptions, d.priorityOptions)}
+      ${renderTodayValuePills(t, d.statusOptions, d.priorityOptions)}
     </div>`;
   }
 
@@ -9197,11 +9320,15 @@
     return `<div class="today-metric-row"><span class="today-metric-num">${toDate}</span><span class="today-metric-ref">last mo to ${escapeHtml(anchorLabel)}: ${lastPoint}</span></div>`;
   }
 
+  // Refinement Pass 1, item 3 — moved from the main-column This Week
+  // section into the right rail's "glance" stack (below). Name·day/date
+  // only, per the brief — this list stays deliberately minimal even
+  // though it lives in a new spot.
   function renderTodayWeekEvents(d) {
     if (d.calendarFailed) return `<div class="today-cal-unavailable">Calendar unavailable.</div>`;
     if (!d.calendar) return `<div class="today-cal-loading">Loading calendar…</div>`;
     const events = d.calendar.week;
-    if (!events.length) return '';
+    if (!events.length) return `<div class="dmn-empty">No events this week.</div>`;
     const CAP = 6;
     const shown = events.slice(0, CAP);
     const rows = shown.map((e) => `<div class="today-cal-row"><span class="today-cal-name">${escapeHtml(e.title || 'Untitled')}</span><span class="today-cal-date">${escapeHtml(formatDateShort(calDayStr(e)))}</span></div>`).join('');
@@ -9217,7 +9344,6 @@
     return `<section class="dmn-sec today-week-sec">
       <h2 class="dmn-sec-hd">This Week</h2>
       ${renderTodayComparisonMetric(d.metrics.weekToDate, d.metrics.lastWeekSamePoint, d.metrics.weekClosed, d.today)}
-      ${renderTodayWeekEvents(d)}
       <div class="today-strip">${body}</div>
     </section>`;
   }
@@ -9235,6 +9361,8 @@
   // Reuses the Domain profile's own percentage-bar visual language
   // (.dmn-bar, per renderDomainProjectCard/renderProgressSection) rather
   // than a new chart — one row per domain instead of one row per project.
+  // Refinement Pass 1, item 3 — no longer captions its own window (the
+  // section wrapper's Week/Month toggle says that now); just the bars.
   function renderTodayDomainDistribution(counts, activeFilter) {
     const max = Math.max(1, ...Object.values(counts));
     const rows = DOMAIN_META.map((dm) => {
@@ -9247,7 +9375,7 @@
         <span class="today-dist-n">${n}</span>
       </div>`;
     }).join('');
-    return `<div class="today-dist"><div class="today-dist-cap">Domain load · this month's completions</div>${rows}</div>`;
+    return `<div class="today-dist">${rows}</div>`;
   }
 
   function renderTodayMonthSection(d, s) {
@@ -9262,12 +9390,12 @@
     const taskBody = monthTasks.length
       ? `<div class="today-strip">${monthTasks.map((t) => renderTodayCompactRow(t, d)).join('')}</div>`
       : '';
+    // Refinement Pass 1, item 3 — domain load moved to the right rail.
     return `<section class="dmn-sec today-month-sec">
       <h2 class="dmn-sec-hd">This Month</h2>
       ${renderTodayMonthComparisonMetric(d.metrics.monthToDate, d.metrics.lastMonthSamePoint, d.lastMonthAnchor)}
       <div class="today-strip">${projBody}</div>
       ${taskBody}
-      ${renderTodayDomainDistribution(d.domainCompletionCounts, s.domainFilter)}
     </section>`;
   }
 
@@ -9297,6 +9425,32 @@
     </section>`;
   }
 
+  // Refinement Pass 1, item 3 — "this week's events," ADDED to the right
+  // rail below the day agenda, pulled from the same calendar feed
+  // (d.calendar.week, already fetched/partitioned by partitionCalendarEvents).
+  function renderTodayWeekEventsSection(d) {
+    return `<section class="dmn-prop-sec dmn-prop-sec--week-events">
+      <h3>This week's events</h3>
+      ${renderTodayWeekEvents(d)}
+    </section>`;
+  }
+
+  // Refinement Pass 1, item 3 — domain load, MOVED here from This Month,
+  // with a Week/Month toggle (default Week per todayDashboardState).
+  function renderTodayDomainLoadSection(d, s) {
+    const counts = s.domainLoadWindow === 'week' ? d.domainCompletionCounts.week : d.domainCompletionCounts.month;
+    return `<section class="dmn-prop-sec dmn-prop-sec--domain-load">
+      <div class="today-dist-hd-row">
+        <h3>Domain load</h3>
+        <div class="today-dist-toggle" role="tablist">
+          <button type="button" class="today-dist-toggle-btn${s.domainLoadWindow === 'week' ? ' active' : ''}" data-today-domain-load="week" role="tab" aria-selected="${s.domainLoadWindow === 'week'}">Week</button>
+          <button type="button" class="today-dist-toggle-btn${s.domainLoadWindow === 'month' ? ' active' : ''}" data-today-domain-load="month" role="tab" aria-selected="${s.domainLoadWindow === 'month'}">Month</button>
+        </div>
+      </div>
+      ${renderTodayDomainDistribution(counts, s.domainFilter)}
+    </section>`;
+  }
+
   function paintTodayDashboard() {
     const s = todayDashboardState;
     if (s.loading) {
@@ -9318,9 +9472,13 @@
       ${renderTodayMonthSection(d, s)}
       ${renderPfeToast()}
     `;
+    // Refinement Pass 1, item 3 — the right rail is now the "glance"
+    // column: Capture, day agenda, this week's events, domain load.
     dmnProps.innerHTML = `
       ${renderCaptureAffordance()}
       ${renderTodayAgendaSection(d, s)}
+      ${renderTodayWeekEventsSection(d)}
+      ${renderTodayDomainLoadSection(d, s)}
     `;
   }
 
