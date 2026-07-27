@@ -9,6 +9,10 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:ital,wght@0,400;0,500;0,600;1,400;1,500&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap">
 <link rel="stylesheet" href="./css/styles.css">
+<!-- Standardization Pass 3, item 7 — the shared nav-rail stylesheet, same
+     one index.html links, so Capture's reduced footer nav can't drift from
+     Inbox/Today's own rail. -->
+<link rel="stylesheet" href="./css/nav-rail.css">
 </head>
 <body>
 <div class="capture-screen">
@@ -72,19 +76,27 @@
       <button id="saveBtn" class="save-btn">Save to Inbox</button>
     </div>
 
-    <nav class="shell-nav">
-      <div class="nav-track">
-        <a href="./index.html#/home" class="nav-btn">Home</a>
-        <a href="./capture.html" class="nav-btn active">Capture</a>
-        <a href="./index.html#/inbox" class="nav-btn">Inbox</a>
-      </div>
-    </nav>
+    <!-- Standardization Pass 3, item 7 — same shared rail component
+         Today/Inbox/every profile render (js/navRail.js), fed Capture's
+         own reduced item set and styled with the .dmn-rail--bar variant
+         (css/nav-rail.css) so it keeps sitting inline in this footer
+         instead of becoming a left column or a fixed overlay. Populated
+         below, right after js/navRail.js loads. -->
+    <div id="captureNavRail" class="dmn-rail dmn-rail--bar"></div>
 
     <div id="toast" class="toast hidden"></div>
   </div>
 
 </div>
 
+<!-- Standardization Pass 3, item 7 — the shared rail's markup, same plain
+     classic script index.html loads (window.RenitaNavRail); mounts before
+     js/app.js's module script below. -->
+<script src="./js/navRail.js"></script>
+<script>
+  document.getElementById('captureNavRail').innerHTML =
+    RenitaNavRail.renderNavRailHTML(RenitaNavRail.CAPTURE_NAV_ITEMS, { activeRoute: 'capture' });
+</script>
 <script type="module" src="./js/app.js"></script>
 </body>
 </html>
