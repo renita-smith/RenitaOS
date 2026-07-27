@@ -114,10 +114,14 @@
      (.topbar-capture) is retired; Home/Inbox now mount the exact same
      renderCaptureAffordance() pill Today/every profile uses (see
      #shellTopbarCapture below), so there's one Capture treatment app-wide
-     instead of a second, differently-shaped one here. .dmn-capture is
-     sized for the right rail (width:100%); this is the one override it
-     needs to sit as a compact pill in the topbar's corner instead. */
-  .shell-topbar-actions .dmn-capture { width: auto; }
+     instead of a second, differently-shaped one here. .dmn-capture's base
+     width:100% fills its rail column on Today/every profile (a fixed
+     230px there in practice, since .dmn-props is a fixed-width column) —
+     width:100% would instead try to fill .shell-topbar-actions's own
+     unconstrained flex-row width here, so this pins the SAME 230px
+     explicitly, keeping the pill identically sized (not just same
+     padding/font) everywhere it renders. */
+  .shell-topbar-actions .dmn-capture { width: 230px; }
 
   .shell-content {
     flex: 1;
@@ -275,14 +279,29 @@
      (the real scroll container once a bin is open on desktop; see the
      Fix 18 comment further down), so "‹ Bins", the bin's name/count/Select,
      and the divider all stay visible once scrolled to the top instead of
-     scrolling away with the cards below them. top:0 pins flush on mobile
-     (nothing fixed above #content's own scroll there — .shell-topbar sits
-     in normal flow, ahead of #content, at that width). Desktop overrides
-     `top` to clear .shell-topbar's floating Capture pill instead (that one
-     IS an overlay outside #content's scroll there — see the
-     body[data-route="inbox"] override below), so the sticky header pins
-     just under it rather than tucking in behind it. Opaque background
-     (mobile default here; desktop's Inbox-panel cream is set below) plus a
+     scrolling away with the cards below them.
+
+     top MUST stay 0 (flush with #content's own edge) on every breakpoint —
+     an earlier version of this offset `top` on desktop to duck under
+     .shell-topbar's floating Capture pill instead, which seemed right but
+     wasn't: normal-flow siblings (the cards in .tg-stack) are laid out as
+     if this header sits at its natural, un-stuck position, completely
+     independent of whatever `top` it's clamped to once stuck — offsetting
+     `top` away from 0 just opens a gap between #content's real edge and
+     wherever the header starts pinning, and that gap is NOT covered by
+     anything, so cards scrolling past are fully visible in it instead of
+     hidden behind the header (confirmed live: this is exactly what
+     produced the "cards show above the bin name" bug). Pinning flush at 0
+     means the header's own opaque box covers #content's entire visible
+     top edge the moment anything is stuck, with no gap possible.
+
+     That still leaves the header's box visually underneath .shell-topbar's
+     Capture pill once stuck (same top-right corner, different scroll
+     contexts) — solved on the OTHER element instead: .shell-topbar gets a
+     z-index above this header's, so the pill always paints on top and is
+     never covered, while the header's own opaque background still fully
+     covers the cards scrolling underneath it. Opaque background (mobile
+     default here; desktop's Inbox-panel cream is set below) plus a
      z-index above the cards keeps nothing showing through as they pass
      underneath. */
   .tg-bin-sticky {
@@ -596,6 +615,17 @@
     }
     .shell-topbar {
       position: absolute; top: 20px; right: 20px; padding-top: 0;
+      /* Standardization Pass 3 follow-up — must outrank .tg-bin-sticky's
+         z-index:5 (the open-bin header). This overlay sits outside
+         #content entirely, so it never scrolls with it — but the sticky
+         header pins flush at #content's own top edge (see .tg-bin-sticky),
+         which puts both in the same visual band at the top of the panel.
+         A higher z-index here is what keeps the Capture pill on top of
+         (rather than painted over by) the header once it's stuck, so it's
+         never covered — see the "‹ Bins" row's own note on why the header
+         can't just pin lower instead (that leaves a gap cards scroll
+         through uncovered). */
+      z-index: 10;
     }
     .shell-content { grid-area: content; }
     /* Content no longer starts below a full topbar row (see .shell above)
@@ -756,15 +786,11 @@
     }
     /* Item 6 — the sticky bin header's background matches this desktop
        panel's own cream (mobile keeps the var(--surface) default above,
-       since .shell has no panel treatment there). top:41px clears
-       .shell-topbar's Capture pill (top:20px + its own 45px-tall pill,
-       measured live) instead of pinning under/behind it — .shell-topbar
-       is this route's one piece of chrome that floats outside #content's
-       scroll (position:absolute on .shell, not sticky/fixed to #content),
-       so it's the "fixed chrome above the scroll region" the sticky
-       header's own top needs to clear, per its usual rule. If the topbar's
-       own contents ever change height, re-measure and update this. */
-    body[data-route="inbox"] .tg-bin-sticky { background: #F6F2E9; top: 41px; }
+       since .shell has no panel treatment there). top stays 0 — see the
+       long comment on .tg-bin-sticky's base rule for why offsetting it to
+       duck under the Capture pill doesn't work; the pill's own z-index
+       (above) is what keeps it visible instead. */
+    body[data-route="inbox"] .tg-bin-sticky { background: #F6F2E9; }
   }
 
   /* ============================================================
@@ -3082,11 +3108,10 @@
              the cards scrolling underneath once it reaches the top.
              Opaque background (mobile: var(--surface); desktop Inbox
              panel: #F6F2E9) keeps cards from showing through as they pass
-             beneath it. Desktop's sticky top offset clears .shell-topbar's
-             floating Capture pill (see the body[data-route="inbox"]
-             override) instead of pinning under it — the topbar sits
-             outside #content's own scroll, so without this offset the
-             header would tuck in behind the pill instead of clearing it. -->
+             beneath it. Pins flush at top:0 (not offset to duck under
+             .shell-topbar's floating Capture pill — see the long comment
+             on .tg-bin-sticky's CSS rule for why that doesn't work); the
+             pill stays visible instead via its own higher z-index. -->
         <div class="tg-bin-sticky">
           <div class="tg-bin-back-row">
             <div class="tg-link" data-back><span class="tg-chevleft">‹</span> Bins</div>
@@ -9396,7 +9421,7 @@
     const overdueCount = applyTodayDomainFilter(d.overdue, s.domainFilter).length;
     return `<div class="dmn-head today-head">
       <div class="dmn-idline">${escapeHtml(tdLongDateLabel(d.today))}</div>
-      <div class="dmn-title-row"><h1 class="dmn-title">Today</h1></div>
+      <div class="dmn-title-row"><h1 class="dmn-title">TODAY</h1></div>
       <div class="today-metric">${planned} planned · ${d.metrics.todayDone} done today · ${overdueCount} overdue</div>
       ${renderTodayDomainFilter(s.domainFilter)}
     </div>`;
