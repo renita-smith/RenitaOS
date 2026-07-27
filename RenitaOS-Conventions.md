@@ -366,6 +366,10 @@ The relation-pill caret uses the treatment shipped on the Project profile (prefe
 
 Rail set: **Home · Today · Inbox (N) · Explore · Search.** **Domains is dropped** — its browse role is absorbed by Explore; Domain *profiles* are still reached via the Domain pill and breadcrumbs. **Capture is not a rail tab** — it is a **persistent capture affordance** (floating button or bar; treatment TBD). The rail sits **inside the framed cream panel**; the active item keeps the deeper-sage pill + olive keyline.
 
+## Panel vertical sizing (new — header/typography/layout pass)
+
+The panel's **horizontal** sizing is covered above (centered, capped max-width). Vertically, the cream panel (`.dmn-inner`) must be **at least one full viewport tall, then grow to contain whatever content the screen renders** — `min-height: 100vh` with `height: auto` (the block-layout default, stated explicitly). The deeper page background (`#E7E0D0`) sits behind it the whole way down, so a short screen still reads as a full frame and a long screen never lets its own content spill past the panel's rounded bottom edge onto bare page background. This applies on every framed screen, Today included.
+
 ## Scope
 
 Applies to **every profile type.** The **Domain profile is built to this shell from the start**; the **already-shipped Project profile is retrofit** to it in a later polish pass (batched with the caret standardization and the card grid). Profile/detail views use this frame; the Home and Today **dashboards** are separate screens and are not bound by it.

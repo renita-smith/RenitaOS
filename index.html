@@ -64,16 +64,12 @@
     flex-shrink: 0;
     display: flex;
     align-items: center;
-    justify-content: space-between;
+    /* Item 1 — the wordmark moved into the nav rail's own .dmn-brand (see
+       renderNavRailInner), same as Today/every profile, so this bar is
+       just the Capture/inbox-pill actions now; flex-end keeps them where
+       they already were, at the right edge. */
+    justify-content: flex-end;
     padding-top: 20px;
-  }
-
-  .shell-title {
-    font-size: 11px;
-    letter-spacing: .08em;
-    text-transform: uppercase;
-    color: oklch(0.62 0.012 75);
-    font-weight: 600;
   }
 
   /* Preflight (Cycle 2) — a glance-visible build stamp, so "merged" claims
@@ -204,13 +200,15 @@
   .tg-chevleft { font-size: 17px; line-height: 1; }
 
   .tg-ov-head { padding: 24px 0 4px; flex-shrink: 0; }
-  .tg-ov-title { font-size: 30px; line-height: 1.15; color: var(--text); }
+  .tg-ov-title { font-family: 'Newsreader', serif; font-size: 30px; line-height: 1.15; color: var(--text); }
   .tg-ov-sub { font-size: 13px; color: var(--muted-text); margin-top: 4px; }
 
+  /* Item 2 (header/typography/layout pass) — lives inline on the title
+     row now (see .tg-ov-title-row), not floating in its own vertical
+     band below it, so no margin-top/align-self of its own is needed. */
   .tg-seg {
     display: inline-flex; background: var(--surface-soft); border-radius: var(--radius-sm);
-    padding: 3px; gap: 2px; margin: 18px 0 0; flex-shrink: 0;
-    align-self: center;
+    padding: 3px; gap: 2px; flex-shrink: 0;
   }
   .tg-seg button {
     border: none; background: transparent; cursor: pointer;
@@ -219,7 +217,16 @@
   }
   .tg-seg button.on { background: #fff; color: var(--text); box-shadow: 0 1px 3px rgba(0,0,0,.12); }
 
-  .tg-track-head { display: flex; align-items: baseline; justify-content: space-between; padding: 14px 2px 8px; }
+  /* Live-testing round — title, toggle, and (once a bin is open)
+     Select/Done + its bulk bar share one row: title+toggle grouped close
+     together on the left, Select/Done at the right edge — the same slot
+     the toggle used to sit in before it moved beside the title. */
+  .tg-ov-title-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+  .tg-ov-title-cluster { display: flex; align-items: center; gap: 12px; }
+
+  /* Item 4 — the total sits snug against its "· by type/domain" label
+     instead of pushed to the far right by justify-content:space-between. */
+  .tg-track-head { display: flex; align-items: baseline; gap: 6px; padding: 14px 2px 8px; }
 
   /* §5.7 domainless-project safety net — sits above the Notes/Tasks
      toggle so it's visible regardless of track, since it's neither a
@@ -253,11 +260,11 @@
      instead of replacing it; a plain Note-type chip has no inline style,
      so it picks up the deeper-sage fill too. */
   .tg-bin-chip.active { background: var(--tg-sage-deep); box-shadow: inset 0 0 0 1px color-mix(in oklch, #3A4410 45%, transparent); font-weight: 700; }
-  .tg-empty-track { padding: 20px 2px; font-size: 13px; color: var(--muted-text); }
+  .tg-empty-track { font-family: 'Newsreader', serif; padding: 20px 2px; font-size: 13px; color: var(--muted-text); }
 
   .tg-bin-head { padding: 22px 0 12px; border-bottom: 1px solid var(--hairline); flex-shrink: 0; }
   .tg-bin-title-row { display: flex; align-items: center; gap: 9px; margin-top: 12px; }
-  .tg-bin-title { font-size: 24px; color: var(--text); }
+  .tg-bin-title { font-family: 'Newsreader', serif; font-size: 24px; color: var(--text); }
   .tg-bin-n { font-size: 13px; color: var(--tg-muted-2); }
 
   .tg-btn-select {
@@ -287,6 +294,29 @@
     border: none; font-family: inherit; cursor: pointer;
   }
   .tg-bulk-btn:disabled { opacity: .55; cursor: not-allowed; }
+  /* Item 3 (header/typography/layout pass) — Tag/Status/Delete + the "N
+     selected" count relocate from the bottom-pinned sheet to sit inline
+     next to Select/Done, sized to match it. Action-green (the same token
+     .tg-btn-refresh already uses), not the neutral sage .tg-btn-select
+     wears, so the group reads as actions rather than part of the mode
+     toggle. Relocation + restyle only — the bottom .tg-bulk-bar markup/
+     write logic is untouched; this is purely a new place to mount it. */
+  .tg-bin-head-actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; justify-content: flex-end; }
+  /* Resets .tg-bulk-bar's own bottom-sheet box model (full-width border-
+     top/background/vertical padding) — this variant sits inline, not
+     pinned full-width at the screen's bottom edge. */
+  .tg-bulk-bar--inline { display: inline-flex; align-items: center; gap: 8px; border-top: none; background: none; padding: 0; }
+  .tg-bulk-bar--inline .tg-bulk-cnt { margin: 0; font-size: 12px; white-space: nowrap; }
+  .tg-bulk-bar--inline .tg-bulk-actions { display: flex; gap: 6px; }
+  .tg-bulk-bar--inline .tg-bulk-wrap { flex: none; }
+  .tg-bulk-bar--inline .tg-bulk-btn {
+    width: auto; padding: 7px 15px; font-size: 12px;
+    background: #6B7A45; color: var(--cream);
+  }
+  .tg-bulk-bar--inline .tg-bulk-btn:disabled { opacity: .55; }
+  /* The relocated popovers open from a top-right trigger now (not the old
+     bottom bar), so they anchor right/downward instead of up/left. */
+  .tg-popover--bulk-inline { left: auto; right: 0; }
 
   .tg-refresh-bar {
     margin: 12px 0 2px; padding: 11px 14px; border-radius: var(--radius-lg);
@@ -517,20 +547,32 @@
     .shell {
       max-width: 1040px;
       display: grid;
+      position: relative;
       grid-template-columns: 200px minmax(0, 1fr);
-      grid-template-rows: auto 1fr;
-      /* Nav sits only in the content row (the "." leaves row 1's nav cell
-         empty) — it no longer spans up behind the topbar, so it starts
-         flush with content's own top edge instead of the wordmark's. That
-         empty cell is exactly the topbar's own height, so nav is pushed
-         down by that much automatically, however tall the topbar renders. */
-      grid-template-areas:
-        ".   topbar"
-        "nav content";
+      grid-template-rows: 1fr;
+      /* Item 1 (header/typography/layout pass) — nav spans the one content
+         row, flush with the very top of the shell, carrying its own
+         .dmn-brand wordmark there, same as the framed shell's rail on
+         Today/every profile. The topbar no longer reserves its own grid
+         row above content (that pushed Inbox's own header noticeably
+         lower than Today's) — it's an overlay in the content column's
+         top-right corner instead (see .shell-topbar below), so content's
+         own top padding is what sets the header's height, matching
+         Today's math. */
+      grid-template-areas: "nav content";
       column-gap: 32px;
     }
-    .shell-topbar { grid-area: topbar; }
+    .shell-topbar {
+      position: absolute; top: 20px; right: 20px; padding-top: 0;
+    }
     .shell-content { grid-area: content; }
+    /* Content no longer starts below a full topbar row (see .shell above)
+       — .tg-ov-head supplies that top offset itself now, sized to land
+       INBOX's title at the same height as Today's title (measured against
+       .dmn-title, both reachable via the same shell-margin + panel-padding
+       math thanks to the B6 cream-panel treatment below), with room to
+       clear the overlaid topbar in the corner above it. */
+    .tg-ov-head { padding-top: 31px; }
 
     /* Refinement Pass 1, item 2 — .dmn-rail itself supplies the sticky-
        rail look at this width (its own base rule, position:sticky) and
@@ -1055,7 +1097,13 @@
     background: #F6F2E9; /* lighter cream content panel */
     border-radius: 16px;
     box-shadow: 0 1px 2px rgba(60,50,30,.05), 0 12px 32px rgba(60,50,30,.10);
-    min-height: calc(100vh - 56px);
+    /* Item 6 (header/typography/layout pass) — the panel must at minimum
+       fill the viewport, then grow with content on every framed screen
+       (previously calc(100vh - 56px), which under-filled by a topbar
+       height this shell doesn't have). height:auto is the block-layout
+       default, stated explicitly per the new Conventions rule below. */
+    min-height: 100vh;
+    height: auto;
     color: #2A3408;
     font-family: 'IBM Plex Sans', system-ui, sans-serif;
     font-size: 15px;
@@ -1071,22 +1119,15 @@
 
   /* ---- Nav rail — on the cream panel, not a sage slab (Addendum 2) ---- */
   .dmn-rail { position: sticky; top: 24px; align-self: start; }
-  /* Live-testing request — standardized to exactly match .shell-title
-     (Home/Inbox's topbar brand mark): this rail brand mark is Today/every
-     entity profile's ONLY brand mark (they have no separate topbar), so
-     it needs to look the same as the one Home/Inbox shows, not its own
-     larger serif/full-color treatment. */
+  /* Item 1 (header/typography/layout pass) — the rail's own wordmark is
+     now the app's ONE brand mark, top-left above the rail, on every
+     screen (Home/Inbox included — .shell-topbar no longer duplicates it,
+     see .shell-title's removal). */
   .dmn-brand {
     font-size: 11px; letter-spacing: .08em; text-transform: uppercase;
     color: oklch(0.62 0.012 75); font-weight: 600;
     margin: 2px 0 18px 10px;
   }
-  /* Refinement Pass 1, item 2 — .shell's own .shell-topbar already shows
-     the "RenitaOS" wordmark + build stamp (with the Capture/inbox-pill
-     actions beside it); the shared rail's own .dmn-brand would just
-     repeat it right below, so it's hidden specifically in that context.
-     framedRoot has no topbar of its own, so its copy keeps the brand. */
-  .shell-nav .dmn-brand { display: none; }
   .dmn-rail nav { display: flex; flex-direction: column; gap: 2px; }
   .dmn-rail a {
     display: flex; align-items: center; gap: 9px;
@@ -1444,7 +1485,7 @@
      mid-week (§8): the number is the record, the reference line beside
      it is context, never an ahead/behind judgment. ---- */
   .today-metric-row { display: flex; align-items: baseline; gap: 10px; margin: 4px 0 14px; }
-  .today-metric-num { font-family: 'Newsreader', serif; font-size: 28px; color: #2A3408; }
+  .today-metric-num { font-family: 'IBM Plex Sans', sans-serif; font-size: 28px; color: #2A3408; }
   .today-metric-ref { font-family: 'IBM Plex Sans', sans-serif; font-size: 12px; color: oklch(0.55 0.012 75); }
 
   /* ---- Calendar (read-only, §5.5) — the day agenda (right rail) and
@@ -1645,10 +1686,9 @@
 <div class="shell">
 
   <header class="shell-topbar">
-    <div class="shell-title">RenitaOS<span class="build-stamp" id="buildStampTop"></span></div>
     <div class="shell-topbar-actions">
-      <a href="./capture.html" class="topbar-capture" title="Capture" aria-label="Capture">+</a>
       <button id="inboxPill" class="inbox-pill" type="button">… to Sort</button>
+      <a href="./capture.html" class="topbar-capture" title="Capture" aria-label="Capture">+</a>
     </div>
   </header>
 
@@ -2119,8 +2159,6 @@
   // ensureFramedShell() first runs, so its delegated click listener can
   // attach unconditionally alongside the others here.
   const framedRoot = document.getElementById('framedRoot');
-  const buildStampTopEl = document.getElementById('buildStampTop');
-  if (buildStampTopEl) buildStampTopEl.textContent = BUILD_STAMP;
   // Refinement Pass 1, item 2 — the .shell copy of the shared rail (see
   // renderNavRailInner above); the framedRoot copy is built lazily by
   // ensureFramedShell() the first time any framed route mounts.
@@ -2602,8 +2640,45 @@
     </div>`;
   }
 
-  function renderOverview(data) {
+  // Latest live-testing round — the title/toggle/Select-Done head is its
+  // own persistent block now, rendered outside .tg-layout's pane toggle
+  // (see paintTriage) so it stays reachable on mobile too: mobile shows
+  // only ONE of .tg-pane-overview/.tg-pane-bin at a time, and Select/Done
+  // living inside the (then-hidden) overview pane would strand it the
+  // moment a bin opened on a phone.
+  function renderTriageHead(data, isBinOpen) {
     const total = data.notesCards.length + data.tasksCards.length;
+    const { track } = triageState;
+
+    // Select/Done (+ its bulk bar) sits in the slot the toggle used to
+    // occupy before it was brought in beside the title: top-right, under
+    // the topbar. Only meaningful once a bin is open (nothing to select
+    // otherwise).
+    const headActionsHtml = isBinOpen ? `
+      <div class="tg-bin-head-actions">
+        ${renderBulkBar('inline')}
+        <button type="button" class="tg-btn-select${triageState.selecting ? ' on' : ''}" data-toggle-select>${triageState.selecting ? 'Done' : 'Select'}</button>
+      </div>
+    ` : '';
+
+    return `
+      <div class="tg-ov-head">
+        <div class="tg-ov-title-row">
+          <div class="tg-ov-title-cluster">
+            <div class="tg-ov-title">INBOX</div>
+            <div class="tg-seg">
+              <button type="button" data-track="notes" class="${track === 'notes' ? 'on' : ''}">Notes</button>
+              <button type="button" data-track="tasks" class="${track === 'tasks' ? 'on' : ''}">Tasks</button>
+            </div>
+          </div>
+          ${headActionsHtml}
+        </div>
+        <div class="tg-ov-sub">${total} waiting · One bin at a time.</div>
+      </div>
+    `;
+  }
+
+  function renderOverview(data) {
     const { track, openBin } = triageState;
     const bins = track === 'notes' ? groupNotes(data.notesCards) : groupTasks(data.tasksCards);
     const trackCount = track === 'notes' ? data.notesCards.length : data.tasksCards.length;
@@ -2629,15 +2704,7 @@
       : `<div class="tg-empty-track">Nothing waiting in ${track === 'notes' ? 'Notes' : 'Tasks'}.</div>`;
 
     return `
-      <div class="tg-ov-head">
-        <div class="serif tg-ov-title">INBOX</div>
-        <div class="tg-ov-sub">${total} waiting · One bin at a time.</div>
-      </div>
       ${renderDomainlessProjectsSection(data)}
-      <div class="tg-seg">
-        <button type="button" data-track="notes" class="${track === 'notes' ? 'on' : ''}">Notes</button>
-        <button type="button" data-track="tasks" class="${track === 'tasks' ? 'on' : ''}">Tasks</button>
-      </div>
       <div class="tg-track-head">
         <span class="tg-eyebrow">${track === 'notes' ? 'Notes · by type' : 'Tasks · by domain'}</span>
         <span class="tg-track-count">${trackCount}</span>
@@ -2987,11 +3054,10 @@
         <div class="tg-bin-head">
           <div class="tg-row tg-between">
             <div class="tg-link" data-back><span class="tg-chevleft">‹</span> Bins</div>
-            <button type="button" class="tg-btn-select${triageState.selecting ? ' on' : ''}" data-toggle-select>${triageState.selecting ? 'Done' : 'Select'}</button>
           </div>
           <div class="tg-bin-title-row">
             ${track === 'notes' ? `<span class="tg-icon-slot">${ICONS[openBinMeta.icon] || ''}</span>` : ''}
-            <span class="serif tg-bin-title">${escapeHtml(openBinMeta.label)}</span>
+            <span class="tg-bin-title">${escapeHtml(openBinMeta.label)}</span>
             <span class="tg-bin-n">· ${cards.length}</span>
           </div>
         </div>
@@ -3006,12 +3072,11 @@
           <div class="tg-zero">
             <div class="tg-zero-panel">
               <div class="tg-zero-eyebrow">${escapeHtml(openBinMeta.label)} · clear</div>
-              <div class="serif tg-zero-line">All sorted.<br>Nothing left in this bin.</div>
+              <div class="tg-zero-line">All sorted.<br>Nothing left in this bin.</div>
               <div class="tg-zero-stat">${escapeHtml(formatDateLong())}${triageState.justClearedCount ? ` · you cleared ${triageState.justClearedCount} just now.` : ''}</div>
             </div>
           </div>
         `}
-        ${renderBulkBar()}
         ${renderSnackbar()}
         ${renderToast()}
       </div>
@@ -3024,7 +3089,7 @@
     return `<div class="tg-checkbox${checked ? ' checked' : ''}" data-select-card="${card.id}">${checked ? '✓' : ''}</div>`;
   }
 
-  function renderBulkBar() {
+  function renderBulkBar(variant) {
     if (!triageState.selecting) return '';
     const count = triageState.selected.size;
     const track = triageState.track;
@@ -3036,7 +3101,8 @@
         <button type="button" class="tg-bulk-btn" data-bulk-action="${a.key}"${count === 0 || triageState.busy ? ' disabled' : ''}>${a.label}</button>
         ${triageState.bulkPopover === a.key ? renderBulkPopover(a.key) : ''}
       </div>`).join('');
-    return `<div class="tg-bulk-bar">
+    const cls = variant === 'inline' ? 'tg-bulk-bar tg-bulk-bar--inline' : 'tg-bulk-bar';
+    return `<div class="${cls}">
       <div class="tg-bulk-cnt">${count} selected</div>
       <div class="tg-bulk-actions">${btnsHtml}</div>
     </div>`;
@@ -3064,13 +3130,13 @@
 
   function renderBulkPopover(key) {
     if (key === 'tag') {
-      return `<div class="tg-popover tg-popover--up">
+      return `<div class="tg-popover tg-popover--bulk-inline">
         <input type="text" class="tg-pop-input" data-pop-filter placeholder="Add a tag to all selected…" value="${escapeHtml(triageState.popoverQuery || '')}">
         <div class="tg-pop-dynamic">${renderBulkTagPopoverDynamic()}</div>
       </div>`;
     }
     if (key === 'project') {
-      return `<div class="tg-popover tg-popover--up">
+      return `<div class="tg-popover tg-popover--bulk-inline">
         <input type="text" class="tg-pop-input" data-pop-filter placeholder="Set project for all selected…" value="${escapeHtml(triageState.popoverQuery || '')}">
         <div class="tg-pop-dynamic">${renderBulkProjectPopoverDynamic()}</div>
       </div>`;
@@ -3078,7 +3144,7 @@
     if (key === 'status') {
       const options = triageState.data.statusOptions[triageState.track] || [];
       const optsHtml = options.map((o) => `<div class="tg-pop-opt" data-pop-value="${escapeHtml(o.name)}">${escapeHtml(o.name)}</div>`).join('');
-      return `<div class="tg-popover tg-popover--up"><div class="tg-pop-label">Set status</div><div class="tg-pop-list">${optsHtml}</div></div>`;
+      return `<div class="tg-popover tg-popover--bulk-inline"><div class="tg-pop-label">Set status</div><div class="tg-pop-list">${optsHtml}</div></div>`;
     }
     return '';
   }
@@ -3747,11 +3813,13 @@
     }
 
     const isBinOpen = triageState.openBin !== null && !!triageState.openBinMeta;
+    const headHtml = renderTriageHead(triageState.data, isBinOpen);
     const overviewHtml = renderOverview(triageState.data);
     const binHtml = isBinOpen ? renderBinScreen(triageState.data) : renderBinEmptyState();
 
     triageContainer.innerHTML = `
       <div class="tg-view">
+        ${headHtml}
         <div class="tg-layout" data-active-pane="${isBinOpen ? 'bin' : 'overview'}">
           <div class="tg-pane tg-pane-overview">${overviewHtml}</div>
           <div class="tg-pane tg-pane-bin">${binHtml}</div>
@@ -8934,7 +9002,15 @@
     const dueDateStr = task.dueDate && task.dueDate.start;
     const placeDate = doDateStr || dueDateStr;
     if (!placeDate) return null;
-    const isOverdue = !!(dueDateStr && dueDateStr < ctx.today);
+    // Live-testing find (item 7) — a task is overdue if its Due Date has
+    // passed, OR — when it has no Due Date at all — its own Do Date has
+    // passed. The narrow "Due Date only" rule let a past-Do-Date/no-Due-
+    // Date task fall through to whichever forward bucket its date
+    // happened to land in (typically This Month, since it's rarely still
+    // in "this week"), hiding a stale task instead of flagging it.
+    const dueIsPast = !!(dueDateStr && dueDateStr < ctx.today);
+    const doIsPastWithNoDue = !!(doDateStr && !dueDateStr && doDateStr < ctx.today);
+    const isOverdue = dueIsPast || doIsPastWithNoDue;
     let bucket;
     if (placeDate === ctx.today || (isOverdue && doDateStr === ctx.today)) bucket = 'today';
     else if (isOverdue) bucket = 'overdue';
