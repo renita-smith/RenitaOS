@@ -270,21 +270,25 @@
   .tg-bin-chip.active { background: var(--tg-sage-deep); box-shadow: inset 0 0 0 1px color-mix(in oklch, #3A4410 45%, transparent); font-weight: 700; }
   .tg-empty-track { font-family: 'Newsreader', serif; padding: 20px 2px; font-size: 13px; color: var(--muted-text); }
 
-  .tg-bin-back-row { padding: 22px 0 0; flex-shrink: 0; }
-  /* Standardization Pass 3, item 6 — sticky within #content (the real
-     scroll container once a bin is open on desktop; see the Fix 18 comment
-     further down), so the bin's name/count/Select stay visible once
-     scrolled to the top instead of scrolling away with the cards below
-     them. top:0 pins flush since nothing above this is fixed/sticky over
-     #content's own scroll (the topbar overlay sits outside #content — see
-     .shell-topbar's own position:absolute on .shell, not this element's
-     scroll ancestor). Opaque background (mobile default here; desktop's
-     Inbox-panel cream is set below) plus a z-index above the cards keeps
-     nothing showing through as they pass underneath. */
+  .tg-bin-back-row { padding: 22px 0 8px; }
+  /* Standardization Pass 3, item 6 (+ follow-up) — sticky within #content
+     (the real scroll container once a bin is open on desktop; see the
+     Fix 18 comment further down), so "‹ Bins", the bin's name/count/Select,
+     and the divider all stay visible once scrolled to the top instead of
+     scrolling away with the cards below them. top:0 pins flush on mobile
+     (nothing fixed above #content's own scroll there — .shell-topbar sits
+     in normal flow, ahead of #content, at that width). Desktop overrides
+     `top` to clear .shell-topbar's floating Capture pill instead (that one
+     IS an overlay outside #content's scroll there — see the
+     body[data-route="inbox"] override below), so the sticky header pins
+     just under it rather than tucking in behind it. Opaque background
+     (mobile default here; desktop's Inbox-panel cream is set below) plus a
+     z-index above the cards keeps nothing showing through as they pass
+     underneath. */
   .tg-bin-sticky {
     position: sticky; top: 0; z-index: 5;
     background: var(--surface);
-    padding: 12px 0;
+    padding-bottom: 12px;
     border-bottom: 1px solid var(--hairline);
     flex-shrink: 0;
   }
@@ -752,8 +756,15 @@
     }
     /* Item 6 — the sticky bin header's background matches this desktop
        panel's own cream (mobile keeps the var(--surface) default above,
-       since .shell has no panel treatment there). */
-    body[data-route="inbox"] .tg-bin-sticky { background: #F6F2E9; }
+       since .shell has no panel treatment there). top:41px clears
+       .shell-topbar's Capture pill (top:20px + its own 45px-tall pill,
+       measured live) instead of pinning under/behind it — .shell-topbar
+       is this route's one piece of chrome that floats outside #content's
+       scroll (position:absolute on .shell, not sticky/fixed to #content),
+       so it's the "fixed chrome above the scroll region" the sticky
+       header's own top needs to clear, per its usual rule. If the topbar's
+       own contents ever change height, re-measure and update this. */
+    body[data-route="inbox"] .tg-bin-sticky { background: #F6F2E9; top: 41px; }
   }
 
   /* ============================================================
@@ -1337,6 +1348,13 @@
     display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%;
     background: #2A3408; color: #F6F2E9; border: 0; border-radius: 10px;
     padding: 12px 16px; cursor: pointer; font: inherit; font-size: 14px; font-weight: 500;
+    /* Explicit, not inherited — .dmn-inner sets line-height:1.5 (which
+       .dmn-capture picks up on Today/every profile) but .shell never sets
+       one at all (browser default ~1.2 on Home/Inbox's topbar copy),
+       quietly rendering ~5px shorter there despite identical padding/
+       font-size. Pinning it here is what actually makes the pill the same
+       size everywhere, not just the same padding/font declarations. */
+    line-height: 1.5;
     text-decoration: none; box-sizing: border-box;
   }
   .dmn-capture:hover { opacity: .93; }
@@ -3054,21 +3072,25 @@
 
     return `
       <div class="tg-view${triageState.selecting ? ' selecting' : ''}">
-        <div class="tg-bin-back-row">
-          <div class="tg-link" data-back><span class="tg-chevleft">‹</span> Bins</div>
-        </div>
-        <!-- Standardization Pass 3, items 5-6 — Select (+ its bulk bar)
-             lives on the bin-name row now, right after the count, instead
-             of off on its own in the overview header (item 5). This whole
-             row — name, count, Select, and the divider below it — is the
-             sticky header (item 6): position:sticky pins it to the top of
-             #content (the real scroll container once a bin is open — see
-             the Fix 18 comment above), so it stays visible with the cards
-             scrolling underneath once it reaches the top. Opaque background
-             (mobile: var(--surface); desktop Inbox panel: #F6F2E9, see the
-             body[data-route="inbox"] override) keeps cards from showing
-             through as they pass beneath it. -->
+        <!-- Standardization Pass 3 follow-up — "‹ Bins" now lives inside
+             the sticky wrapper too (was its own row above it, which still
+             scrolled away): the whole header — back-link, name, count,
+             Select, divider — pins together, so there's always a way back
+             to the bin list without scrolling up. Sticky (item 6): pins to
+             the top of #content (the real scroll container once a bin is
+             open — see the Fix 18 comment above), so it stays visible with
+             the cards scrolling underneath once it reaches the top.
+             Opaque background (mobile: var(--surface); desktop Inbox
+             panel: #F6F2E9) keeps cards from showing through as they pass
+             beneath it. Desktop's sticky top offset clears .shell-topbar's
+             floating Capture pill (see the body[data-route="inbox"]
+             override) instead of pinning under it — the topbar sits
+             outside #content's own scroll, so without this offset the
+             header would tuck in behind the pill instead of clearing it. -->
         <div class="tg-bin-sticky">
+          <div class="tg-bin-back-row">
+            <div class="tg-link" data-back><span class="tg-chevleft">‹</span> Bins</div>
+          </div>
           <div class="tg-bin-title-row">
             <div class="tg-bin-title-cluster">
               ${track === 'notes' ? `<span class="tg-icon-slot">${ICONS[openBinMeta.icon] || ''}</span>` : ''}
@@ -3861,7 +3883,7 @@
     // a no-op when nothing was still in motion.
     requestAnimationFrame(() => {
       if (scrollToOpenedBin) {
-        const binHead = triageContainer.querySelector('.tg-bin-back-row');
+        const binHead = triageContainer.querySelector('.tg-bin-sticky');
         if (binHead) binHead.scrollIntoView({ behavior: 'smooth', block: 'start' });
       } else {
         triageContainer.scrollTop = containerScrollTop;
