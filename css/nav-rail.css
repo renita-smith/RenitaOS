@@ -1,0 +1,82 @@
+/* Standardization Pass 3 — the ONE nav-rail stylesheet, linked by both
+   index.html (Today + every profile's .dmn-rail, and the old-shell Home/
+   Inbox mount, both fed by renderNavRailInner()/RenitaNavRail) and
+   capture.html (its reduced footer nav, via .dmn-rail--bar below). Markup
+   comes from js/navRail.js. Editing the rail's look means editing here —
+   nowhere else defines these classes, so every screen moves together. */
+
+/* ---- Nav rail — on the cream panel, not a sage slab (Addendum 2) ---- */
+.dmn-rail { position: sticky; top: 24px; align-self: start; }
+.dmn-brand {
+  font-size: 11px; letter-spacing: .08em; text-transform: uppercase;
+  color: oklch(0.62 0.012 75); font-weight: 600;
+  margin: 2px 0 18px 10px;
+}
+.dmn-rail nav { display: flex; flex-direction: column; gap: 2px; }
+.dmn-rail a {
+  display: flex; align-items: center; gap: 9px;
+  padding: 7px 10px; border-radius: 4px;
+  font-size: 15px; color: #2A3408; text-decoration: none;
+  border: 1px solid transparent;
+}
+.dmn-rail a:hover { background: #DBE2C1; }
+.dmn-rail a.active { background: #DBE2C1; border-color: #2A3408; }
+.dmn-rail a .dmn-ic { width: 16px; height: 16px; color: #3A4410; flex: none; }
+.dmn-rail a .dmn-n { margin-left: auto; font-family: 'IBM Plex Sans', sans-serif; font-size: 13px; color: oklch(0.55 0.012 75); }
+
+/* ---- Mobile: fixed bottom tab bar — all items always visible, evenly
+   distributed, icon above a short label. ---- */
+@media (max-width: 820px) {
+  .dmn-rail {
+    order: 0;
+    /* top:auto explicitly clears the desktop rule's top:24px — top/bottom
+       cascade independently per-property, so left unset here it would
+       otherwise still win and pin this to the top of the viewport instead
+       of the bottom. */
+    position: fixed; top: auto; left: 0; right: 0; bottom: 0; z-index: 20;
+    background: #F6F2E9;
+    border-top: 1px solid #DED8CA;
+    padding: 6px 4px max(6px, env(safe-area-inset-bottom));
+  }
+  .dmn-brand { display: none; }
+  .dmn-rail nav { flex-direction: row; justify-content: space-around; gap: 0; }
+  .dmn-rail a {
+    flex-direction: column; flex: 1; min-width: 0;
+    gap: 2px; padding: 4px 2px; border-radius: 8px;
+    font-size: 10px; text-align: center;
+  }
+  .dmn-rail a .dmn-ic { width: 20px; height: 20px; margin: 0 auto; }
+  .dmn-rail a .dmn-n { margin-left: 0; font-size: 9px; }
+}
+
+/* ---- Capture's reduced footer nav (item 7) — same component, same
+   classes, fed a shorter item list (js/navRail.js CAPTURE_NAV_ITEMS), but
+   it lives inline in Capture's existing footer at every viewport width
+   instead of switching between a sticky left column and a fixed bottom
+   bar. .dmn-rail--bar always renders the rail's bottom-tab-bar look (row,
+   icon-above-label, the same active pill + keyline) so it can't drift from
+   Inbox/Today's own rail — only the container's position/sizing differs,
+   never the item look. Capture keeps its own existing "CAPTURE" eyebrow
+   header instead of the wordmark block (mirrors the rail's own
+   mobile-breakpoint choice to hide .dmn-brand once it's a bottom bar). ---- */
+.dmn-rail--bar {
+  position: static;
+  /* Cancels the base rule's align-self:start (meant for the sticky
+     desktop column, where the rail should only be as tall as its own
+     content) — without this override the bar shrinks to fit its items
+     instead of spanning the footer the way Today/Inbox's own bottom-tab-
+     bar variant spans the viewport width. */
+  align-self: stretch;
+  border-top: none;
+  background: none;
+  padding: 0;
+}
+.dmn-rail--bar .dmn-brand { display: none; }
+.dmn-rail--bar nav { flex-direction: row; justify-content: space-around; gap: 0; }
+.dmn-rail--bar a {
+  flex-direction: column; flex: 1; min-width: 0;
+  gap: 2px; padding: 6px 2px; border-radius: 8px;
+  font-size: 10px; text-align: center;
+}
+.dmn-rail--bar a .dmn-ic { width: 20px; height: 20px; margin: 0 auto; }
+.dmn-rail--bar a .dmn-n { margin-left: 0; font-size: 9px; }
