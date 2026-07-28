@@ -81,7 +81,7 @@ Serif vs. sans split:
 - **Triage** — built to this palette from the start.
 - **Capture** — ⚠️ **pending a color pass.** Capture predates this palette and currently uses off-family Type-edge colors (e.g. an indigo Reflection edge) and possibly older Domain tints. It needs to be re-tinted to match this doc. Because Capture is **live and accumulating real data daily**, treat this as a careful, non-urgent pass — bundle it with the other pending Capture polish (the dream-divider fix), and verify the live page after, don't destabilize it. Colors only; no behavior change.
 - **Home** — inherits this palette when built.
-- **Weekly Review** — was an earlier standalone build with its own colors; re-skin to this palette if/when it's folded into the shell. Not urgent.
+- **Weekly Review** — ✅ **shipped to this palette** (Addendum 4). The standalone's `#f5f4f0`/Montserrat/purple-bar/act-tint/jewel-tone palette is fully retired; the screen is olive-on-cream with Domain tiles as the only saturated color, same as every other screen.
 
 ---
 
@@ -368,6 +368,8 @@ The relation-pill caret uses the treatment shipped on the Project profile (prefe
 
 Rail set: **Home · Today · Inbox (N) · Explore · Search.** **Domains is dropped** — its browse role is absorbed by Explore; Domain *profiles* are still reached via the Domain pill and breadcrumbs. **Capture is not a rail tab** — it is a **persistent capture affordance** (floating button or bar; treatment TBD). The rail sits **inside the framed cream panel**; the active item keeps the deeper-sage pill + olive keyline.
 
+> ⚠️ **Updated by Addendum 4 (Weekly Review, as-built).** The canonical desktop rail set is now **Home · Today · Inbox (N) · Explore · Search · Weekly Review** — Weekly Review appended **last** (an occasional ritual, not daily wayfinding). The **mobile bottom tab bar is unchanged** (still the original five items) — Weekly Review is reached on mobile via a quiet text link in Today's header instead.
+
 ## Scope
 
 Applies to **every profile type.** The **Domain profile is built to this shell from the start**; the **already-shipped Project profile is retrofit** to it in a later polish pass (batched with the caret standardization and the card grid). Profile/detail views use this frame; the Home and Today **dashboards** are separate screens and are not bound by it.
@@ -415,3 +417,41 @@ The "Typography & casing conventions" rule (prose = serif, data = sans; sentence
 ## Infrastructure
 
 The runtime plumbing — the `notion-proxy` Cloudflare Worker, its secrets, the multi-account Google Calendar auth, the repos, and the deploy flow — lives in **`RenitaOS-Infrastructure-and-Deployment.md`**. The right-rail calendar agenda reads through that Worker's read-only `/calendar/events` endpoint.
+
+---
+
+# Addendum 4 — Weekly Review (as-built)
+
+*The standalone `WeeklyReview.html` ported into the app per the Weekly Review Build Brief. Where this addendum and the body text above disagree for this one screen, this addendum wins.*
+
+## Layout — single-column ritual
+
+Weekly Review is a **dashboard** — chrome yes (the shared nav rail / wordmark / Capture affordance), the `.shell` three-zone profile grid **no** (Addendum 2 Scope). Unlike Today, it carries **no persistent right glance rail** — the sequence (Review → Reflect → Plan) is the point, so everything runs top to bottom in one main column. The one exception: **Act 3 only**, the two-week calendar sits **local two-up** beside the six 1% goal boxes (two-column on desktop, stacked on mobile) — the single place on this screen calendar sits beside inputs.
+
+Act headers are a numbered olive ring (1/2/3) + serif act title + muted serif subtitle over a hairline divider — no colored act bands (the standalone's blue/purple/green act tints are retired).
+
+## Metrics — two tiers
+
+- **Tier 1** (four headline numbers, sans, retrospective): Completed this week · Completion rate · Overdue · Notes to file.
+- **Tier 2** (glance band): condensed one-row-per-In-Progress-project list ("N of M done", derived client-side from already-fetched task data, not a guessed Projects rollup) + six Domain tiles (completions this week, a week-over-week ▲/▼ delta, and a quiet "dormant this week" treatment when a domain has zero completions **and** zero notes that week).
+
+## Freeze-on-save + week-over-week
+
+The metric window for a review week is Sunday 00:00 → **min(now, Saturday 23:59:59)** of that week. On Save, the window's stats are written into the record's frozen columns (`Completions`, `Notes Captured`, `Overdue %`, `Top Tags`, `Top Types`); re-saving refreshes them. **Live vs frozen:** the current in-progress week always renders live "so far" numbers; a past week with a saved record reads its frozen snapshot instead of recomputing. Text (reflection answers, outlook intention, 1% goals) is exempt from the freeze — always editable/savable regardless of the displayed week. Week-over-week top-line totals read **last week's frozen `Completions`** directly (no recompute; no delta shown if last week's record is missing); per-domain deltas recompute both weeks live off task data, since only one aggregate total is frozen.
+
+## Reflection-as-note
+
+On Save, a companion Note is upserted (never duplicated) as the week's complete reflection artifact:
+
+- **Title (verbatim, never regenerated):** `Weekly Review Reflection — week ending {Mon D, YYYY}`.
+- **Body:** the four reflection answers, then the Two-Week Outlook intention, then the six 1% goals (domain-labeled) — heading/paragraph block pairs, empty sections skipped.
+- **Classification:** Type = Reflection · Domain = RCBS · Collection = Weekly Review · Status = Active.
+- **Upsert key:** the Weekly Reviews record's own relation to Notes (a schema addition — see `RenitaOS-Backend-Notes-Template.md`); a null/missing relation falls back to matching Type = Reflection + Date = the week-ending Saturday, and self-heals that legacy note into the relation on save.
+
+## Write-layer conformance
+
+Task completion in-review and project priority both write the **canon** Status/`Completed`-date and Priority fields (real stars) — the standalone's old first-checkbox write is retired. Note Station status writes use the real `status` property. A single **global domain filter** (Today's idiom) replaces the standalone's separate domain + project filter bars. Dates are local `YYYY-MM-DD`; rich text over Notion's 2000-char cap is chunked on write. Sessions metrics (`Sessions Count`, `Session Success %`) are left unwritten — no session data flows yet.
+
+## Calendar
+
+Silent, read-only, via the same `GET {PROXY}/calendar/events` Today's right rail already calls — no interactive Google auth, no per-session sign-in. Degrades to "Calendar unavailable" without blocking the rest of the screen.

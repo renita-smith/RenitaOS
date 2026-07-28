@@ -25,17 +25,17 @@
 - **Step F — shipped:** in-app body block editing via `contentEditable` — edit a text block, append a line, toggle a to-do, delete a block (archive via `PATCH archived:true`); rich text for bold / italic / strikethrough / inline code / links, **plus color/highlight** (renders, applies via a toolbar swatch incl. a default/olive swatch, and round-trips on edit). Block-type creation/conversion (headings, lists, quotes) stays deferred to Compose.
 - **Unique ID system** — live on all 8 databases (NOTE, TASK, PROJ, DMN, RESC, COL, TAG, PSN).
 - **Schema — completed-count rollup added to Projects DB** (count of tasks with a `Completed` date); powers per-project "N of M done" and the domain-level task-weighted Progress aggregate. Projects DB also has `Date Archived`, `Date Paused`, `Pause Details` (Text).
+- **Weekly Review — SHIPPED** (Weekly Review Build Brief; as-built in Conventions Addendum 4). The standalone `WeeklyReview.html` ported into the framed shell as a third dashboard alongside Today: chrome yes, `.shell` grid no — single main column, no persistent right glance rail (Act 3 is the one exception: the two-week calendar sits local-two-up beside the six 1% goal boxes). Three acts (Review/Reflect/Plan) reskinned to canon; Note/Tag stations kept; single global domain filter; task completion + project priority rewritten to canon Status/Priority (no more checkbox flags); interactive Google Calendar auth fully retired in favor of the same silent `/calendar/events` read Today already uses. **Freeze-on-save**: the metric window caps at Saturday 23:59:59; the current week always renders live "so far" numbers, a past week reads its frozen snapshot (`Completions`, `Notes Captured`, `Overdue %`, `Top Tags`, `Top Types`) instead of recomputing. **Week-over-week**: top-line totals read last week's frozen `Completions` directly; per-domain deltas recompute both weeks live. **Reflection-as-note**: on Save, a companion Note (`Weekly Review Reflection — week ending {date}`; Type Reflection, Domain RCBS, Collection Weekly Review, Status Active) is upserted via a new **Notes ↔ Weekly Reviews relation** (canonical key) with a fallback match (Type=Reflection + Date=week-ending Saturday) for any pre-existing unlinked note. Fourth reflection prompt added ("How do you feel about this week?"). Sessions metrics left unwritten (no session data flowing) — deferred, not blocking. Rail: Weekly Review appended last on desktop; mobile bottom bar unchanged (5 items); reached on mobile via a quiet text link in Today's header.
 
 ---
 
 ## Critical path (Next)
 
-*The writable-app arc **and** the Today dashboard (+ calendar) are **done**. Focus is now the remaining screens; Weekly Review is next.*
+*The writable-app arc, the Today dashboard (+ calendar), and Weekly Review are all **done**. Focus is now the remaining screens.*
 
-1. **Weekly Review** — port the existing standalone dashboard into the framed shell + reskin to the palette. Banked: the WREF reflection note, the 1% goal. Open: comparative-by-domain baseline, metric definitions, mid-week/pre-freeze behavior, past-week navigation. **Now unblocked on calendar:** the Worker-held refresh-token auth built for Today means the Weekly Review port can read Google Calendar **silently** (no per-session sign-in) — reuse `/calendar/events`; drop the old interactive Google sign-in.
-2. **Compose / Home / Explore / Search** — see "Remaining core screens" below; sequence unchanged (watch whether daily long-form use pulls Compose earlier).
+1. **Compose / Home / Explore / Search** — see "Remaining core screens" below; sequence unchanged (watch whether daily long-form use pulls Compose earlier).
 
-*(The Today dashboard, formerly item 1 here, is shipped — see "Where the build is.")*
+*(The Today dashboard and Weekly Review, formerly items here, are shipped — see "Where the build is.")*
 
 ---
 
