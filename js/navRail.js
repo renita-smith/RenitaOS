@@ -14,16 +14,22 @@
     explore: '<svg class="dmn-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="11" cy="11" r="7"/><path d="M11 6l2.5 5L11 11l-5 2.5z" fill="currentColor" stroke="none"/></svg>',
     search: '<svg class="dmn-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>',
     capture: '<svg class="dmn-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 5v14M5 12h14"/></svg>',
+    weeklyReview: '<svg class="dmn-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 4v6h6M3.5 13a8.5 8.5 0 1 0 2.5-6"/></svg>',
   };
 
-  // Addendum 2's rail set — the full five-item rail every framed screen
-  // (Today, every profile) and the old-shell Home/Inbox mount render.
+  // Addendum 2's rail set, plus Weekly Review (Weekly Review Build Brief §4)
+  // appended last — an occasional ritual, not daily wayfinding, so it sits
+  // after Search rather than beside Today. Desktop-only: the mobile bottom
+  // bar stays the original five items (css/nav-rail.css hides this one
+  // item under its own @media (max-width: 820px) rule); Today's header
+  // carries a mobile-only text link to this route instead (§4).
   var FULL_NAV_ITEMS = [
     { route: 'home', href: '#/home', icon: ICONS.home, label: 'Home' },
     { route: 'today', href: '#/today', icon: ICONS.today, label: 'Today' },
     { route: 'inbox', href: '#/inbox', icon: ICONS.inbox, label: 'Inbox', countAttr: 'data-nav-inbox-count' },
     { route: 'explore', href: '#/explore', icon: ICONS.explore, label: 'Explore' },
     { route: 'search', href: '#/search', icon: ICONS.search, label: 'Search' },
+    { route: 'weekly-review', href: '#/weekly-review', icon: ICONS.weeklyReview, label: 'Weekly Review' },
   ];
 
   // Capture's own reduced set (unchanged from what it already showed —

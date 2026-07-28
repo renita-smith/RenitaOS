@@ -202,6 +202,36 @@ On save, set each Note's title by this **cascade** — stop at the first match:
 
 ---
 
+## 12a. Weekly Reviews DB — field map (Weekly Review Build Brief §15)
+
+DB: `Weekly Reviews` (`38910b0375a880eda787e004bca8675d`). Every field below is resolved live/emoji-proof by type + keyword (never a hardcoded property name), same principle as everywhere else in this doc.
+
+| Field (verbatim name) | Type | Written when |
+|---|---|---|
+| `Week` / title | Title | Get-or-create (fallback label if no dedicated Week text field) |
+| `Week Ending` | Date | Get-or-create — **the record key**, keyed to the week-ending Saturday |
+| `Reflection: What moved needle?` | Rich text | Save |
+| `Reflection: What didn't work?` | Rich text | Save |
+| `Reflection: What are you carrying into next week?` | Rich text | Save |
+| `Reflection: How do you feel about this week?` | Rich text | Save (new — the fourth reflection prompt) |
+| `1% Goal: RCBS/RWS/SM/MTS/EPLC/PEEPS` (six fields) | Rich text | Save |
+| `Two Week Outlook Intention` | Rich text | Save |
+| `Completions` | Number **or** Rich text (resolved live — either shape supported) | Frozen on Save |
+| `Notes Captured` | Number **or** Rich text | Frozen on Save |
+| `Overdue %` | Number **or** Rich text | Frozen on Save |
+| `Top Tags` | Rich text (comma-joined) | Frozen on Save |
+| `Top Types` | Rich text (comma-joined) | Frozen on Save |
+| `Sessions Count` | — | **Deferred — left unwritten** (no session data flowing) |
+| `Session Success %` | — | **Deferred — left unwritten** |
+
+**New relation (added for the port):** **Notes ↔ Weekly Reviews** — a two-way relation between the Notes DB and the Weekly Reviews DB. This is the canonical upsert key for the weekly reflection note (§13 of the build brief): the Weekly Reviews record links its one reflection Note, so re-saving finds and updates that exact note instead of creating a duplicate. The app resolves this relation property by target-database (never by name) and degrades gracefully — falling back to a Type=Reflection + Date=week-ending-Saturday match — if the relation isn't present on a given workspace yet.
+
+**New collection:** a **`Weekly Review`** record in the Collections DB, which every auto-created reflection Note links to (`Collection = Weekly Review`). The app looks this collection up by exact title match and does **not** auto-create it if missing (consistent with the "confirm before create" rule elsewhere in this doc) — create it once by hand in Notion.
+
+**Reflection notes are auto-created here:** every Weekly Review Save upserts a Note titled `Weekly Review Reflection — week ending {Mon D, YYYY}` (Type = Reflection, Domain = RCBS, Status = Active) in the Notes DB — see the build brief §13 for the full body/upsert spec.
+
+---
+
 ## 12. Dream records — day-merge (Dreams only)
 
 Dreams **upsert by date**; all other Types always create individual records.

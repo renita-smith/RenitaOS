@@ -47,6 +47,10 @@
   }
   .dmn-rail a .dmn-ic { width: 20px; height: 20px; margin: 0 auto; }
   .dmn-rail a .dmn-n { margin-left: 0; font-size: 9px; }
+  /* Weekly Review Build Brief §4 — mobile bottom bar stays the original
+     five items; Weekly Review is desktop-rail-only, reached on mobile via
+     Today's own header link instead. */
+  .dmn-rail a[data-route="weekly-review"] { display: none; }
 }
 
 /* ---- Capture's reduced footer nav (item 7) — same component, same
