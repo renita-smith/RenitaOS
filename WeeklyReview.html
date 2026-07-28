@@ -1,0 +1,3062 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RenitaOS Weekly Review — Renita Smith</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.44.0/tabler-icons.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap">
+    <style>
+    * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+    }
+
+    body {
+        font-family: 'Montserrat', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        background: #f5f4f0;
+        color: #1a1a1a;
+        padding: 2rem;
+        max-width: 900px;
+        margin: 0 auto;
+    }
+
+    h1 {
+        font-size: 30px;
+        font-weight: 600;
+        margin-bottom: 4px;
+    }
+
+    .subtitle {
+        font-size: 13px;
+        color: #666;
+        margin-bottom: 1rem;
+    }
+
+    .section-title {
+        font-size: 11px;
+        font-weight: 500;
+        color: #888;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        margin: 0 0 10px;
+    }
+
+    .card {
+        background: #fff;
+        border: 0.5px solid rgba(0, 0, 0, 0.1);
+        border-radius: 12px;
+        padding: 1rem 1.25rem;
+        margin-bottom: 12px;
+    }
+
+    .grid-2 {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+        margin-bottom: 1.5rem;
+    }
+
+    .grid-5 {
+        display: grid;
+        grid-template-columns: repeat(5, 1fr);
+        gap: 8px;
+        margin-bottom: 1.5rem;
+    }
+
+    .grid-3 {
+        display: grid;
+        grid-template-columns: 1fr 1fr 1fr;
+        gap: 12px;
+        margin-bottom: 1.5rem;
+    }
+
+    .tag-window-label {
+        font-size: 12px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        color: #888;
+        margin: 0 0 6px;
+    }
+
+    .tag-row {
+        margin-bottom: 7px;
+    }
+
+    .tag-row-head {
+        display: flex;
+        justify-content: space-between;
+        font-size: 13px;
+        margin-bottom: 2px;
+    }
+
+    .tag-row-count {
+        color: #999;
+    }
+
+    .tag-bar {
+        height: 4px;
+        background: #ecebe4;
+        border-radius: 2px;
+        overflow: hidden;
+    }
+
+    .tag-bar-fill {
+        height: 100%;
+        background: #7c5cff;
+    }
+
+    @media (max-width: 640px) {
+        .grid-3 {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    .metric {
+        background: #f0efe9;
+        border-radius: 8px;
+        padding: 1.1rem 1.1rem 1.2rem;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        min-height: 88px;
+    }
+
+    .metric-label {
+        font-size: 11px;
+        color: #888;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        margin-bottom: 4px;
+    }
+
+    .metric-value {
+        font-size: 30px;
+        font-weight: 700;
+        line-height: 1.1;
+    }
+
+    .metric-value.danger {
+        color: #a32d2d;
+    }
+
+    .snapshot-divider {
+        border-top: 1px solid #ddd9cf;
+        margin: 0 0 1.5rem;
+    }
+
+    .act {
+        border-radius: 16px;
+        padding: 18px 18px 4px;
+        margin-bottom: 22px;
+    }
+
+    .act-review {
+        background: #EBF2FB;
+    }
+
+    .act-reflect {
+        background: #F1EEFB;
+    }
+
+    .act-plan {
+        background: #EAF5EE;
+    }
+
+    .act-header {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 16px;
+    }
+
+    .act-num {
+        width: 26px;
+        height: 26px;
+        border-radius: 50%;
+        background: #fff;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 700;
+        font-size: 13px;
+    }
+
+    .act-title {
+        font-size: 18px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+    }
+
+    .act-sub {
+        font-size: 12px;
+        color: #888;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+    }
+
+    .act-review .act-num {
+        color: #185FA5;
+        border: 1px solid #185FA5;
+    }
+
+    .act-reflect .act-num {
+        color: #3C3489;
+        border: 1px solid #3C3489;
+    }
+
+    .act-plan .act-num {
+        color: #0F6E56;
+        border: 1px solid #0F6E56;
+    }
+
+    .back-to-top {
+        position: fixed;
+        right: 22px;
+        bottom: 22px;
+        width: 42px;
+        height: 42px;
+        border-radius: 50%;
+        background: #fff;
+        border: 0.5px solid #ccc;
+        box-shadow: 0 4px 14px rgba(0, 0, 0, 0.12);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 18px;
+        color: #555;
+        cursor: pointer;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.2s ease;
+        z-index: 900;
+    }
+
+    .back-to-top.show {
+        opacity: 1;
+        pointer-events: auto;
+    }
+
+    .domain-pill {
+        display: inline-flex;
+        align-items: center;
+        font-size: 12px;
+        font-weight: 500;
+        padding: 3px 10px;
+        border-radius: 6px;
+        cursor: pointer;
+        border: 1.5px solid transparent;
+        transition: all 0.15s;
+        user-select: none;
+    }
+
+    .pill-rcbs {
+        background: #EEEDFE;
+        color: #3C3489;
+    }
+
+    .pill-rws {
+        background: #E1F5EE;
+        color: #085041;
+    }
+
+    .pill-sm {
+        background: #FAECE7;
+        color: #712B13;
+    }
+
+    .pill-mts {
+        background: #FAEEDA;
+        color: #633806;
+    }
+
+    .pill-eplc {
+        background: #E6F1FB;
+        color: #0C447C;
+    }
+
+    .pill-peeps {
+        background: #FBEAF3;
+        color: #7A1F52;
+    }
+
+    .pill-unknown {
+        background: #f0efe9;
+        color: #888;
+    }
+
+    .pill-project {
+        background: #f0efe9;
+        color: #444;
+        font-size: 11px;
+        padding: 2px 8px;
+        border-radius: 6px;
+        border: 1.5px solid transparent;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        user-select: none;
+        transition: all 0.15s;
+    }
+
+    .pill-project.active {
+        border-color: #1a1a1a;
+    }
+
+    .pill-active-rcbs {
+        border-color: #7F77DD;
+    }
+
+    .pill-active-rws {
+        border-color: #1D9E75;
+    }
+
+    .pill-active-sm {
+        border-color: #D85A30;
+    }
+
+    .pill-active-mts {
+        border-color: #EF9F27;
+    }
+
+    .pill-active-eplc {
+        border-color: #378ADD;
+    }
+
+    .pill-active-peeps {
+        border-color: #D45D9C;
+    }
+
+    .filter-bar {
+        display: flex;
+        gap: 8px;
+        margin-bottom: 12px;
+        flex-wrap: wrap;
+        align-items: center;
+    }
+
+    .time-pill {
+        display: inline-flex;
+        align-items: center;
+        font-size: 12px;
+        font-weight: 500;
+        padding: 3px 12px;
+        border-radius: 6px;
+        cursor: pointer;
+        border: 1.5px solid #ccc;
+        background: #fff;
+        color: #555;
+        transition: all 0.15s;
+        user-select: none;
+    }
+
+    .time-pill.active {
+        background: #1a1a1a;
+        color: #fff;
+        border-color: #1a1a1a;
+    }
+
+    .clear-filter {
+        font-size: 12px;
+        color: #888;
+        cursor: pointer;
+        padding: 3px 8px;
+    }
+
+    .project-row {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 8px 0;
+        border-bottom: 0.5px solid rgba(0, 0, 0, 0.08);
+        transition: opacity 0.2s;
+    }
+
+    .project-row:last-of-type {
+        border-bottom: none;
+    }
+
+    .project-name {
+        flex: 1;
+        font-size: 14px;
+    }
+
+    .star {
+        font-size: 16px;
+        cursor: pointer;
+        user-select: none;
+        line-height: 1;
+    }
+
+    .star-on {
+        color: #EF9F27;
+    }
+
+    .star-off {
+        color: #ccc;
+    }
+
+    .progress-wrap {
+        padding: 2px 0 8px 26px;
+    }
+
+    .progress-bar {
+        height: 4px;
+        background: #f0efe9;
+        border-radius: 2px;
+    }
+
+    .progress-fill {
+        height: 4px;
+        border-radius: 2px;
+    }
+
+    .task-row {
+        display: flex;
+        align-items: flex-start;
+        gap: 10px;
+        padding: 8px 0;
+        border-bottom: 0.5px solid rgba(0, 0, 0, 0.08);
+        transition: opacity 0.2s;
+    }
+
+    .task-row:last-child {
+        border-bottom: none;
+    }
+
+    .task-check {
+        width: 16px;
+        height: 16px;
+        border: 0.5px solid #bbb;
+        border-radius: 4px;
+        margin-top: 2px;
+        flex-shrink: 0;
+    }
+
+    .task-check, .overdue-check {
+        cursor: pointer;
+        transition: background 0.15s, border-color 0.15s;
+    }
+
+    .task-check.checked, .overdue-check.checked {
+        background: #2b8a3e;
+        border-color: #2b8a3e;
+        position: relative;
+    }
+
+    .task-check.checked::after, .overdue-check.checked::after {
+        content: '✓';
+        color: #fff;
+        font-size: 11px;
+        line-height: 16px;
+        position: absolute;
+        top: -1px;
+        left: 3px;
+    }
+
+    .task-row, .carried-row {
+        transition: opacity 0.3s ease;
+    }
+
+    .task-done {
+        opacity: 0.45;
+    }
+
+    .task-done .task-name, .task-done .overdue-name {
+        text-decoration: line-through;
+    }
+
+    .task-name {
+        font-size: 14px;
+        margin: 0 0 4px;
+    }
+
+    .task-meta {
+        font-size: 12px;
+        color: #888;
+        margin: 0;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        flex-wrap: wrap;
+    }
+
+    .note-row {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: flex-start;
+        gap: 10px;
+        padding: 9px 0;
+        border-bottom: 0.5px solid rgba(0, 0, 0, 0.08);
+    }
+
+    .note-row:last-child {
+        border-bottom: none;
+    }
+
+    .note-left {
+        flex: 1;
+        min-width: 0;
+    }
+
+    .note-main {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .note-caret {
+        border: none;
+        background: none;
+        cursor: pointer;
+        color: #8a8a8a;
+        font-size: 15px;
+        line-height: 1;
+        padding: 2px 7px 2px 2px;
+        margin-right: 1px;
+        flex-shrink: 0;
+        transition: transform 0.15s ease;
+    }
+
+    .note-caret:hover {
+        color: #555;
+    }
+
+    .note-caret.open {
+        transform: rotate(90deg);
+    }
+
+    .note-title-link {
+        flex: 1;
+        font-size: 14px;
+        color: #2b2b2b;
+        text-decoration: none;
+        border-bottom: 0.5px solid transparent;
+    }
+
+    .note-title-link:hover {
+        color: #000;
+        border-bottom-color: rgba(0, 0, 0, 0.25);
+    }
+
+    .note-age {
+        font-size: 12px;
+        color: #888;
+        white-space: nowrap;
+        flex-shrink: 0;
+        align-self: center;
+        text-align: right;
+        min-width: 84px;
+    }
+
+    .note-pills {
+        display: flex;
+        gap: 5px;
+        flex-wrap: wrap;
+        margin: 6px 0 0 26px;
+    }
+
+    .status-select {
+        flex-shrink: 0;
+        width: auto;
+        min-width: 92px;
+        align-self: center;
+    }
+
+    .type-pill {
+        font-size: 11px;
+        padding: 1px 7px;
+        border-radius: 999px;
+        border: 0.5px solid;
+        background: transparent;
+        white-space: nowrap;
+    }
+
+    .tag-pill {
+        font-size: 11px;
+        padding: 1px 8px;
+        border-radius: 999px;
+        background: #ecebe4;
+        color: #6b675f;
+        white-space: nowrap;
+    }
+
+    .note-preview {
+        flex-basis: 100%;
+        margin: 7px 0 2px 26px;
+        font-size: 13px;
+        color: #555;
+        line-height: 1.45;
+        background: #f6f5f0;
+        border-radius: 8px;
+        padding: 8px 10px;
+    }
+
+    .note-group-label {
+        font-size: 12px;
+        font-weight: 500;
+        color: #888;
+        margin-bottom: 8px;
+    }
+
+    .inbox-count {
+        font-size: 12px;
+        font-weight: 500;
+        color: #999;
+        text-transform: none;
+        letter-spacing: 0;
+    }
+
+    .inbox-filter {
+        display: inline-flex;
+        gap: 2px;
+        background: #ecebe4;
+        border-radius: 8px;
+        padding: 2px;
+        margin-bottom: 12px;
+    }
+
+    .inbox-filter .seg {
+        border: none;
+        background: transparent;
+        font-size: 12px;
+        padding: 4px 14px;
+        border-radius: 6px;
+        cursor: pointer;
+        color: #777;
+    }
+
+    .inbox-filter .seg.active {
+        background: #fff;
+        color: #2b2b2b;
+        font-weight: 500;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+    }
+
+    .undo-toast {
+        position: fixed;
+        left: 50%;
+        bottom: 24px;
+        transform: translateX(-50%) translateY(20px);
+        background: #2b2b2b;
+        color: #fff;
+        padding: 10px 14px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        font-size: 13px;
+        box-shadow: 0 6px 24px rgba(0, 0, 0, 0.25);
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.2s ease, transform 0.2s ease;
+        z-index: 1000;
+    }
+
+    .undo-toast.show {
+        opacity: 1;
+        transform: translateX(-50%) translateY(0);
+        pointer-events: auto;
+    }
+
+    .undo-btn {
+        background: none;
+        border: none;
+        color: #8fb7ff;
+        font-weight: 600;
+        cursor: pointer;
+        font-size: 13px;
+        padding: 0;
+    }
+
+    select {
+        font-size: 12px;
+        padding: 3px 6px;
+        border-radius: 8px;
+        border: 0.5px solid #ccc;
+        background: #f5f4f0;
+        color: #555;
+        width: 100%;
+    }
+
+    .dist-bar-wrap {
+        display: flex;
+        gap: 3px;
+        height: 10px;
+        border-radius: 5px;
+        overflow: hidden;
+        margin-bottom: 10px;
+    }
+
+    .dist-seg {
+        height: 100%;
+    }
+
+    .dist-legend {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+    }
+
+    .dist-item {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        font-size: 12px;
+        color: #666;
+    }
+
+    .dist-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        flex-shrink: 0;
+    }
+
+    .habit-row {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 5px 0;
+    }
+
+    .habit-name {
+        flex: 1;
+        font-size: 13px;
+    }
+
+    .habit-score {
+        display: flex;
+        gap: 4px;
+    }
+
+    .habit-dot {
+        width: 11px;
+        height: 11px;
+        border-radius: 50%;
+    }
+
+    .dot-done {
+        background: #1D9E75;
+    }
+
+    .dot-miss {
+        background: #f0efe9;
+        border: 0.5px solid #ccc;
+    }
+
+    .cal-week {
+        display: grid;
+        grid-template-columns: repeat(7, 1fr);
+        gap: 4px;
+        margin-bottom: 8px;
+    }
+
+    .cal-day {
+        background: #f5f4f0;
+        border-radius: 8px;
+        padding: 6px 4px;
+        height: 100px;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .cal-day-label {
+        font-size: 10px;
+        font-weight: 500;
+        color: #888;
+        text-align: center;
+        margin-bottom: 4px;
+        flex-shrink: 0;
+    }
+
+    .cal-events {
+        flex: 1;
+        overflow: hidden;
+    }
+
+    .cal-event {
+        font-size: 9px;
+        padding: 2px 4px;
+        border-radius: 3px;
+        margin-bottom: 2px;
+        line-height: 1.3;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        display: block;
+    }
+
+    .cal-more {
+        font-size: 9px;
+        color: #888;
+        padding: 1px 4px;
+    }
+
+    .ev-personal {
+        background: #EEEDFE;
+        color: #3C3489;
+    }
+
+    .ev-mts {
+        background: #FAEEDA;
+        color: #633806;
+    }
+
+    .ev-default {
+        background: #f0efe9;
+        color: #555;
+    }
+
+    .week-divider {
+        font-size: 11px;
+        font-weight: 500;
+        color: #888;
+        margin: 10px 0 6px;
+        padding-bottom: 4px;
+        border-bottom: 0.5px solid rgba(0, 0, 0, 0.08);
+    }
+
+    .hidden {
+        opacity: 0.15;
+        pointer-events: none;
+    }
+
+    .attn-group {
+        font-size: 11px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: #999;
+        margin: 16px 0 4px;
+    }
+    .attn-group:first-child {
+        margin-top: 0;
+    }
+    .attn-overdue .task-name {
+        color: #a32d2d;
+    }
+    .attn-overdue .task-check {
+        border-color: #a32d2d;
+    }
+    .review-selected {
+        background: rgba(0, 0, 0, 0.05);
+        border-radius: 6px;
+    }
+
+    .reflect-grid {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 14px;
+        margin-bottom: 12px;
+    }
+
+    textarea {
+        width: 100%;
+        font-size: 13px;
+        resize: none;
+        border: 0.5px solid #ccc;
+        border-radius: 8px;
+        padding: 8px 10px;
+        background: #f5f4f0;
+        color: #1a1a1a;
+        font-family: inherit;
+        line-height: 1.5;
+    }
+
+    textarea:focus {
+        outline: none;
+        border-color: #888;
+    }
+
+    .btn {
+        font-size: 13px;
+        padding: 8px 16px;
+        border-radius: 8px;
+        border: 0.5px solid #bbb;
+        background: #fff;
+        cursor: pointer;
+        color: #1a1a1a;
+        transition: background 0.15s;
+    }
+
+    .btn:hover {
+        background: #f0efe9;
+    }
+
+    .btn-full {
+        width: 100%;
+    }
+
+    .btn-primary {
+        background: #1a1a1a;
+        color: #fff;
+        border-color: #1a1a1a;
+    }
+
+    .btn-primary:hover {
+        background: #333;
+    }
+
+    .btn-reset {
+        background: #fff;
+        color: #a32d2d;
+        border-color: #a32d2d;
+        font-size: 12px;
+        padding: 6px 14px;
+    }
+
+    .btn-reset:hover {
+        background: #fceded;
+    }
+
+    .btn-gcal {
+        background: #4285F4;
+        color: #fff;
+        border-color: #4285F4;
+        font-size: 12px;
+        padding: 6px 14px;
+    }
+
+    .btn-gcal:hover {
+        background: #3367d6;
+    }
+
+    .btn-gcal-mts {
+        background: #EF9F27;
+        color: #fff;
+        border-color: #EF9F27;
+        font-size: 12px;
+        padding: 6px 14px;
+    }
+
+    .btn-gcal-mts:hover {
+        background: #d4890f;
+    }
+
+    .carried-row {
+        display: flex;
+        align-items: flex-start;
+        gap: 10px;
+        padding: 8px 0;
+        border-bottom: 0.5px solid rgba(0, 0, 0, 0.08);
+    }
+
+    .carried-row:last-child {
+        border-bottom: none;
+    }
+
+    .overdue-check {
+        width: 16px;
+        height: 16px;
+        border: 0.5px solid #a32d2d;
+        border-radius: 4px;
+        margin-top: 2px;
+        flex-shrink: 0;
+    }
+
+    .overdue-name {
+        font-size: 14px;
+        color: #a32d2d;
+        margin: 0 0 2px;
+    }
+
+    .overdue-sub {
+        font-size: 12px;
+        color: #888;
+        margin: 0;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .header-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 0.75rem;
+    }
+
+    .header-btns {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+    }
+
+    .week-nav {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-top: 6px;
+    }
+
+    .week-nav-btn {
+        width: 26px;
+        height: 26px;
+        line-height: 1;
+        font-size: 16px;
+        padding: 0;
+        border-radius: 6px;
+        border: 0.5px solid #bbb;
+        background: #fff;
+        color: #1a1a1a;
+        cursor: pointer;
+        transition: background 0.15s;
+    }
+
+    .week-nav-btn:hover {
+        background: #f0efe9;
+    }
+
+    .week-nav-indicator {
+        font-size: 11px;
+        color: #666;
+        min-width: 92px;
+        text-align: center;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        font-weight: 500;
+    }
+
+    .week-nav-indicator.off-current {
+        color: #a32d2d;
+        font-weight: 600;
+    }
+
+    .week-nav-today {
+        font-size: 10px;
+        padding: 5px 12px;
+        border-radius: 6px;
+        border: 0.5px solid #1a1a1a;
+        background: #1a1a1a;
+        color: #fff;
+        cursor: pointer;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        font-weight: 500;
+        transition: background 0.15s;
+    }
+
+    .week-nav-today:hover {
+        background: #333;
+    }
+
+    .jump-bar {
+        display: flex;
+        gap: 8px;
+        margin-bottom: 1.5rem;
+        flex-wrap: wrap;
+    }
+
+    .jump-btn {
+        font-size: 16px;
+        font-weight: 500;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        padding: 10px 22px;
+        border-radius: 8px;
+        border: 0.5px solid #ccc;
+        background: #fff;
+        cursor: pointer;
+        color: #555;
+        transition: background 0.15s;
+    }
+
+    .jump-btn:hover {
+        background: #f0efe9;
+    }
+
+    .plan-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+        margin-bottom: 12px;
+    }
+
+    .plan-card {
+        border-radius: 12px;
+        padding: 1rem 1.25rem;
+        border: 0.5px solid rgba(0, 0, 0, 0.08);
+    }
+
+    .plan-card-rcbs {
+        background: #EEEDFE;
+    }
+
+    .plan-card-rws {
+        background: #E1F5EE;
+    }
+
+    .plan-card-sm {
+        background: #FAECE7;
+    }
+
+    .plan-card-mts {
+        background: #FAEEDA;
+    }
+
+    .plan-card-eplc {
+        background: #E6F1FB;
+    }
+
+    .plan-card-peeps {
+        background: #FBEAF3;
+    }
+
+    .plan-label {
+        font-size: 11px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        margin-bottom: 6px;
+    }
+
+    .plan-label-rcbs {
+        color: #3C3489;
+    }
+
+    .plan-label-rws {
+        color: #085041;
+    }
+
+    .plan-label-sm {
+        color: #712B13;
+    }
+
+    .plan-label-mts {
+        color: #633806;
+    }
+
+    .plan-label-eplc {
+        color: #0C447C;
+    }
+
+    .plan-label-peeps {
+        color: #7A1F52;
+    }
+
+    .plan-card textarea {
+        background: rgba(255, 255, 255, 0.6);
+        border-color: rgba(0, 0, 0, 0.1);
+    }
+
+    .plan-full {
+        grid-column: 1/-1;
+    }
+
+    .loading {
+        color: #888;
+        font-size: 13px;
+        padding: 12px 0;
+        text-align: center;
+    }
+
+    .empty {
+        color: #bbb;
+        font-size: 13px;
+        padding: 12px 0;
+        text-align: center;
+    }
+
+    .error-msg {
+        color: #a32d2d;
+        font-size: 12px;
+        padding: 8px;
+        background: #fceded;
+        border-radius: 8px;
+        margin-bottom: 8px;
+    }
+
+    .cal-source {
+        font-size: 10px;
+        color: #bbb;
+        margin-top: 8px;
+        text-align: center;
+    }
+    </style>
+</head>
+<body>
+
+    <div class="header-row">
+        <div>
+            <h1>RenitaOS Weekly Review</h1>
+            <p class="subtitle" id="weekLabel">Loading dates…</p>
+            <div class="week-nav">
+                <button class="week-nav-btn" onclick="shiftWeek(-1)" title="Previous week" aria-label="Previous week">‹</button>
+                <span class="week-nav-indicator" id="weekNavIndicator">This week</span>
+                <button class="week-nav-btn" onclick="shiftWeek(1)" title="Next week" aria-label="Next week">›</button>
+                <button class="week-nav-today" id="weekNavToday" onclick="goToThisWeek()" style="display:none;">Jump to this week</button>
+            </div>
+        </div>
+        <div class="header-btns">
+            <button class="btn btn-gcal" id="gcal-btn-rcbs" onclick="handleGCalAuth('rcbs')">📅 Connect RCBS</button>
+            <button class="btn btn-gcal-mts" id="gcal-btn-mts" onclick="handleGCalAuth('mts')">📅 Connect MTS</button>
+            <button class="btn btn-reset" onclick="hardReset()">↺ Reset</button>
+        </div>
+    </div>
+
+    <div class="jump-bar">
+        <button class="jump-btn" onclick="document.getElementById('act-review').scrollIntoView({behavior:'smooth'})">Review</button>
+        <button class="jump-btn" onclick="document.getElementById('act-reflect').scrollIntoView({behavior:'smooth'})">Reflect</button>
+        <button class="jump-btn" onclick="document.getElementById('act-plan').scrollIntoView({behavior:'smooth'})">Plan</button>
+    </div>
+
+    <div class="grid-5" style="grid-template-columns:repeat(4,1fr);">
+        <div class="metric">
+            <p class="metric-label">Active Projects</p>
+            <p class="metric-value" id="metric-projects">—</p>
+        </div>
+        <div class="metric">
+            <p class="metric-label">Tasks Due This Week</p>
+            <p class="metric-value" id="metric-tasks">—</p>
+        </div>
+        <div class="metric">
+            <p class="metric-label">Overdue Tasks</p>
+            <p class="metric-value danger" id="metric-overdue">—</p>
+        </div>
+        <div class="metric">
+            <p class="metric-label">Notes to be Filed</p>
+            <p class="metric-value" id="metric-notes">—</p>
+        </div>
+    </div>
+
+    <div class="snapshot-divider"></div>
+
+    <section id="act-review" class="act act-review">
+        <div class="act-header"><span class="act-num">1</span><span class="act-title">Review</span><span class="act-sub">— Look Back Over This Week</span></div>
+    <p class="section-title">This Week's Goals &amp; Intentions</p>
+    <div class="card" id="lastweek-review" style="margin-bottom:1.5rem;">
+        <p class="loading">Loading last week's review…</p>
+    </div>
+    <p class="section-title">Domain Load — This Week</p>
+    <div class="card" style="margin-bottom:1.5rem;">
+        <div class="dist-bar-wrap" id="dist-bar">
+            <div class="dist-seg" style="width:100%;background:#eee;"></div>
+        </div>
+        <div class="dist-legend" id="dist-legend">
+            <span class="loading">Loading domain data…</span>
+        </div>
+    </div>
+
+    <p class="section-title">Calendar — This Week</p>
+    <div class="card" style="margin-bottom:1.5rem;">
+        <p class="week-divider" id="calReviewLabel">This week</p>
+        <div class="cal-week" id="cal-review">
+            <div class="cal-day"><p class="cal-day-label">Sun</p><div class="cal-events"></div></div>
+            <div class="cal-day"><p class="cal-day-label">Mon</p><div class="cal-events"></div></div>
+            <div class="cal-day"><p class="cal-day-label">Tue</p><div class="cal-events"></div></div>
+            <div class="cal-day"><p class="cal-day-label">Wed</p><div class="cal-events"></div></div>
+            <div class="cal-day"><p class="cal-day-label">Thu</p><div class="cal-events"></div></div>
+            <div class="cal-day"><p class="cal-day-label">Fri</p><div class="cal-events"></div></div>
+            <div class="cal-day"><p class="cal-day-label">Sat</p><div class="cal-events"></div></div>
+        </div>
+    </div>
+
+    <p class="section-title">Active Projects</p>
+    <div class="card" id="projects-list-review" style="margin-bottom:1.5rem;">
+        <p class="loading">Loading projects…</p>
+    </div>
+
+        <div class="grid-2">
+            <div id="sec-completed">
+                <p class="section-title">Completed This Week</p>
+                <div class="card" id="completed-list">
+                    <p class="loading">Loading completed tasks…</p>
+                </div>
+            </div>
+            <div id="sec-undone">
+                <p class="section-title">Tasks Needing Attention</p>
+                <div class="card" id="overdue-list">
+                    <p class="loading">Loading overdue tasks…</p>
+                </div>
+            </div>
+        </div>
+
+    <div id="sec-inbox">
+        <p class="section-title">Note Station — Process &amp; Assign <span id="inbox-count" class="inbox-count"></span></p>
+        <div class="inbox-filter">
+            <button class="seg" data-filter="THISWEEK" onclick="setInboxFilter('THISWEEK', this)">This Week</button>
+            <button class="seg active" data-filter="INBOX" onclick="setInboxFilter('INBOX', this)">Inbox</button>
+            <button class="seg" data-filter="ACTIVE" onclick="setInboxFilter('ACTIVE', this)">Active</button>
+        </div>
+        <div class="card" style="margin-bottom:1.5rem;" id="notes-list">
+            <p class="loading">Loading notes…</p>
+        </div>
+    </div>
+
+    <p class="section-title" id="sec-tags">Tag Station — Look for Patterns</p>
+    <div class="inbox-filter" id="tag-filter">
+        <button class="seg active" data-window="thisweek" onclick="setTagWindow('thisweek', this)">This Week</button>
+        <button class="seg" data-window="lastweek" onclick="setTagWindow('lastweek', this)">Last Week</button>
+        <button class="seg" data-window="thismonth" onclick="setTagWindow('thismonth', this)">This Month</button>
+    </div>
+    <div class="card" id="tags-list" style="margin-bottom:1.5rem;"><p class="loading">Loading tags…</p></div>
+    </section>
+
+    <section id="act-reflect" class="act act-reflect">
+        <div class="act-header"><span class="act-num">2</span><span class="act-title">Reflect</span><span class="act-sub">— Sit With It All For A Moment</span></div>
+    <div id="sec-reflection">
+        <p class="section-title">Weekly Reflection</p>
+        <div class="card" style="margin-bottom:1.5rem;">
+            <div class="reflect-grid">
+                <div>
+                    <p style="font-size:12px;font-weight:500;color:#888;margin-bottom:6px;">What moved the needle?</p>
+                    <textarea id="ref-needle" rows="5" placeholder="Your biggest win this week…"></textarea>
+                </div>
+                <div>
+                    <p style="font-size:12px;font-weight:500;color:#888;margin-bottom:6px;">What didn't work?</p>
+                    <textarea id="ref-didnt" rows="5" placeholder="What you'd do differently…"></textarea>
+                </div>
+                <div>
+                    <p style="font-size:12px;font-weight:500;color:#888;margin-bottom:6px;">What are you carrying into next week?</p>
+                    <textarea id="ref-carry" rows="5" placeholder="Intentions, posture, focus…"></textarea>
+                </div>
+            </div>
+            <button class="btn btn-primary btn-full" onclick="saveReflection()">Save Reflection to Notion →</button>
+        </div>
+    </div>
+    </section>
+
+    <section id="act-plan" class="act act-plan">
+        <div class="act-header"><span class="act-num">3</span><span class="act-title">Plan</span><span class="act-sub">— Look Ahead to the Next Weeks</span></div>
+    <p class="section-title">Domain Load — Two Week Outlook</p>
+    <div class="card" style="margin-bottom:1.5rem;">
+        <div id="dist-plan-pills" class="filter-bar" style="margin-bottom:10px;">
+            <span class="time-pill active" data-window="nextweek" onclick="toggleTime(this)">Next Week</span>
+            <span class="time-pill" data-window="nexttwo" onclick="toggleTime(this)">Next Two Weeks</span>
+        </div>
+        <div class="dist-bar-wrap" id="dist-bar-plan">
+            <div class="dist-seg" style="width:100%;background:#eee;"></div>
+        </div>
+        <div class="dist-legend" id="dist-legend-plan">
+            <span class="loading">Loading domain data…</span>
+        </div>
+    </div>
+    <p class="section-title">Calendar — Two Week Outlook</p>
+    <div class="card" style="margin-bottom:1.5rem;">
+        <p class="week-divider" id="week1Label">Week 1</p>
+        <div class="cal-week" id="cal-week1">
+            <div class="cal-day">
+                <p class="cal-day-label">Sun</p>
+                <div class="cal-events"></div>
+            </div>
+            <div class="cal-day">
+                <p class="cal-day-label">Mon</p>
+                <div class="cal-events"></div>
+            </div>
+            <div class="cal-day">
+                <p class="cal-day-label">Tue</p>
+                <div class="cal-events"></div>
+            </div>
+            <div class="cal-day">
+                <p class="cal-day-label">Wed</p>
+                <div class="cal-events"></div>
+            </div>
+            <div class="cal-day">
+                <p class="cal-day-label">Thu</p>
+                <div class="cal-events"></div>
+            </div>
+            <div class="cal-day">
+                <p class="cal-day-label">Fri</p>
+                <div class="cal-events"></div>
+            </div>
+            <div class="cal-day">
+                <p class="cal-day-label">Sat</p>
+                <div class="cal-events"></div>
+            </div>
+        </div>
+        <p class="week-divider" id="week2Label">Week 2</p>
+        <div class="cal-week" id="cal-week2">
+            <div class="cal-day">
+                <p class="cal-day-label">Sun</p>
+                <div class="cal-events"></div>
+            </div>
+            <div class="cal-day">
+                <p class="cal-day-label">Mon</p>
+                <div class="cal-events"></div>
+            </div>
+            <div class="cal-day">
+                <p class="cal-day-label">Tue</p>
+                <div class="cal-events"></div>
+            </div>
+            <div class="cal-day">
+                <p class="cal-day-label">Wed</p>
+                <div class="cal-events"></div>
+            </div>
+            <div class="cal-day">
+                <p class="cal-day-label">Thu</p>
+                <div class="cal-events"></div>
+            </div>
+            <div class="cal-day">
+                <p class="cal-day-label">Fri</p>
+                <div class="cal-events"></div>
+            </div>
+            <div class="cal-day">
+                <p class="cal-day-label">Sat</p>
+                <div class="cal-events"></div>
+            </div>
+        </div>
+        <p id="cal-status" style="font-size:13px;color:#888;text-align:center;padding:8px 0;">Connect RCBS and MTS calendars above to load events.</p>
+        <p class="cal-source" id="cal-source">Pulls from: RCBS · MTS</p>
+    </div>
+
+    <p class="section-title">Filter By Domain</p>
+    <div class="filter-bar" id="filterBar" style="margin-bottom:6px;">
+        <span class="domain-pill pill-rcbs" data-domain="RCBS" onclick="toggleDomain('RCBS')">RCBS</span>
+        <span class="domain-pill pill-rws" data-domain="RWS" onclick="toggleDomain('RWS')">RWS</span>
+        <span class="domain-pill pill-sm" data-domain="SM" onclick="toggleDomain('SM')">SM</span>
+        <span class="domain-pill pill-mts" data-domain="MTS" onclick="toggleDomain('MTS')">MTS</span>
+        <span class="domain-pill pill-eplc" data-domain="EPLC" onclick="toggleDomain('EPLC')">EPLC</span>
+        <span class="domain-pill pill-peeps" data-domain="PEEPS" onclick="toggleDomain('PEEPS')">PEEPS</span>
+        <span class="clear-filter" onclick="clearFilters()">Clear</span>
+    </div>
+
+    <p class="section-title" style="margin-top:8px;">Filter By Project</p>
+    <div class="filter-bar" id="projectBar" style="margin-bottom:1.5rem;">
+        <span class="loading">Loading projects…</span>
+    </div>
+
+    <p class="section-title">Active Projects — Set Priorities</p>
+    <div class="card" id="projects-list" style="margin-bottom:1.5rem;">
+        <p class="loading">Loading projects…</p>
+    </div>
+
+        <div id="sec-tasks">
+            <p class="section-title">Tasks — Next Two Weeks</p>
+            <div class="card" id="tasks-list">
+                <p class="loading">Loading tasks…</p>
+            </div>
+        </div>
+
+
+    <div id="sec-plan">
+        <p class="section-title">Plan Ahead — Next Two Weeks</p>
+        <div class="card" style="margin-bottom:1rem;">
+            <p style="font-size:12px;font-weight:500;color:#888;margin-bottom:6px;">What is your overall theme or intention for the next two weeks?</p>
+            <textarea id="plan-theme" rows="2" placeholder="One word, phrase, or sentence that frames the next two weeks…"></textarea>
+        </div>
+        <div class="plan-grid">
+            <div class="plan-card plan-card-rcbs">
+                <p class="plan-label plan-label-rcbs">RCBS</p>
+                <p style="font-size:11px;color:#3C3489;margin-bottom:6px;">1% Goal</p>
+                <textarea id="plan-rcbs" rows="3" placeholder="The smallest move that creates forward momentum…"></textarea>
+            </div>
+            <div class="plan-card plan-card-rws">
+                <p class="plan-label plan-label-rws">RWS</p>
+                <p style="font-size:11px;color:#085041;margin-bottom:6px;">1% Goal</p>
+                <textarea id="plan-rws" rows="3" placeholder="The smallest move that creates forward momentum…"></textarea>
+            </div>
+            <div class="plan-card plan-card-sm">
+                <p class="plan-label plan-label-sm">SM</p>
+                <p style="font-size:11px;color:#712B13;margin-bottom:6px;">1% Goal</p>
+                <textarea id="plan-sm" rows="3" placeholder="The smallest move that creates forward momentum…"></textarea>
+            </div>
+            <div class="plan-card plan-card-mts">
+                <p class="plan-label plan-label-mts">MTS</p>
+                <p style="font-size:11px;color:#633806;margin-bottom:6px;">1% Goal</p>
+                <textarea id="plan-mts" rows="3" placeholder="The smallest move that creates forward momentum…"></textarea>
+            </div>
+            <div class="plan-card plan-card-eplc">
+                <p class="plan-label plan-label-eplc">EPLC</p>
+                <p style="font-size:11px;color:#0C447C;margin-bottom:6px;">1% Goal</p>
+                <textarea id="plan-eplc" rows="3" placeholder="The smallest move that creates forward momentum…"></textarea>
+            </div>
+            <div class="plan-card plan-card-peeps">
+                <p class="plan-label plan-label-peeps">PEEPS</p>
+                <p style="font-size:11px;color:#7A1F52;margin-bottom:6px;">1% Goal</p>
+                <textarea id="plan-peeps" rows="3" placeholder="The smallest move that creates forward momentum…"></textarea>
+            </div>
+        </div>
+        <button class="btn btn-primary btn-full" style="margin-top:4px;" onclick="savePlan()">Save Plan to Notion →</button>
+    </div>
+    </section>
+
+    <div class="back-to-top" id="backToTop" onclick="window.scrollTo({top:0,behavior:'smooth'})" title="Back to top" aria-label="Back to top">↑</div>
+
+    <script src="https://accounts.google.com/gsi/client"></script>
+    <script>
+    // ═══════════════════════════════════════════════════════════
+    // CONFIG — FILL IN YOUR VALUES
+    // ═══════════════════════════════════════════════════════════
+    const GCAL_CLIENT_ID = '435629248291-1upcl99q2u3grdaaa3pfice92bfnkamm.apps.googleusercontent.com';   // ← paste your OAuth client ID (…apps.googleusercontent.com)
+    const GCAL_RCBS_ID = 'renitacbsmith@gmail.com';   // ← paste your RCBS/personal calendar ID (an email address)
+    const GCAL_MTS_ID = 'rs@michouthesolutionist.com';     // ← paste your MTS calendar ID (an email address)
+    const DB_PROJECTS = '33110b0375a88054b94bfda7c3e93ddb';   // ← paste your Projects database ID
+    const DB_TASKS    = '33110b0375a880c18918ebac71592a35';      // ← paste your Tasks database ID
+    const DB_NOTES    = '6340f2b86ac94447a8315f0ba87545e3';      // ← paste your Notes database ID
+    const DB_DOMAINS  = '33110b0375a88024b4f2c8e6beaca80e';    // ← paste your Domains database ID
+    const DB_TAGS     = '1a39ff9fd10747ad9d418577707c012f';       // ← paste your Global Tags database ID
+    const DB_WEEKLY   = '38910b0375a880eda787e004bca8675d';     // ← paste your Weekly Review database ID
+    const PROXY = 'https://notion-proxy.renitacbsmith.workers.dev/v1';
+
+    window.addEventListener('scroll', () => {
+        const b = document.getElementById('backToTop');
+        if (b) b.classList.toggle('show', window.scrollY > 400);
+    });
+    // ═══════════════════════════════════════════════════════════
+
+    const DOMAIN_STYLE = {
+        RCBS: {
+            pill: 'pill-rcbs',
+            color: '#7F77DD'
+        },
+        RWS: {
+            pill: 'pill-rws',
+            color: '#1D9E75'
+        },
+        SM: {
+            pill: 'pill-sm',
+            color: '#D85A30'
+        },
+        MTS: {
+            pill: 'pill-mts',
+            color: '#EF9F27'
+        },
+        EPLC: {
+            pill: 'pill-eplc',
+            color: '#378ADD'
+        },
+        PEEPS: {
+            pill: 'pill-peeps',
+            color: '#D45D9C'
+        },
+    };
+
+    let domainMap = {};
+
+    // ─── DATES ────────────────────────────────────────────────
+    function formatDate(d) {
+        return d.toLocaleDateString('en-US', {
+            month: 'short',
+            day: 'numeric'
+        });
+    }
+    function getReviewDates(offset = 0) {
+        const today = new Date();
+        const day = today.getDay();
+        const sat = new Date(today);
+        sat.setDate(today.getDate() + ((6 - day + 7) % 7) + (offset * 7));
+        const w1s = new Date(sat);
+        w1s.setDate(sat.getDate() + 1);
+        const w1e = new Date(w1s);
+        w1e.setDate(w1s.getDate() + 6);
+        const w2s = new Date(w1e);
+        w2s.setDate(w1e.getDate() + 1);
+        const w2e = new Date(w2s);
+        w2e.setDate(w2s.getDate() + 6);
+        return {
+            weekEnd: sat,
+            w1s,
+            w1e,
+            w2s,
+            w2e
+        };
+    }
+    let weekOffset = 0;                       // 0 = current review week; -1 = last week; etc.
+    let DATES = getReviewDates(weekOffset);
+
+    function refreshWeekLabels() {
+        document.getElementById('weekLabel').textContent = 'Week ending ' + formatDate(DATES.weekEnd) + ' · Looking ahead to ' + formatDate(DATES.w2e);
+        document.getElementById('week1Label').textContent = 'Week 1 · ' + formatDate(DATES.w1s) + ' – ' + formatDate(DATES.w1e);
+        document.getElementById('week2Label').textContent = 'Week 2 · ' + formatDate(DATES.w2s) + ' – ' + formatDate(DATES.w2e);
+        const ind = document.getElementById('weekNavIndicator');
+        if (ind) {
+            ind.textContent = weekOffset === 0 ? 'This week'
+                : weekOffset < 0 ? (-weekOffset === 1 ? '1 week back' : (-weekOffset) + ' weeks back')
+                : (weekOffset === 1 ? '1 week ahead' : weekOffset + ' weeks ahead');
+            ind.classList.toggle('off-current', weekOffset !== 0);
+        }
+        const todayBtn = document.getElementById('weekNavToday');
+        if (todayBtn) todayBtn.style.display = weekOffset === 0 ? 'none' : '';
+    }
+    refreshWeekLabels();
+
+    // ─── GOOGLE CALENDAR — TWO ACCOUNTS ──────────────────────
+    let rcbsToken = null;
+    let mtsToken = null;
+    let allCalEvents = [];
+
+    function handleGCalAuth(account) {
+        const client = google.accounts.oauth2.initTokenClient({
+            client_id: GCAL_CLIENT_ID,
+            scope: 'https://www.googleapis.com/auth/calendar.readonly',
+            callback: (response) => {
+                if (response.access_token) {
+                    if (account === 'rcbs') {
+                        rcbsToken = response.access_token;
+                        const btn = document.getElementById('gcal-btn-rcbs');
+                        btn.textContent = '✓ RCBS Connected';
+                        btn.style.opacity = '0.75';
+                    } else {
+                        mtsToken = response.access_token;
+                        const btn = document.getElementById('gcal-btn-mts');
+                        btn.textContent = '✓ MTS Connected';
+                        btn.style.opacity = '0.75';
+                    }
+                    loadAllCalendarEvents();
+                }
+            },
+        });
+        client.requestAccessToken();
+    }
+
+    async function loadAllCalendarEvents() {
+        const statusEl = document.getElementById('cal-status');
+        statusEl.style.display = 'block';
+        statusEl.textContent = 'Loading calendar events…';
+        allCalEvents = [];
+        const reviewStart = new Date(DATES.weekEnd);
+        reviewStart.setDate(DATES.weekEnd.getDate() - 6);
+        reviewStart.setHours(0, 0, 0, 0);
+        const timeMin = reviewStart.toISOString();
+        const timeMax = DATES.w2e.toISOString();
+
+        // Load RCBS calendar
+        if (rcbsToken) {
+            try {
+                const url = `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(GCAL_RCBS_ID)}/events?timeMin=${timeMin}&timeMax=${timeMax}&singleEvents=true&orderBy=startTime`;
+                const res = await fetch(url, {
+                    headers: {
+                        'Authorization': 'Bearer ' + rcbsToken
+                    }
+                });
+                const data = await res.json();
+                if (data.items)
+                    data.items.forEach(e => allCalEvents.push({
+                        ...e,
+                        calLabel: 'Personal',
+                        calClass: 'ev-personal'
+                    }));
+            } catch (e) {
+                console.error('RCBS calendar error:', e);
+            }
+        }
+
+        // Load MTS calendar
+        if (mtsToken) {
+            try {
+                const url = `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(GCAL_MTS_ID)}/events?timeMin=${timeMin}&timeMax=${timeMax}&singleEvents=true&orderBy=startTime`;
+                const res = await fetch(url, {
+                    headers: {
+                        'Authorization': 'Bearer ' + mtsToken
+                    }
+                });
+                const data = await res.json();
+                if (data.items)
+                    data.items.forEach(e => allCalEvents.push({
+                        ...e,
+                        calLabel: 'MTS',
+                        calClass: 'ev-mts'
+                    }));
+            } catch (e) {
+                console.error('MTS calendar error:', e);
+            }
+        }
+
+        renderCalendar(allCalEvents);
+        statusEl.style.display = 'none';
+
+        const connected = [rcbsToken ? 'RCBS' : null, mtsToken ? 'MTS' : null].filter(Boolean).join(' · ');
+        document.getElementById('cal-source').textContent = connected ? 'Showing: ' + connected : 'Connect calendars above.';
+    }
+
+    function renderCalendar(events) {
+        const reviewStart = new Date(DATES.weekEnd);
+        reviewStart.setDate(DATES.weekEnd.getDate() - 6);
+        const rlbl = document.getElementById('calReviewLabel');
+        if (rlbl) rlbl.textContent = 'This week · ' + formatDate(reviewStart) + ' – ' + formatDate(DATES.weekEnd);
+        [{
+            id: 'cal-review',
+            start: reviewStart
+        }, {
+            id: 'cal-week1',
+            start: DATES.w1s
+        }, {
+            id: 'cal-week2',
+            start: DATES.w2s
+        }].forEach(({id, start}) => {
+            const grid = document.getElementById(id);
+            if (!grid) return;
+            grid.querySelectorAll('.cal-day').forEach((dayEl, i) => {
+                const d = new Date(start);
+                d.setDate(start.getDate() + i);
+                dayEl.querySelector('.cal-day-label').textContent = d.toLocaleDateString('en-US', {
+                    weekday: 'short'
+                }).slice(0, 3) + ' ' + d.getDate();
+                const eventsEl = dayEl.querySelector('.cal-events');
+                eventsEl.innerHTML = '';
+                const dayEvents = events.filter(e => {
+                    const s = e.start?.dateTime||e.start?.date;
+                    return s && new Date(s).toDateString() === d.toDateString();
+                });
+                dayEvents.slice(0, 3).forEach(e => {
+                    const span = document.createElement('span');
+                    span.className = 'cal-event ' + e.calClass;
+                    span.textContent = e.summary || 'Event';
+                    span.title = (e.summary || 'Event') + ' · ' + e.calLabel;
+                    eventsEl.appendChild(span);
+                });
+                if (dayEvents.length > 3) {
+                    const more = document.createElement('span');
+                    more.className = 'cal-more';
+                    more.textContent = '+' + (dayEvents.length - 3) + ' more';
+                    eventsEl.appendChild(more);
+                }
+            });
+        });
+    }
+
+    // ─── NOTION API ───────────────────────────────────────────
+    // Reads Notion's response body so a failure shows the REAL reason
+    // (e.g. "content.length should be ≤ 2000") instead of a bare status code.
+    async function notionErr(res, label) {
+        let detail = '';
+        try {
+            const j = await res.json();
+            detail = j.message || j.code || JSON.stringify(j);
+        } catch (_) {}
+        const err = new Error(`${label} ${res.status}${detail ? ' — ' + detail : ''}`);
+        err.status = res.status;
+        return err;
+    }
+
+    async function notionQuery(dbId, filter, sorts) {
+        // Loops on has_more / next_cursor so we fetch ALL rows, not just the first 100.
+        let results = [];
+        let cursor;
+        do {
+            const body = { page_size: 100 };
+            if (filter) body.filter = filter;
+            if (sorts) body.sorts = sorts;
+            if (cursor) body.start_cursor = cursor;
+            const res = await fetch(`${PROXY}/databases/${dbId}/query`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Notion-Version': '2022-06-28'
+                },
+                body: JSON.stringify(body),
+            });
+            if (!res.ok)
+                throw await notionErr(res, 'Notion API error');
+            const data = await res.json();
+            results = results.concat(data.results || []);
+            cursor = data.has_more ? data.next_cursor : undefined;
+        } while (cursor);
+        return results;
+    }
+    async function notionCreate(dbId, properties, children) {
+        const payload = {
+            parent: {
+                database_id: dbId
+            },
+            properties
+        };
+        if (children && children.length)
+            payload.children = children;
+        const res = await fetch(`${PROXY}/pages`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Notion-Version': '2022-06-28'
+            },
+            body: JSON.stringify(payload),
+        });
+        if (!res.ok)
+            throw await notionErr(res, 'Notion create error');
+        return res.json();
+    }
+    async function notionPatch(pageId, properties) {
+        const res = await fetch(`${PROXY}/pages/${pageId}`, {
+            method: 'PATCH',
+            headers: {
+                'Content-Type': 'application/json',
+                'Notion-Version': '2022-06-28'
+            },
+            body: JSON.stringify({
+                properties
+            }),
+        });
+        if (!res.ok)
+            throw await notionErr(res, 'Notion patch error');
+        return res.json();
+    }
+
+    // ─── HELPERS — emoji-proof field reading ──────────────────
+    function getTitle(page) {
+        for (const key of Object.keys(page.properties)) {
+            const p = page.properties[key];
+            if (p.type === 'title'&&p.title?.length)
+                return p.title.map(r => r.plain_text).join('');
+        }
+        return 'Untitled';
+    }
+
+    function getProjectDomain(page) {
+        for (const key of Object.keys(page.properties)) {
+            const p = page.properties[key];
+            if (p.type === 'relation' && key.toLowerCase().includes('domain')&&p.relation?.length) {
+                return domainMap[p.relation[0].id] || null;
+            }
+        }
+        return null;
+    }
+
+    let projectDomainMap = {};
+    function getTaskDomain(page) {
+        // 1) A rollup named with 'domain' or 'pillar' — read whatever value type it carries
+        for (const key of Object.keys(page.properties)) {
+            const p = page.properties[key];
+            const k = key.toLowerCase();
+            if (p.type === 'rollup' && (k.includes('domain') || k.includes('pillar'))) {
+                const arr = p.rollup?.array || [];
+                for (const item of arr) {
+                    if (item.type === 'title' && item.title?.length) return item.title[0].plain_text;
+                    if (item.type === 'rich_text' && item.rich_text?.length) return item.rich_text[0].plain_text;
+                    if (item.type === 'select' && item.select?.name) return item.select.name;
+                    if (item.type === 'multi_select' && item.multi_select?.length) return item.multi_select[0].name;
+                    if (item.type === 'relation' && item.relation?.length) {
+                        const d = domainMap[item.relation[0].id];
+                        if (d) return d;
+                    }
+                }
+            }
+        }
+        // 2) Fall back: resolve through the task's linked project's domain
+        const projId = getTaskProjectId(page);
+        if (projId && projectDomainMap[projId]) return projectDomainMap[projId];
+        // Diagnostic (first 3 only): show why this task's domain didn't resolve
+        if (window._domDiag === undefined) window._domDiag = 0;
+        if (window._domDiag < 3) {
+            window._domDiag++;
+            const types = {};
+            for (const key of Object.keys(page.properties)) types[key] = page.properties[key].type;
+            console.warn('Unresolved task domain →', getTitle(page),
+                '| linked project id:', projId,
+                '| in projectDomainMap:', projId ? !!projectDomainMap[projId] : 'n/a',
+                '| property types:', types);
+        }
+        return null;
+    }
+
+    function getProgress(page) {
+        for (const key of Object.keys(page.properties)) {
+            const p = page.properties[key];
+            if (key.toLowerCase().includes('progress')) {
+                if (p.type === 'rollup' && p.rollup?.type === 'number')
+                    return Math.round((p.rollup.number || 0) * 100);
+                if (p.type === 'number' && p.number !== null)
+                    return Math.round((p.number || 0) * 100);
+            }
+        }
+        return 0;
+    }
+
+    function getDueDate(page) {
+        for (const key of Object.keys(page.properties)) {
+            if (key.toLowerCase().includes('due')) {
+                const d = page.properties[key];
+                if (d?.type === 'date'&&d.date?.start)
+                    return new Date(d.date.start);
+            }
+        }
+        return null;
+    }
+
+    function getTaskProjectId(page) {
+        for (const key of Object.keys(page.properties)) {
+            const p = page.properties[key];
+            if (p.type === 'relation' && key.toLowerCase().includes('project')&&p.relation?.length) {
+                return p.relation[0].id;
+            }
+        }
+        return null;
+    }
+
+    function getCreatedDate(page) {
+        if (page.created_time)
+            return new Date(page.created_time);
+        return new Date();
+    }
+
+    // Emoji-proof status reader — finds the Status property by type, not by name
+    function getStatus(page) {
+        for (const key of Object.keys(page.properties)) {
+            const prop = page.properties[key];
+            if (prop.type === 'status') return prop.status?.name || null;
+        }
+        return null;
+    }
+
+    // Emoji-proof multi-select "Type" reader → array of value names
+    function getType(page) {
+        let fallback = null;
+        for (const key of Object.keys(page.properties)) {
+            const p = page.properties[key];
+            if (p.type === 'multi_select') {
+                const names = (p.multi_select || []).map(o => o.name);
+                if (key.toLowerCase().includes('type')) return names;
+                if (!fallback) fallback = names;
+            }
+        }
+        return fallback || [];
+    }
+
+    // Emoji-proof "Date" field reader (the date you set on the note, not created/edited)
+    function getNoteDate(page) {
+        for (const key of Object.keys(page.properties)) {
+            const p = page.properties[key];
+            if (p.type === 'date' && key.toLowerCase().includes('date') && p.date?.start)
+                return new Date(p.date.start);
+        }
+        return null;
+    }
+
+    // The note's own Date field, falling back to the record-created date when blank
+    function noteWhen(page) {
+        return getNoteDate(page) || getCreatedDate(page);
+    }
+
+    // Recent notes get a relative age; older ones show their actual date (with year if not this year)
+    function noteAgeLabel(page) {
+        const d = noteWhen(page);
+        const diff = Math.floor((Date.now() - d.getTime()) / 86400000);
+        if (diff >= 0 && diff <= 7) return daysAgo(d);
+        const sameYear = d.getFullYear() === new Date().getFullYear();
+        return sameYear ? formatDate(d) : formatDate(d) + ' ' + d.getFullYear();
+    }
+
+    // Common type values get stable colors; anything else falls to neutral so new types still render.
+    const TYPE_COLOR = {
+        Reminder: '#D8772B', Idea: '#7F77DD', Thought: '#1D9E75', Convo: '#378ADD',
+        Sermon: '#C0392B', Teaching: '#8E44AD', Dream: '#CC5A93'
+    };
+    function typePillHtml(name) {
+        const color = TYPE_COLOR[name] || '#9A958C';
+        return `<span class="type-pill" style="color:${color};border-color:${color};">${escTag(name)}</span>`;
+    }
+
+    function pillHtml(domain, small) {
+        const style = DOMAIN_STYLE[domain];
+        const cls = style ? style.pill : 'pill-unknown';
+        const sz = small ? 'font-size:11px;padding:1px 7px;' : '';
+        return `<span class="domain-pill ${cls}" style="cursor:default;${sz}">${domain || '?'}</span>`;
+    }
+
+    function daysAgo(date) {
+        const diff = Math.floor((Date.now() - date.getTime()) / 86400000);
+        if (diff === 0)
+            return 'Today';
+        if (diff === 1)
+            return '1 day ago';
+        return diff + ' days ago';
+    }
+
+    function domainColor(d) {
+        return DOMAIN_STYLE[d]?.color || '#ccc';
+    }
+
+    // ─── FILTERS ──────────────────────────────────────────────
+    let activeDomain = null,
+        activeProject = null;
+    function applyFilters() {
+        document.querySelectorAll('#projects-list .project-row[data-domain]').forEach(row => {
+            const show = (!activeDomain || row.dataset.domain === activeDomain) &&
+            (!activeProject || row.dataset.project === activeProject);
+            row.classList.toggle('hidden', !show);
+            const next = row.nextElementSibling;
+            if(next?.classList.contains('progress-wrap'))
+                next.classList.toggle('hidden', !show);
+        });
+        document.querySelectorAll('#tasks-list .task-row[data-domain]').forEach(row => {
+            const show = (!activeDomain || row.dataset.domain === activeDomain) &&
+            (!activeProject || row.dataset.project === activeProject);
+            row.classList.toggle('hidden', !show);
+        });
+    }
+    function toggleDomain(domain) {
+        activeDomain = activeDomain === domain ? null : domain;
+        document.querySelectorAll('#filterBar .domain-pill').forEach(p => {
+            p.classList.remove('pill-active-rcbs', 'pill-active-rws', 'pill-active-sm', 'pill-active-mts', 'pill-active-eplc');
+            if (p.dataset.domain === activeDomain)
+                p.classList.add('pill-active-' + activeDomain.toLowerCase());
+        });
+        applyFilters();
+    }
+    function toggleProject(id) {
+        activeProject = activeProject === id ? null : id;
+        document.querySelectorAll('#projectBar .pill-project').forEach(p => p.classList.toggle('active', p.dataset.project === activeProject));
+        applyFilters();
+    }
+    function clearFilters() {
+        activeDomain = null;
+        activeProject = null;
+        document.querySelectorAll('#filterBar .domain-pill').forEach(p =>
+        p.classList.remove('pill-active-rcbs', 'pill-active-rws', 'pill-active-sm', 'pill-active-mts', 'pill-active-eplc'));
+        document.querySelectorAll('#projectBar .pill-project').forEach(p => p.classList.remove('active'));
+        document.querySelectorAll('#projects-list .project-row[data-domain],#tasks-list .task-row[data-domain],#projects-list .progress-wrap').forEach(r => r.classList.remove('hidden'));
+    }
+    let _allTasks = [];
+    let _projectMap = {};
+    let _allNotes = [];
+    let _planWindow = 'nextweek';
+    let _projectsCheckboxKey = null;
+    async function getProjectsCheckboxKey() {
+        if (_projectsCheckboxKey) return _projectsCheckboxKey;
+        const res = await fetch(`${PROXY}/databases/${DB_PROJECTS}`, {
+            headers: { 'Notion-Version': '2022-06-28' }
+        });
+        if (!res.ok) throw await notionErr(res, 'Projects schema error');
+        const db = await res.json();
+        for (const [name, prop] of Object.entries(db.properties)) {
+            if (prop.type === 'checkbox') { _projectsCheckboxKey = name; return name; }
+        }
+        throw new Error('No checkbox property in Projects DB');
+    }
+    function getPriority(page) {
+        for (const key of Object.keys(page.properties)) {
+            if (page.properties[key].type === 'checkbox')
+                return !!page.properties[key].checkbox;
+        }
+        return false;
+    }
+    async function togglePriority(pageId, el) {
+        const wasOn = el.classList.contains('star-on');
+        const next = !wasOn;
+        el.classList.toggle('star-on', next);
+        el.classList.toggle('star-off', !next);
+        el.textContent = next ? '★' : '☆';
+        try {
+            const key = await getProjectsCheckboxKey();
+            await notionPatch(pageId, { [key]: { checkbox: next } });
+        } catch (e) {
+            el.classList.toggle('star-on', wasOn);
+            el.classList.toggle('star-off', !wasOn);
+            el.textContent = wasOn ? '★' : '☆';
+            alert('Could not update priority: ' + e.message);
+        }
+    }
+    function toggleTime(el) {
+        document.querySelectorAll('#dist-plan-pills .time-pill').forEach(p => p.classList.remove('active'));
+        el.classList.add('active');
+        _planWindow = el.dataset.window || 'nextweek';
+        renderPlanDist();
+    }
+
+    // ─── RENDER PROJECTS ──────────────────────────────────────
+    function projectRowHtml(p, withStar) {
+        const domain = getProjectDomain(p) || '?';
+        const prog = getProgress(p);
+        const starred = getPriority(p);
+        const star = withStar
+            ? `<span class="star ${starred ? 'star-on' : 'star-off'}" onclick="togglePriority('${p.id}', this)">${starred ? '★' : '☆'}</span>`
+            : '';
+        const reviewClick = withStar ? '' : ` onclick="toggleReviewProject('${p.id}', this)" style="cursor:pointer;" title="Filter Tasks Needing Attention by this project"`;
+        return `
+      <div class="project-row" data-domain="${domain}" data-project="${p.id}"${reviewClick}>
+        ${star}<span class="project-name">${getTitle(p)}</span>
+        ${pillHtml(domain, true)}
+      </div>
+      <div class="progress-wrap">
+        <div class="progress-bar"><div class="progress-fill" style="width:${prog}%;background:${domainColor(domain)};"></div></div>
+      </div>`;
+    }
+    function renderProjects(pages) {
+        const planList = document.getElementById('projects-list');
+        const reviewList = document.getElementById('projects-list-review');
+        const bar = document.getElementById('projectBar');
+        document.getElementById('metric-projects').textContent = pages.length;
+        if (!pages.length) {
+            if (planList) planList.innerHTML = '<p class="empty">No active projects found</p>';
+            if (reviewList) reviewList.innerHTML = '<p class="empty">No active projects found</p>';
+            if (bar) bar.innerHTML = '';
+            return;
+        }
+        if (bar) bar.innerHTML = pages.map(p =>
+            `<span class="pill-project" data-project="${p.id}" onclick="toggleProject('${p.id}')">${getTitle(p)}</span>`
+        ).join('') + `<span class="clear-filter" onclick="clearFilters()">Clear</span>`;
+        if (planList) planList.innerHTML = pages.map(p => projectRowHtml(p, true)).join('');
+        if (reviewList) reviewList.innerHTML = pages.map(p => projectRowHtml(p, false)).join('');
+    }
+
+    // ─── RENDER DOMAIN LOAD (tasks due in window, grouped by domain) ───
+    function distWindows() {
+        const we = DATES.weekEnd;
+        const tws = new Date(we); tws.setDate(we.getDate() - 6); tws.setHours(0, 0, 0, 0);
+        const twe = new Date(we); twe.setHours(23, 59, 59, 999);
+        const nws = new Date(DATES.w1s); nws.setHours(0, 0, 0, 0);
+        const nwe = new Date(DATES.w1e); nwe.setHours(23, 59, 59, 999);
+        const n2e = new Date(DATES.w2e); n2e.setHours(23, 59, 59, 999);
+        return { thisweek: [tws, twe], nextweek: [nws, nwe], nexttwo: [nws, n2e] };
+    }
+    function renderDomainLoad(tasks, start, end, barId, legendId) {
+        const bar = document.getElementById(barId);
+        const legend = document.getElementById(legendId);
+        if (!bar || !legend) return;
+        const counts = {};
+        let total = 0;
+        (tasks || []).forEach(t => {
+            const due = getDueDate(t);
+            if (due && due >= start && due <= end) {
+                const d = getTaskDomain(t) || '?';
+                counts[d] = (counts[d] || 0) + 1;
+                total++;
+            }
+        });
+        if (!total) {
+            bar.innerHTML = '<div class="dist-seg" style="width:100%;background:#eee;"></div>';
+            legend.innerHTML = '<span class="empty" style="font-size:12px;">No tasks due in this window.</span>';
+            return;
+        }
+        bar.innerHTML = Object.entries(counts).map(([d, c]) =>
+            `<div class="dist-seg" style="width:${Math.round(c / total * 100)}%;background:${domainColor(d)};"></div>`).join('');
+        legend.innerHTML = Object.entries(counts).map(([d, c]) =>
+            `<div class="dist-item"><div class="dist-dot" style="background:${domainColor(d)};"></div>${d} ${c} · ${Math.round(c / total * 100)}%</div>`).join('');
+    }
+    function renderReviewDist() {
+        const w = distWindows();
+        renderDomainLoad(_allTasks, w.thisweek[0], w.thisweek[1], 'dist-bar', 'dist-legend');
+    }
+    function renderPlanDist() {
+        const w = distWindows();
+        const win = _planWindow === 'nexttwo' ? w.nexttwo : w.nextweek;
+        renderDomainLoad(_allTasks, win[0], win[1], 'dist-bar-plan', 'dist-legend-plan');
+    }
+    function renderCompleted() {
+        const el = document.getElementById('completed-list');
+        if (!el) return;
+        const w = distWindows().thisweek;
+        const done = (_allTasks || []).filter(t => {
+            const c = getCompletedDate(t);
+            return c && c >= w[0] && c <= w[1];
+        });
+        if (!done.length) {
+            el.innerHTML = '<p class="empty">Nothing marked complete this week yet.</p>';
+            return;
+        }
+        el.innerHTML = done.map(t => {
+            const domain = getTaskDomain(t) || '?';
+            const c = getCompletedDate(t);
+            const dateStr = c ? c.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }) : '';
+            return `
+        <div class="task-row" data-domain="${domain}">
+          <div class="task-check checked" style="cursor:default;"></div>
+          <div style="flex:1;">
+            <p class="task-name" style="text-decoration:line-through;opacity:0.7;">${getTitle(t)}</p>
+            <p class="task-meta">${dateStr} · ${pillHtml(domain, true)}</p>
+          </div>
+        </div>`;
+        }).join('');
+    }
+    async function renderLastWeekReview() {
+        const el = document.getElementById('lastweek-review');
+        if (!el) return;
+        try {
+            const f = await weeklyFieldMap();
+            const lastEnd = new Date(DATES.weekEnd);
+            lastEnd.setDate(DATES.weekEnd.getDate() - 7);
+            const lastISO = isoDate(lastEnd);
+            const records = await notionQuery(DB_WEEKLY, null);
+            const rec = records.find(r => {
+                const d = f.date && r.properties[f.date]?.date?.start;
+                return d && d.slice(0, 10) === lastISO;
+            });
+            if (!rec) { el.innerHTML = '<p class="empty">No review found for last week.</p>'; return; }
+            const read = key => f[key] ? rtRead(rec.properties[f[key]]) : '';
+            const theme = read('theme');
+            const goals = [['RCBS', 'rcbs'], ['RWS', 'rws'], ['SM', 'sm'], ['MTS', 'mts'], ['EPLC', 'eplc'], ['PEEPS', 'peeps']];
+            let html = '';
+            if (theme) html += `<p style="margin:0 0 12px;font-size:14px;"><strong>Intention:</strong> ${theme}</p>`;
+            const items = goals.filter(([l, k]) => read(k)).map(([l, k]) =>
+                `<div style="display:flex;gap:8px;align-items:baseline;margin-bottom:6px;font-size:13px;">
+                   <span class="domain-pill pill-${k}" style="flex-shrink:0;">${l}</span>
+                   <span>${read(k)}</span>
+                 </div>`).join('');
+            html += items;
+            el.innerHTML = (theme || items) ? html : '<p class="empty">Last week\'s review was left blank.</p>';
+        } catch (e) {
+            el.innerHTML = `<p class="error-msg">⚠️ Could not load last week's review: ${e.message}</p>`;
+        }
+    }
+
+    // ─── RENDER TASKS ─────────────────────────────────────────
+    function taskRowHtml(p, projectMap, kind) {
+        const domain = getTaskDomain(p) || '?';
+        const due = getDueDate(p);
+        const dateStr = due ? due.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }) : '';
+        const projId = getTaskProjectId(p);
+        const projName = projId && projectMap[projId] ? projectMap[projId] : '';
+        const projPill = projName ? `<span class="pill-project" style="cursor:default;">${projName}</span>` : '';
+        const cls = kind === 'overdue' ? 'task-row carried-row attn-overdue' : 'task-row';
+        const prefix = kind === 'overdue' ? 'Overdue · ' : (kind === 'due' ? 'Due ' : '');
+        return `
+        <div class="${cls}" data-domain="${domain}" data-project="${projId || ''}" data-page-id="${p.id}">
+          <div class="task-check" onclick="markTaskDone('${p.id}', this)" title="Mark done"></div>
+          <div style="flex:1;">
+            <p class="task-name">${getTitle(p)}</p>
+            <p class="task-meta">${prefix}${dateStr}${dateStr ? ' · ' : ''}${pillHtml(domain, true)}${projPill}</p>
+          </div>
+        </div>`;
+    }
+
+    function renderTasks(pages, projectMap) {
+        const list = document.getElementById('tasks-list');
+        const attnEl = document.getElementById('overdue-list');
+
+        // Exclude finished tasks so completed work never resurfaces here. (Bug 2)
+        const active = (pages || []).filter(p => !isTaskDone(p));
+
+        const weekEndSat = new Date(DATES.weekEnd); weekEndSat.setHours(23, 59, 59, 999);
+        const weekStart = new Date(DATES.weekEnd); weekStart.setDate(DATES.weekEnd.getDate() - 6); weekStart.setHours(0, 0, 0, 0);
+        // Pivot on real "today" when the live week is shown; otherwise pivot on the
+        // displayed week's start, so stepping back to a slipped week stays coherent. (Bug 3)
+        const todayMid = new Date(); todayMid.setHours(0, 0, 0, 0);
+        const pivot = (todayMid >= weekStart && todayMid <= weekEndSat) ? todayMid : weekStart;
+        const twoWks = new Date(pivot); twoWks.setDate(pivot.getDate() + 14); twoWks.setHours(23, 59, 59, 999);
+
+        const upcoming = active.filter(p => { const d = getDueDate(p); return d && d >= pivot && d <= twoWks; });
+        const dueThisWeek = active.filter(p => { const d = getDueDate(p); return d && d >= pivot && d <= weekEndSat; });
+        const overdue = active.filter(p => { const d = getDueDate(p); return d && d < pivot; });
+
+        document.getElementById('metric-tasks').textContent = dueThisWeek.length;
+        document.getElementById('metric-overdue').textContent = overdue.length;
+
+        list.innerHTML = !upcoming.length ? '<p class="empty">No tasks due in the next two weeks</p>' :
+            upcoming.map(p => taskRowHtml(p, projectMap, 'plan')).join('');
+
+        const group = (label, arr, kind) =>
+            arr.length ? `<p class="attn-group">${label}</p>` + arr.map(p => taskRowHtml(p, projectMap, kind)).join('') : '';
+        const attnHtml = group('Due This Week', dueThisWeek, 'due') + group('Overdue', overdue, 'overdue');
+        attnEl.innerHTML = attnHtml || '<p class="empty">Nothing needs attention — nice work.</p>';
+        filterReviewTasks();
+    }
+
+    let activeReviewProject = null;
+    function toggleReviewProject(id, el) {
+        activeReviewProject = activeReviewProject === id ? null : id;
+        document.querySelectorAll('#projects-list-review .project-row').forEach(r =>
+            r.classList.toggle('review-selected', r.dataset.project === activeReviewProject));
+        filterReviewTasks();
+    }
+    function filterReviewTasks() {
+        document.querySelectorAll('#overdue-list .task-row').forEach(row => {
+            const show = !activeReviewProject || row.dataset.project === activeReviewProject;
+            row.classList.toggle('hidden', !show);
+        });
+    }
+
+    // ─── TASK COMPLETION (checkbox → done, with undo) ─────────
+    let _tasksCheckboxKey = null;
+    async function getTasksCheckboxKey() {
+        if (_tasksCheckboxKey) return _tasksCheckboxKey;
+        const res = await fetch(`${PROXY}/databases/${DB_TASKS}`, {
+            method: 'GET',
+            headers: { 'Content-Type': 'application/json', 'Notion-Version': '2022-06-28' }
+        });
+        if (!res.ok) throw await notionErr(res, 'Tasks schema error');
+        const db = await res.json();
+        for (const [name, prop] of Object.entries(db.properties)) {
+            if (prop.type === 'checkbox') { _tasksCheckboxKey = name; return name; }
+        }
+        throw new Error('No checkbox property found in Tasks database');
+    }
+
+    let _tasksCompletedKey;
+    async function getTasksCompletedKey() {
+        if (_tasksCompletedKey !== undefined) return _tasksCompletedKey;
+        const res = await fetch(`${PROXY}/databases/${DB_TASKS}`, {
+            method: 'GET',
+            headers: { 'Content-Type': 'application/json', 'Notion-Version': '2022-06-28' }
+        });
+        if (!res.ok) throw await notionErr(res, 'Tasks schema error');
+        const db = await res.json();
+        _tasksCompletedKey = null;
+        for (const [name, prop] of Object.entries(db.properties)) {
+            if (prop.type === 'date' && name.toLowerCase().includes('complet')) { _tasksCompletedKey = name; break; }
+        }
+        return _tasksCompletedKey;
+    }
+    function getCompletedDate(page) {
+        for (const key of Object.keys(page.properties)) {
+            if (key.toLowerCase().includes('complet')) {
+                const d = page.properties[key];
+                if (d?.type === 'date' && d.date?.start) return new Date(d.date.start);
+            }
+        }
+        return null;
+    }
+
+    // True if a task should be treated as finished and kept OUT of the attention lists.
+    // Catches tasks completed via this dashboard (checkbox + completed-date) AND tasks
+    // closed directly in Notion (done-style status, or progress at 100%).
+    function isTaskDone(page) {
+        // 1) The "done" checkbox — the first checkbox in the Tasks DB, same one markTaskDone sets.
+        for (const key of Object.keys(page.properties)) {
+            const p = page.properties[key];
+            if (p.type === 'checkbox') {
+                if (p.checkbox === true) return true;
+                break; // only the primary checkbox counts as "done"
+            }
+        }
+        // 2) A completion date is filled in.
+        if (getCompletedDate(page)) return true;
+        // 3) Status name reads as complete.
+        const s = (getStatus(page) || '').toLowerCase();
+        if (/(done|complete|closed|finished|✅|✔)/.test(s)) return true;
+        // 4) Progress reached 100%.
+        if (getProgress(page) >= 100) return true;
+        return false;
+    }
+
+    function bumpTaskMetric(row, delta) {
+        const id = row.classList.contains('carried-row') ? 'metric-overdue' : 'metric-tasks';
+        const el = document.getElementById(id);
+        if (!el) return;
+        const n = parseInt(el.textContent, 10);
+        if (!isNaN(n)) el.textContent = Math.max(0, n + delta);
+    }
+
+    async function markTaskDone(pageId, checkEl) {
+        const row = checkEl.closest('.task-row, .carried-row');
+        if (checkEl.classList.contains('checked')) return; // already done
+        try {
+            const key = await getTasksCheckboxKey();
+            const ckey = await getTasksCompletedKey();
+            const props = { [key]: { checkbox: true } };
+            if (ckey) props[ckey] = { date: { start: isoDate(new Date()) } };
+            await notionPatch(pageId, props);
+            checkEl.classList.add('checked');
+            if (row) {
+                row.classList.add('task-done');
+                bumpTaskMetric(row, -1);
+                setTimeout(() => { row.style.display = 'none'; }, 320);
+                showUndo('Task completed', async () => {
+                    try {
+                        const undoProps = { [key]: { checkbox: false } };
+                        if (ckey) undoProps[ckey] = { date: null };
+                        await notionPatch(pageId, undoProps);
+                        row.style.display = '';
+                        row.classList.remove('task-done');
+                        checkEl.classList.remove('checked');
+                        bumpTaskMetric(row, 1);
+                    } catch (e) { alert('Could not undo: ' + e.message); }
+                });
+            }
+        } catch (e) {
+            alert('Could not complete task: ' + e.message);
+        }
+    }
+
+    // ─── RENDER NOTES ─────────────────────────────────────────
+    // The set the station renders: every unprocessed note (Inbox/Active, any date)
+    // PLUS anything captured inside the displayed week — including Closed and
+    // blank-status notes — so "This Week" is a complete retrospective of that window.
+    function notesForView() {
+        const w = distWindows().thisweek;
+        const ws = w[0].getTime(), we = w[1].getTime();
+        return _allNotes.filter(p => {
+            const s = (getStatus(p) || '').toUpperCase();
+            if (s === 'INBOX' || s === 'ACTIVE') return true;
+            const t = noteWhen(p).getTime();
+            return t >= ws && t <= we;
+        });
+    }
+
+    function renderNotes(pages) {
+        const list = document.getElementById('notes-list');
+        if (!pages.length) {
+            const c = document.getElementById('inbox-count'); if (c) c.textContent = '';
+            const m = document.getElementById('metric-notes'); if (m) m.textContent = 0;
+            list.innerHTML = '<p class="empty">Inbox zero — all notes are processed.</p>';
+            return;
+        }
+        const w = distWindows().thisweek;           // the same window the dashboard is showing
+        const ws = w[0].getTime(), we = w[1].getTime();
+        const inWin = p => { const t = noteWhen(p).getTime(); return t >= ws && t <= we; };
+        const thisWk = pages.filter(inWin);
+        const older = pages.filter(p => !inWin(p));
+        function noteRow(p) {
+            const status = (getStatus(p) || '').toUpperCase();
+            const domain = getProjectDomain(p);
+            const types = getType(p).slice(0, 4); // cap at 4 (rarely more than 3)
+            const url = p.url || '#';
+            const opts = ['INBOX', 'ACTIVE', 'CLOSED']
+                .map(s => `<option ${s === status ? 'selected' : ''}>${s}</option>`).join('');
+            const pills = (domain ? pillHtml(domain, true) : '') + types.map(typePillHtml).join('');
+            const tagNames = (tagsLoaded && notesTagKey)
+                ? (p.properties[notesTagKey]?.relation || []).map(r => tagMap[r.id]).filter(Boolean)
+                : [];
+            const allPills = pills + tagNames.map(tagPillHtml).join('');
+            return `
+      <div class="note-row" data-page-id="${p.id}" data-status="${status}" data-when="${noteWhen(p).getTime()}">
+        <div class="note-left">
+          <div class="note-main">
+            <button class="note-caret" onclick="toggleNotePreview('${p.id}', this)" title="Preview note" aria-label="Preview note">❯</button>
+            <a class="note-title-link" href="${url}" target="_blank" rel="noopener">${escTag(getTitle(p))}</a>
+          </div>
+          ${allPills ? `<div class="note-pills">${allPills}</div>` : ''}
+        </div>
+        <select class="status-select" onchange="setNoteStatus('${p.id}', this.value, this.closest('.note-row').dataset.status)">
+          ${opts}
+        </select>
+        <span class="note-age">${noteAgeLabel(p)}</span>
+        <div class="note-preview" id="preview-${p.id}" style="display:none;"></div>
+      </div>`;
+        }
+        list.innerHTML =
+            (thisWk.length ? `<p class="note-group-label">This Week</p>${thisWk.map(noteRow).join('')}` : '') +
+            (older.length ? `<p class="note-group-label" style="margin-top:12px;">Older</p>${older.map(noteRow).join('')}` : '');
+        updateInboxCount();
+    }
+
+    // Live split count from the rows currently in the DOM (keeps close/undo/status changes in sync)
+    function updateInboxCount() {
+        const list = document.getElementById('notes-list');
+        const rows = list ? list.querySelectorAll('.note-row') : [];
+        let inb = 0, act = 0;
+        rows.forEach(r => {
+            const s = (r.dataset.status || '').toUpperCase();
+            if (s === 'INBOX') inb++;
+            else if (s === 'ACTIVE') act++;
+        });
+        const total = inb + act;
+        const c = document.getElementById('inbox-count');
+        if (c) c.textContent = total ? `${total} · ${inb} Inbox · ${act} Active` : '';
+        const m = document.getElementById('metric-notes');
+        if (m) m.textContent = total;
+        if (!rows.length && list) list.innerHTML = '<p class="empty">Inbox zero — all notes are processed.</p>';
+        applyInboxFilter();
+    }
+
+    // ─── INBOX STATUS FILTER (client-side: All · Inbox · Active) ─
+    let _inboxFilter = 'INBOX';
+    function setInboxFilter(filter, btn) {
+        _inboxFilter = filter;
+        document.querySelectorAll('.inbox-filter .seg').forEach(b => b.classList.toggle('active', b === btn));
+        applyInboxFilter();
+    }
+    function applyInboxFilter() {
+        const list = document.getElementById('notes-list');
+        if (!list) return;
+        // "THIS WEEK" filters by the dashboard's current window; the others filter by status.
+        const win = _inboxFilter === 'THISWEEK' ? distWindows().thisweek : null;
+        const ws = win ? win[0].getTime() : 0, we = win ? win[1].getTime() : 0;
+        let visible = 0;
+        list.querySelectorAll('.note-row').forEach(r => {
+            const s = (r.dataset.status || '').toUpperCase();
+            let show;
+            if (_inboxFilter === 'THISWEEK') {
+                const t = Number(r.dataset.when) || 0;
+                show = t >= ws && t <= we;
+            } else {
+                show = s === _inboxFilter;
+            }
+            r.style.display = show ? '' : 'none';
+            if (show) visible++;
+        });
+        // Hide a group label when every row beneath it is filtered out
+        list.querySelectorAll('.note-group-label').forEach(lbl => {
+            let anyVisible = false, n = lbl.nextElementSibling;
+            while (n && n.classList && n.classList.contains('note-row')) {
+                if (n.style.display !== 'none') { anyVisible = true; break; }
+                n = n.nextElementSibling;
+            }
+            lbl.style.display = anyVisible ? '' : 'none';
+        });
+        // Placeholder when the filter hides everything
+        let msg = list.querySelector('.filter-empty');
+        if (list.querySelector('.note-row') && visible === 0) {
+            if (!msg) {
+                msg = document.createElement('p');
+                msg.className = 'empty filter-empty';
+                list.appendChild(msg);
+            }
+            msg.textContent = _inboxFilter === 'THISWEEK'
+                ? 'No notes added in this week\u2019s window.'
+                : `No ${_inboxFilter.toLowerCase()} notes.`;
+            msg.style.display = '';
+        } else if (msg) {
+            msg.style.display = 'none';
+        }
+    }
+
+    // ─── STATUS UPDATE (instant close + undo) ─────────────────
+    let _undoTimer = null;
+    async function setNoteStatus(pageId, newStatus, prevStatus) {
+        if (!newStatus || newStatus === prevStatus) return;
+        const row = document.querySelector(`.note-row[data-page-id="${pageId}"]`);
+        try {
+            const statusKey = await getNotesStatusKey();
+            await notionPatch(pageId, { [statusKey]: { status: { name: newStatus } } });
+            if (newStatus === 'CLOSED') {
+                if (row) {
+                    const parent = row.parentNode;
+                    const next = row.nextSibling;
+                    row.remove();
+                    updateInboxCount();
+                    showUndo('Note closed', async () => {
+                        try {
+                            await notionPatch(pageId, { [statusKey]: { status: { name: prevStatus } } });
+                            if (next && next.parentNode === parent) parent.insertBefore(row, next);
+                            else parent.appendChild(row);
+                            const sel = row.querySelector('.status-select');
+                            if (sel) sel.value = prevStatus;
+                            row.dataset.status = prevStatus;
+                            updateInboxCount();
+                        } catch (e) {
+                            alert('Could not undo: ' + e.message);
+                        }
+                    });
+                }
+            } else {
+                if (row) row.dataset.status = newStatus;
+                updateInboxCount();
+            }
+        } catch (e) {
+            alert('Could not update status: ' + e.message);
+            if (row) {
+                const sel = row.querySelector('.status-select');
+                if (sel) sel.value = prevStatus; // revert dropdown on failure
+            }
+        }
+    }
+
+    function showUndo(msg, onUndo) {
+        clearTimeout(_undoTimer);
+        let toast = document.getElementById('undo-toast');
+        if (!toast) {
+            toast = document.createElement('div');
+            toast.id = 'undo-toast';
+            toast.className = 'undo-toast';
+            document.body.appendChild(toast);
+        }
+        toast.innerHTML = `<span>${msg}</span><button class="undo-btn">Undo</button>`;
+        toast.classList.add('show');
+        toast.querySelector('.undo-btn').onclick = () => {
+            clearTimeout(_undoTimer);
+            toast.classList.remove('show');
+            onUndo();
+        };
+        _undoTimer = setTimeout(() => toast.classList.remove('show'), 6000);
+    }
+
+    // ─── NOTE PREVIEW (lazy — fetches body only when expanded) ─
+    const _previewCache = {};
+    function blockText(b) {
+        const t = b.type;
+        const rt = b[t] && b[t].rich_text;
+        return Array.isArray(rt) ? rt.map(r => r.plain_text).join('') : '';
+    }
+    async function fetchBlockChildren(blockId) {
+        const res = await fetch(`${PROXY}/blocks/${blockId}/children?page_size=50`, {
+            method: 'GET',
+            headers: { 'Content-Type': 'application/json', 'Notion-Version': '2022-06-28' }
+        });
+        if (!res.ok) throw new Error('error ' + res.status);
+        return (await res.json()).results || [];
+    }
+    // Walk the block tree, descending into columns / toggles / anything with children,
+    // so column-template notes (column_list → column → content) surface their text.
+    // Stops early once there's enough for a hint, and caps depth to bound API calls.
+    async function collectText(blocks, parts, depth) {
+        for (const b of blocks) {
+            if (parts.join(' ').length > 400) return;
+            const t = blockText(b);
+            if (t) parts.push(t);
+            if (b.has_children && depth < 4) {
+                try {
+                    const kids = await fetchBlockChildren(b.id);
+                    await collectText(kids, parts, depth + 1);
+                } catch (_) { /* skip this branch on error */ }
+            }
+        }
+    }
+    async function toggleNotePreview(pageId, btn) {
+        const box = document.getElementById('preview-' + pageId);
+        if (!box) return;
+        const isOpen = box.style.display !== 'none';
+        if (isOpen) {
+            box.style.display = 'none';
+            btn.classList.remove('open');
+            return;
+        }
+        btn.classList.add('open');
+        box.style.display = 'block';
+        if (_previewCache[pageId] !== undefined) {
+            box.textContent = _previewCache[pageId];
+            return;
+        }
+        box.textContent = 'Loading…';
+        try {
+            const top = await fetchBlockChildren(pageId);
+            const parts = [];
+            await collectText(top, parts, 0);
+            const text = parts.join('  ').trim();
+            const hint = text
+                ? (text.length > 240 ? text.slice(0, 240) + '…' : text)
+                : '(No text in the note body — open in Notion to view.)';
+            _previewCache[pageId] = hint;
+            box.textContent = hint;
+        } catch (e) {
+            box.textContent = 'Could not load preview (' + e.message + ').';
+        }
+    }
+
+    // ─── SAVE REFLECTION ──────────────────────────────────────
+    // ─── SAVE HELPERS — emoji-proof title key + body blocks ───
+    // Finds the Notes title property by type (not by hardcoded name),
+    // since writes need the exact property name and yours carry emoji prefixes.
+    let _notesSchema = null;
+    async function getNotesSchema() {
+        if (_notesSchema) return _notesSchema;
+        const res = await fetch(`${PROXY}/databases/${DB_NOTES}`, {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json',
+                'Notion-Version': '2022-06-28'
+            }
+        });
+        if (!res.ok)
+            throw await notionErr(res, 'Notion schema error');
+        _notesSchema = await res.json();
+        return _notesSchema;
+    }
+
+    async function getNotesTitleKey() {
+        const db = await getNotesSchema();
+        for (const [name, prop] of Object.entries(db.properties)) {
+            if (prop.type === 'title') return name;
+        }
+        throw new Error('No title property found in Notes database');
+    }
+
+    // Finds the Notes relation property that points at the Global Tags DB —
+    // matched by target database_id (name-proof + emoji-proof), not by field name.
+    const stripDashes = s => (s || '').replace(/-/g, '');
+    async function getNotesTagKey() {
+        const db = await getNotesSchema();
+        for (const [name, prop] of Object.entries(db.properties)) {
+            if (prop.type === 'relation' && prop.relation &&
+                stripDashes(prop.relation.database_id) === stripDashes(DB_TAGS)) {
+                return name;
+            }
+        }
+        return null;
+    }
+
+    // Exact Status property name (for writes) — discovered by type, emoji-proof
+    async function getNotesStatusKey() {
+        const db = await getNotesSchema();
+        for (const [name, prop] of Object.entries(db.properties)) {
+            if (prop.type === 'status') return name;
+        }
+        throw new Error('No status property found in Notes database');
+    }
+    // Turn [heading, text] pairs into Notion page-body blocks. Skips empty text.
+    function buildBlocks(sections) {
+        const blocks = [];
+        sections.forEach(([heading, body]) => {
+            if (!body) return;
+            blocks.push({
+                object: 'block',
+                type: 'heading_3',
+                heading_3: { rich_text: [{ type: 'text', text: { content: heading } }] }
+            });
+            body.split('\n').forEach(line => {
+                blocks.push({
+                    object: 'block',
+                    type: 'paragraph',
+                    paragraph: { rich_text: line ? [{ type: 'text', text: { content: line } }] : [] }
+                });
+            });
+        });
+        return blocks;
+    }
+
+    // ─── WEEKLY REVIEW (save + pre-fill, one record per week) ──
+    let _weeklySchema = null;
+    async function getWeeklySchema() {
+        if (_weeklySchema) return _weeklySchema;
+        const res = await fetch(`${PROXY}/databases/${DB_WEEKLY}`, {
+            method: 'GET',
+            headers: { 'Content-Type': 'application/json', 'Notion-Version': '2022-06-28' }
+        });
+        if (!res.ok) throw await notionErr(res, 'Weekly schema error');
+        _weeklySchema = await res.json();
+        return _weeklySchema;
+    }
+
+    // Match a property by type + all keywords in its name (emoji-proof, name-agnostic)
+    function findProp(schema, type, ...keywords) {
+        for (const [name, prop] of Object.entries(schema.properties)) {
+            if (prop.type !== type) continue;
+            const k = name.toLowerCase();
+            if (keywords.every(kw => k.includes(kw))) return name;
+        }
+        return null;
+    }
+
+    async function weeklyFieldMap() {
+        const s = await getWeeklySchema();
+        return {
+            title:  findProp(s, 'title'),
+            date:   findProp(s, 'date'),
+            needle: findProp(s, 'rich_text', 'needle'),
+            didnt:  findProp(s, 'rich_text', 'work'),
+            carry:  findProp(s, 'rich_text', 'carry'),
+            theme:  findProp(s, 'rich_text', 'intention'),
+            rcbs:   findProp(s, 'rich_text', '1%', 'rcbs'),
+            rws:    findProp(s, 'rich_text', '1%', 'rws'),
+            sm:     findProp(s, 'rich_text', '1%', 'sm'),
+            mts:    findProp(s, 'rich_text', '1%', 'mts'),
+            eplc:   findProp(s, 'rich_text', '1%', 'eplc'),
+            peeps:  findProp(s, 'rich_text', '1%', 'peeps')
+        };
+    }
+
+    function isoDate(d) {
+        const m = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        return `${d.getFullYear()}-${m}-${day}`;
+    }
+    function rtVal(text) {
+        // Notion rejects any single rich_text chunk over 2000 chars (400 error).
+        // Split long reflections into multiple chunks; they re-join seamlessly on read.
+        if (!text) return { rich_text: [] };
+        const MAX = 2000;
+        const parts = [];
+        for (let i = 0; i < text.length; i += MAX) {
+            parts.push({ text: { content: text.slice(i, i + MAX) } });
+        }
+        return { rich_text: parts };
+    }
+    function rtRead(prop) {
+        return (prop && prop.rich_text ? prop.rich_text : []).map(r => r.plain_text).join('');
+    }
+    function boxVal(id) {
+        const el = document.getElementById(id);
+        return el ? el.value.trim() : '';
+    }
+    function setBox(id, v) {
+        const el = document.getElementById(id);
+        if (el) el.value = v || '';
+    }
+
+    // Finds this week's record (Week Ending = the week-ending Saturday); creates it only when asked.
+    async function getOrCreateWeek(f, create) {
+        const weekISO = isoDate(DATES.weekEnd);
+        const records = await notionQuery(DB_WEEKLY, null);
+        const rec = records.find(r => {
+            const d = f.date && r.properties[f.date]?.date?.start;
+            return d && d.slice(0, 10) === weekISO;
+        });
+        if (rec || !create) return rec || null;
+        const props = {};
+        if (f.title) props[f.title] = { title: [{ text: { content: 'Week ending ' + formatDate(DATES.weekEnd) + ', ' + DATES.weekEnd.getFullYear() } }] };
+        if (f.date) props[f.date] = { date: { start: weekISO } };
+        return await notionCreate(DB_WEEKLY, props);
+    }
+
+    async function saveReflection() {
+        const needle = boxVal('ref-needle'), didnt = boxVal('ref-didnt'), carry = boxVal('ref-carry');
+        if (!needle && !didnt && !carry) {
+            alert('Add at least one reflection before saving.');
+            return;
+        }
+        try {
+            const f = await weeklyFieldMap();
+            const rec = await getOrCreateWeek(f, true);
+            const props = {};
+            if (f.needle) props[f.needle] = rtVal(needle);
+            if (f.didnt) props[f.didnt] = rtVal(didnt);
+            if (f.carry) props[f.carry] = rtVal(carry);
+            await notionPatch(rec.id, props);
+            alert("Reflection saved to this week's record.");
+        } catch (e) {
+            console.error(e);
+            alert('Could not save: ' + e.message);
+        }
+    }
+
+    async function savePlan() {
+        const theme = boxVal('plan-theme');
+        const goals = {
+            rcbs: boxVal('plan-rcbs'), rws: boxVal('plan-rws'), sm: boxVal('plan-sm'),
+            mts: boxVal('plan-mts'), eplc: boxVal('plan-eplc'), peeps: boxVal('plan-peeps')
+        };
+        if (!theme && !Object.values(goals).some(Boolean)) {
+            alert('Add a theme or at least one goal before saving.');
+            return;
+        }
+        try {
+            const f = await weeklyFieldMap();
+            const rec = await getOrCreateWeek(f, true);
+            const props = {};
+            if (f.theme) props[f.theme] = rtVal(theme);
+            Object.keys(goals).forEach(d => { if (f[d]) props[f[d]] = rtVal(goals[d]); });
+            await notionPatch(rec.id, props);
+            alert("Plan saved to this week's record.");
+        } catch (e) {
+            console.error(e);
+            alert('Could not save: ' + e.message);
+        }
+    }
+
+    // Pre-fill reflection/plan boxes from this week's record if it already exists.
+    async function prefillWeekly() {
+        try {
+            const f = await weeklyFieldMap();
+            const rec = await getOrCreateWeek(f, false);
+            if (!rec) return;
+            const read = key => f[key] ? rtRead(rec.properties[f[key]]) : '';
+            setBox('ref-needle', read('needle'));
+            setBox('ref-didnt', read('didnt'));
+            setBox('ref-carry', read('carry'));
+            setBox('plan-theme', read('theme'));
+            ['rcbs', 'rws', 'sm', 'mts', 'eplc', 'peeps'].forEach(d => setBox('plan-' + d, read(d)));
+        } catch (e) {
+            console.warn('Weekly pre-fill skipped:', e.message);
+        }
+    }
+
+    // ─── RESET ────────────────────────────────────────────────
+    function hardReset() {
+        if (!confirm('Reset filters, the window selector, and all text fields? (Your priority stars stay — they live in Notion now.)'))
+            return;
+        clearFilters();
+        document.querySelectorAll('textarea').forEach(t => t.value = '');
+        document.querySelectorAll('select').forEach(s => s.selectedIndex = 0);
+        document.querySelectorAll('#dist-plan-pills .time-pill').forEach((p, i) => p.classList.toggle('active', i === 0));
+        _planWindow = 'nextweek';
+        renderPlanDist();
+        window.scrollTo({
+            top: 0,
+            behavior: 'smooth'
+        });
+    }
+
+    // ─── HABITS ───────────────────────────────────────────────
+    function buildHabitDots() {
+        for (let i = 0; i < 9; i++) {
+            const el = document.getElementById('h' + i);
+            if (!el)
+                continue;
+            el.innerHTML = Array.from({
+                length: 7
+            }, (_, d) =>
+            `<div class="habit-dot dot-miss" onclick="toggleHabit(this)" style="cursor:pointer;" title="Day ${d + 1}"></div>`
+            ).join('');
+        }
+    }
+    function toggleHabit(el) {
+        el.classList.toggle('dot-done');
+        el.classList.toggle('dot-miss');
+        updateHabitAvg();
+    }
+    function updateHabitAvg() {
+        const all = document.querySelectorAll('.habit-dot');
+        const done = document.querySelectorAll('.habit-dot.dot-done');
+        document.getElementById('metric-habits').textContent = all.length ? Math.round(done.length / all.length * 100) + '%' : '—';
+    }
+
+    // ─── INIT ─────────────────────────────────────────────────
+    // ─── TAG PULSE — common tags by time window ───
+    let tagMap = {};        // tag page id → tag name
+    let notesTagKey = null; // Notes relation property that points at the Tags DB
+    let tagsLoaded = false;
+
+    // Resolve the tag relation + build the id→name map once; reused by note pills and Tag Pulse.
+    async function loadTags() {
+        notesTagKey = await getNotesTagKey();
+        if (!notesTagKey) { tagsLoaded = false; return; }
+        const tagPages = await notionQuery(DB_TAGS, null);
+        tagMap = {};
+        tagPages.forEach(t => { tagMap[t.id] = getTitle(t); });
+        tagsLoaded = true;
+    }
+
+    function tagPillHtml(name) {
+        return `<span class="tag-pill">${escTag(name)}</span>`;
+    }
+
+    function getTagWindows() {
+        // Anchored to the dashboard's displayed review week, so the Tag Station's
+        // "This Week" matches the Notes Station and follows the week-nav.
+        const tw = distWindows().thisweek;               // [weekStart Sun 00:00, weekEnd Sat 23:59]
+        const wkStart = tw[0], wkEnd = tw[1];
+        const lastStart = new Date(wkStart); lastStart.setDate(wkStart.getDate() - 7);
+        const lastEnd = new Date(wkStart.getTime() - 1); // ends just before this week begins (no overlap)
+        const monthStart = new Date(wkStart.getFullYear(), wkStart.getMonth(), 1);
+        const monthEnd = new Date(wkStart.getFullYear(), wkStart.getMonth() + 1, 0, 23, 59, 59, 999);
+        return {
+            thisweek: [wkStart, wkEnd],
+            lastweek: [lastStart, lastEnd],
+            thismonth: [monthStart, monthEnd]
+        };
+    }
+
+    // Counts tag frequency across notes whose created date falls in [start, end].
+    // NOTE: a Notion query returns at most 25 related items per relation property.
+    // Confirmed none of these notes carry 25+ tags, so no per-note follow-up fetch is needed.
+    // If notes ever exceed 25 tags, fetch that page individually to read the full relation.
+    function tagCountsForWindow(notes, tagKey, start, end) {
+        const counts = {};
+        notes.forEach(p => {
+            const when = getNoteDate(p) || getCreatedDate(p); // your "Date" field; created date if blank
+            if (when >= start && when <= end) {
+                const rel = (p.properties[tagKey] && p.properties[tagKey].relation) || [];
+                rel.forEach(r => {
+                    const name = tagMap[r.id] || '(unknown tag)';
+                    counts[name] = (counts[name] || 0) + 1;
+                });
+            }
+        });
+        return Object.entries(counts).sort((a, b) => b[1] - a[1]);
+    }
+
+    function escTag(s) {
+        const d = document.createElement('div');
+        d.textContent = s;
+        return d.innerHTML;
+    }
+
+    function renderTagPanel(elId, ranked) {
+        const el = document.getElementById(elId);
+        if (!el) return;
+        if (!ranked.length) {
+            el.innerHTML = '<p class="cal-source" style="margin:0;">No tags in this window.</p>';
+            return;
+        }
+        const max = ranked[0][1];
+        el.innerHTML = ranked.slice(0, 8).map(([name, count]) => {
+            const pct = Math.round((count / max) * 100);
+            return `<div class="tag-row">
+                <div class="tag-row-head"><span>${escTag(name)}</span><span class="tag-row-count">${count}</span></div>
+                <div class="tag-bar"><div class="tag-bar-fill" style="width:${pct}%;"></div></div>
+            </div>`;
+        }).join('');
+    }
+
+    // Isolated from the main panels: a tag failure shows only inside the tag block.
+    let _tagNotes = [];
+    let _tagWindow = 'thisweek';
+    function setTagWindow(win, el) {
+        _tagWindow = win;
+        document.querySelectorAll('#tag-filter .seg').forEach(s => s.classList.toggle('active', s === el));
+        renderTagList();
+    }
+    function renderTagList() {
+        const el = document.getElementById('tags-list');
+        if (!el) return;
+        if (!notesTagKey) {
+            el.innerHTML = '<p class="error-msg">⚠️ No relation to the Tags DB found on Notes.</p>';
+            return;
+        }
+        const w = getTagWindows();
+        const win = w[_tagWindow];
+        renderTagPanel('tags-list', tagCountsForWindow(_tagNotes, notesTagKey, win[0], win[1]));
+    }
+    async function renderTagPulse(notes) {
+        _tagNotes = notes;
+        try {
+            if (!tagsLoaded) await loadTags();
+            if (!notesTagKey)
+                throw new Error('No relation to the Tags DB found on Notes — check DB_TAGS and that the Notes relation points to it.');
+            if (!tagsLoaded)
+                throw new Error('Could not load the Tags database — check DB_TAGS is pasted in and connected to the integration.');
+            renderTagList();
+        } catch (e) {
+            console.error('Tag pulse:', e);
+            const el = document.getElementById('tags-list');
+            if (el) el.innerHTML = `<p class="error-msg">⚠️ ${e.message}</p>`;
+        }
+    }
+
+    // ─── WEEK NAVIGATION (step back to a slipped review, or peek ahead) ───
+    function rerenderForWeek() {
+        renderTasks(_allTasks, _projectMap);
+        renderReviewDist();
+        renderPlanDist();
+        renderCompleted();
+        renderLastWeekReview();
+        // Notes re-group to the displayed week so the "This Week" filter follows the nav.
+        renderNotes(notesForView());
+        // Tag Station windows are anchored to the displayed week too — refresh its panel.
+        if (tagsLoaded) renderTagList();
+        // Reflection/plan boxes follow the week on screen: clear, then fill from
+        // that week's record if one exists (saving stays explicit, so nothing is lost silently).
+        ['ref-needle', 'ref-didnt', 'ref-carry', 'plan-theme',
+         'plan-rcbs', 'plan-rws', 'plan-sm', 'plan-mts', 'plan-eplc', 'plan-peeps']
+            .forEach(id => setBox(id, ''));
+        prefillWeekly();
+        // Calendar window moves too — refetch if connected, else just relabel the day grid.
+        if (rcbsToken || mtsToken) loadAllCalendarEvents();
+        else renderCalendar(allCalEvents);
+    }
+    function shiftWeek(delta) {
+        weekOffset += delta;
+        DATES = getReviewDates(weekOffset);
+        refreshWeekLabels();
+        rerenderForWeek();
+    }
+    function goToThisWeek() {
+        if (weekOffset === 0) return;
+        weekOffset = 0;
+        DATES = getReviewDates(0);
+        refreshWeekLabels();
+        rerenderForWeek();
+    }
+
+    async function init() {
+        buildHabitDots();
+        try {
+            const domains = await notionQuery(DB_DOMAINS, null);
+            domains.forEach(d => {
+                domainMap[d.id] = getTitle(d);
+            });
+
+            const [projects, tasks, notes] = await Promise.all([
+            notionQuery(DB_PROJECTS, null),
+            notionQuery(DB_TASKS, null),
+            notionQuery(DB_NOTES, null, [{ timestamp: 'created_time', direction: 'descending' }]),
+            ]);
+
+            const projectMap = {};
+            projects.forEach(p => {
+                projectMap[p.id] = getTitle(p);
+                const d = getProjectDomain(p);
+                if (d) projectDomainMap[p.id] = d;
+            });
+            renderProjects(projects);
+            renderTasks(tasks, projectMap);
+            _allTasks = tasks;
+            _projectMap = projectMap;
+            renderReviewDist();
+            renderPlanDist();
+            renderCompleted();
+            renderLastWeekReview();
+            try { await loadTags(); } catch (e) { console.warn('Tags unavailable for note pills:', e.message); }
+            _allNotes = notes;
+            renderNotes(notesForView());
+            renderTagPulse(notes);
+            prefillWeekly();
+        } catch (e) {
+            console.error(e);
+            ['projects-list', 'projects-list-review', 'tasks-list', 'notes-list', 'overdue-list', 'completed-list', 'lastweek-review'].forEach(id => {
+                const el = document.getElementById(id);
+                if (el)
+                    el.innerHTML = `<p class="error-msg">⚠️ Could not connect to Notion: ${e.message}</p>`;
+            });
+        }
+    }
+
+    init();
+    </script>
+</body>
+</html>
