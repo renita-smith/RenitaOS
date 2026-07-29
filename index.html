@@ -1732,29 +1732,25 @@
   }
 
   /* ---- Weekly Review dashboard (Weekly Review Build Brief) — chrome yes,
-     the .shell three-zone grid no (§1). This screen has no Today-style
-     glance-rail content, so — same shape as Inbox, which also carries no
-     right rail — the 230px properties column is dropped for this one route
-     and the reclaimed width goes to the main content column instead. The
-     framed panel keeps the SAME max-width/cream-panel/deeper-page treatment
-     as every other screen (no widening); only the internal column split
-     changes. Capture moves inline into the header (top-right), matching
-     where it actually sits on Inbox — not Today's sidebar, which only
-     makes sense there because Today has real glance content filling that
-     rail. */
-  body[data-route="weekly-review"] .dmn-shell { grid-template-columns: 150px minmax(0,1fr); }
-  body[data-route="weekly-review"] .dmn-props { display: none; }
+     the .shell three-zone grid no (§1). "No .shell grid" means no
+     Progress/Dates/Properties glance content in the right rail — it does
+     NOT mean a different grid or a re-homed Capture button: the standard
+     3-column dmn-shell (rail/main/props) stays exactly as Today's (no
+     override here), and dmnProps carries only the shared Capture
+     affordance, so the button is the same size and sits in the same sticky
+     rail slot as Today's — a deliberate width trade against a fully wide
+     main column, not an oversight. */
 
-  /* Title + week-nav + Capture stick to the top of the main column on
-     scroll, same spirit as Inbox's own sticky bin header (Addendum 3:
-     header + its divider pinned, cards scroll under it). top:0 (not a
-     positive offset) is deliberate — any gap above the sticky element is
-     itself a gap scrolled content can peek through above the title. */
+  /* Title + week-nav stick to the top of the main column on scroll, same
+     spirit as Inbox's own sticky bin header (Addendum 3: header + its
+     divider pinned, cards scroll under it). top:0 (not a positive offset)
+     is deliberate — any gap above the sticky element is itself a gap
+     scrolled content can peek through above the title. */
   .wr-head {
     position: sticky; top: 0; z-index: 15;
     background: #F6F2E9; padding-bottom: 16px; border-bottom: 1px solid #DED8CA;
   }
-  .wr-head-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+  .wr-head-row { display: flex; align-items: flex-start; gap: 16px; flex-wrap: wrap; }
   .wr-week-nav { display: flex; align-items: center; gap: 8px; margin-top: 8px; }
   .wr-week-nav-btn { width: 26px; height: 26px; line-height: 1; font-size: 15px; border-radius: 6px; border: 1px solid #DED8CA; background: #F6F2E9; color: #2A3408; cursor: pointer; }
   .wr-week-nav-btn:hover { background: #DBE2C1; }
@@ -1828,7 +1824,7 @@
   .wr-note-row { padding: 9px 0; border-bottom: 1px solid #DED8CA; }
   .wr-note-row:last-child { border-bottom: none; }
   .wr-note-main { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-  .wr-note-title { flex: 1; min-width: 120px; font-size: 14px; color: #2A3408; text-decoration: none; }
+  .wr-note-title { flex: 1; min-width: 120px; font-size: 14px; color: #2A3408; cursor: pointer; }
   .wr-note-title:hover { text-decoration: underline; }
   .wr-note-age { font-family: 'IBM Plex Sans', sans-serif; font-size: 12px; color: oklch(0.55 0.012 75); white-space: nowrap; }
   .wr-note-status-select { font-family: 'IBM Plex Sans', sans-serif; font-size: 12px; padding: 4px 8px; border-radius: 6px; border: 1px solid #DED8CA; background: #F6F2E9; color: #2A3408; }
@@ -9945,15 +9941,14 @@
   // screen alongside Today, porting the standalone WeeklyReview.html's three
   // acts (Review/Reflect/Plan) into the shared chrome. Chrome yes, `.shell`
   // grid no (brief §1) — it mounts through the same ensureFramedShell() Today
-  // uses, but drops the 230px right-rail column entirely (no Today-style
-  // glance content to put there), reclaiming that width for the main
-  // column — same shape as Inbox, which also carries no right rail. Capture
-  // renders inline in the header instead of in a rail slot, matching
-  // Inbox's own placement. The framed panel keeps the same max-width as
-  // every other screen; only the internal column split changes. Every write
-  // routes through the shared edit-slice helpers above; every week
-  // calculation routes through the td* Sunday-anchored module Today already
-  // defined — neither is reinvented here.
+  // uses, unmodified: the standard 3-column rail/main/props grid, and
+  // dmnProps carries only the shared Capture affordance (no Today-style
+  // agenda/domain-load content) — Capture is the same size, same sticky
+  // rail slot as Today's, a deliberate choice over reclaiming that width
+  // for the main column. Every write routes through the shared edit-slice
+  // helpers above; every week calculation routes through the td*
+  // Sunday-anchored module Today already defined — neither is reinvented
+  // here.
   // ==========================================================================
 
   // --- Schema (brief §15) — Weekly Reviews DB field map, resolved live and
@@ -10122,7 +10117,7 @@
         id: p.id, title: plainTitle(p, schema.notesTitleProp), statusName,
         date: dateVal ? tdDateOnly(dateVal.start) : null,
         createdDate: tdDateOnly(p.created_time),
-        types, tagIds, domainCode, url: p.url,
+        types, tagIds, domainCode,
       };
     });
 
@@ -10530,11 +10525,10 @@
   async function mountWeeklyReview() {
     const s = weeklyReviewState;
     ensureFramedShell();
-    // This route drops the 230px right-rail column entirely (see the CSS
-    // "Weekly Review dashboard" block) — Capture moves inline into the
-    // header instead of living here, matching Inbox's placement (which
-    // also carries no right rail) rather than Today's sidebar.
-    dmnProps.innerHTML = '';
+    // Capture stays exactly where Today puts it (top of the sticky right
+    // rail) — same size, same placement, on purpose, even though this
+    // screen has no other glance content to fill that column with.
+    dmnProps.innerHTML = renderCaptureAffordance();
     if (!s.base) {
       s.loading = true;
       s.error = null;
@@ -10659,7 +10653,6 @@
             ${s.weekOffset !== 0 ? `<button type="button" class="wr-week-nav-today" data-wr-nav="today">Jump to this week</button>` : ''}
           </div>
         </div>
-        ${renderCaptureAffordance()}
       </div>
     </div>`;
   }
@@ -10801,7 +10794,7 @@
     const opts = ['INBOX', 'ACTIVE', 'CLOSED'].map((v) => `<option value="${v}"${v === (n.statusName || '').toUpperCase() ? ' selected' : ''}>${v}</option>`).join('');
     return `<div class="wr-note-row">
       <div class="wr-note-main">
-        <a class="wr-note-title" href="${escapeHtml(n.url)}" target="_blank" rel="noopener">${escapeHtml(n.title || 'Untitled')}</a>
+        <span class="wr-note-title" data-pf-nav="note/${escapeHtml(n.id)}">${escapeHtml(n.title || 'Untitled')}</span>
         <select class="wr-note-status-select" data-wr-note-status data-wr-note-id="${escapeHtml(n.id)}" data-wr-note-prev="${escapeHtml((n.statusName || '').toUpperCase())}">${opts}</select>
         <span class="wr-note-age">${wrNoteAgeLabel(n)}</span>
       </div>
