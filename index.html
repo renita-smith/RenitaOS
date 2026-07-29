@@ -1824,7 +1824,7 @@
   .wr-note-row { padding: 9px 0; border-bottom: 1px solid #DED8CA; }
   .wr-note-row:last-child { border-bottom: none; }
   .wr-note-main { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-  .wr-note-title { flex: 1; min-width: 120px; font-size: 14px; color: #2A3408; text-decoration: none; }
+  .wr-note-title { flex: 1; min-width: 120px; font-size: 14px; color: #2A3408; cursor: pointer; }
   .wr-note-title:hover { text-decoration: underline; }
   .wr-note-age { font-family: 'IBM Plex Sans', sans-serif; font-size: 12px; color: oklch(0.55 0.012 75); white-space: nowrap; }
   .wr-note-status-select { font-family: 'IBM Plex Sans', sans-serif; font-size: 12px; padding: 4px 8px; border-radius: 6px; border: 1px solid #DED8CA; background: #F6F2E9; color: #2A3408; }
@@ -10117,7 +10117,7 @@
         id: p.id, title: plainTitle(p, schema.notesTitleProp), statusName,
         date: dateVal ? tdDateOnly(dateVal.start) : null,
         createdDate: tdDateOnly(p.created_time),
-        types, tagIds, domainCode, url: p.url,
+        types, tagIds, domainCode,
       };
     });
 
@@ -10794,7 +10794,7 @@
     const opts = ['INBOX', 'ACTIVE', 'CLOSED'].map((v) => `<option value="${v}"${v === (n.statusName || '').toUpperCase() ? ' selected' : ''}>${v}</option>`).join('');
     return `<div class="wr-note-row">
       <div class="wr-note-main">
-        <a class="wr-note-title" href="${escapeHtml(n.url)}" target="_blank" rel="noopener">${escapeHtml(n.title || 'Untitled')}</a>
+        <span class="wr-note-title" data-pf-nav="note/${escapeHtml(n.id)}">${escapeHtml(n.title || 'Untitled')}</span>
         <select class="wr-note-status-select" data-wr-note-status data-wr-note-id="${escapeHtml(n.id)}" data-wr-note-prev="${escapeHtml((n.statusName || '').toUpperCase())}">${opts}</select>
         <span class="wr-note-age">${wrNoteAgeLabel(n)}</span>
       </div>
