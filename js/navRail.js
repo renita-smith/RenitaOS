@@ -19,16 +19,21 @@
 
   // Addendum 2's rail set, plus Weekly Review (Weekly Review Build Brief §4)
   // appended last — an occasional ritual, not daily wayfinding, so it sits
-  // after Search rather than beside Today. Desktop-only: the mobile bottom
+  // after Find rather than beside Today. Desktop-only: the mobile bottom
   // bar stays the original five items (css/nav-rail.css hides this one
   // item under its own @media (max-width: 820px) rule); Today's header
   // carries a mobile-only text link to this route instead (§4).
+  //
+  // Find Build Brief §6 — Explore (browse) and Search (retrieve) merged
+  // into one screen over one shared index, so their two rail entries
+  // collapse into this one ("Find"), reusing the old Search icon (the
+  // magnifying glass reads for both browsing and retrieving). Find carries
+  // no count (unlike Inbox) — it's not a queue to clear.
   var FULL_NAV_ITEMS = [
     { route: 'home', href: '#/home', icon: ICONS.home, label: 'Home' },
     { route: 'today', href: '#/today', icon: ICONS.today, label: 'Today' },
     { route: 'inbox', href: '#/inbox', icon: ICONS.inbox, label: 'Inbox', countAttr: 'data-nav-inbox-count' },
-    { route: 'explore', href: '#/explore', icon: ICONS.explore, label: 'Explore' },
-    { route: 'search', href: '#/search', icon: ICONS.search, label: 'Search' },
+    { route: 'find', href: '#/find', icon: ICONS.search, label: 'Find' },
     { route: 'weekly-review', href: '#/weekly-review', icon: ICONS.weeklyReview, label: 'Weekly Review' },
   ];
 

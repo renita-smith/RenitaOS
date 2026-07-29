@@ -27,6 +27,8 @@ The database ID is the 32-character string in each database's URL.
 | Routines | `39110b0375a880f19dc0fb34e0af0e63` | (later) |
 | Routine Log | `39110b0375a880b4be5bf50ba2714869` | (later) |
 
+**Find** (Find Build Brief) reads every database's title the same structural way the rest of the app does — `type: 'title'` on the live schema, never a hardcoded property name — so it never needed the exact title-property names for Collections/Resources spelled out below the way §3's lookup table does for Tags/People/Projects/Domains. Those two are still `[confirm]`-worthy for this doc's own completeness (Notes = `Name`, Tasks = `Task`, Tags = `Tag`, People = `Person`, Projects = `Project`, Domains = `Domain` — Collections/Resources unconfirmed) but nothing in the app's code depends on knowing them.
+
 ---
 
 ## 2. Capture write targets — field map

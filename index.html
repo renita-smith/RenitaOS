@@ -1748,6 +1748,53 @@
   body[data-route="weekly-review"] .dmn-props { display: none; }
   .wr-head-row .dmn-capture { width: 230px; }
 
+  /* ---- Find (Find Build Brief) — same single-column shell trade Weekly
+     Review makes (§1 above): no per-record right rail to reserve 230px
+     for, so Capture rides inline in the header instead, pinned to that
+     same width. ---- */
+  body[data-route="find"] .dmn-shell { grid-template-columns: 150px minmax(0,1fr); }
+  body[data-route="find"] .dmn-props { display: none; }
+  .find-head-row .dmn-capture { width: 230px; }
+  .find-head {
+    position: sticky; top: 0; z-index: 15;
+    background: #F6F2E9; padding-bottom: 16px; border-bottom: 1px solid #DED8CA;
+  }
+  .find-head-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+  .find-head-main { flex: 1; min-width: 240px; }
+  .find-search-row { display: flex; align-items: center; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
+  .find-search-input {
+    flex: 1; min-width: 220px; font: inherit; font-size: 15px;
+    padding: 10px 14px; border-radius: 8px; border: 1px solid #DED8CA;
+    background: #fff; color: #2A3408;
+  }
+  .find-search-input:focus { outline: none; border-color: #2A3408; }
+  .find-search-clear {
+    font: inherit; font-size: 12px; background: none; border: 1px solid transparent;
+    color: #2A3408; cursor: pointer; padding: 6px 10px; border-radius: 6px;
+  }
+  .find-search-clear:hover { background: #DBE2C1; }
+  .find-search-clear.hidden { display: none; }
+  .find-refresh-link {
+    font: inherit; font-size: 12px; background: none; border: 0; cursor: pointer;
+    color: oklch(0.55 0.012 75); text-decoration: underline; padding: 6px 4px;
+  }
+  .find-domain-filter { margin-top: 10px; }
+  .find-scope-caption { font-family: 'IBM Plex Sans', sans-serif; font-size: 12px; font-style: italic; color: oklch(0.55 0.012 75); margin: 6px 0 12px; }
+  .find-results { margin-top: 4px; }
+  .find-group { margin-bottom: 26px; }
+  .find-group-head { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+  .find-group-label { font-family: 'Newsreader', serif; font-size: 16px; color: #2A3408; }
+  .find-group-n { font-family: 'IBM Plex Sans', sans-serif; font-size: 13px; color: oklch(0.55 0.012 75); }
+  .find-group-caption { font-family: 'IBM Plex Sans', sans-serif; font-size: 11px; font-style: italic; color: oklch(0.55 0.012 75); }
+  .find-show-all { margin-top: 8px; background: none; border: 0; color: #2A3408; font-size: 12px; font-weight: 600; cursor: pointer; text-decoration: underline; padding: 0; }
+  .find-back { background: none; border: 0; color: #2A3408; font-size: 13px; cursor: pointer; padding: 0 0 14px; display: inline-block; }
+  .find-drill-head { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+  .find-empty { font-family: 'Newsreader', serif; font-style: italic; font-size: 14px; color: oklch(0.55 0.012 75); padding: 20px 2px; }
+  @media (max-width: 820px) {
+    .find-head { position: static; }
+    .find-head-row .dmn-capture { width: auto; }
+  }
+
   /* Title + week-nav + Capture stick to the top of the main column on
      scroll, same spirit as Inbox's own sticky bin header (Addendum 3:
      header + its divider pinned, cards scroll under it). top:0 (not a
@@ -1932,7 +1979,7 @@
   // Bumped by hand on every deployed change (Cycle-2 preflight) — logged on
   // load and shown in-app (topbar + framed rail) so it's a glance which
   // build is actually running, instead of inferring it from git history.
-  const BUILD_STAMP = '2026-07-26-today6';
+  const BUILD_STAMP = '2026-07-29-find1';
   console.log(`RenitaOS build ${BUILD_STAMP}`);
 
   // --- Shared bootstrap: defined once, in one place. -----------------------
@@ -4481,7 +4528,7 @@
   // ENTITY_ROUTES-gated "does this route use the frame" check below also
   // needs to admit 'today' without treating it as a real Notion entity
   // (renderEntityStub/mountXProfile dispatch), hence this separate set.
-  const FRAMED_ROUTES = new Set([...ENTITY_ROUTES, 'today', 'weekly-review']);
+  const FRAMED_ROUTES = new Set([...ENTITY_ROUTES, 'today', 'weekly-review', 'find']);
 
   function renderEntityStub(entityName) {
     const label = ENTITY_LABELS[entityName] || entityName;
@@ -4569,6 +4616,7 @@
     else if (name === 'domain') paintDomainProfile();
     else if (name === 'today') paintTodayDashboard();
     else if (name === 'weekly-review') paintWeeklyReview();
+    else if (name === 'find') paintFind();
     adjustPfePopoverPosition();
   }
 
@@ -11041,20 +11089,524 @@
     if (el) el.classList.toggle('show', framedRoot.scrollTop > 400);
   }, { passive: true });
 
+  // ==========================================================================
+  // Find (Find Build Brief) — Explore (browse) + Search (retrieve) merged
+  // into one screen over one shared in-memory index. Domains is a
+  // resolution-only map (id -> code/color), never its own tab (§1). Every
+  // record/row shape below reuses REL_DB_META (dbId + route per entity) and
+  // the shipped renderRelationRow/renderNotesTabGrouped dense-row list —
+  // the same component every tabbed profile already renders (Domain's own
+  // reference shelf comment) — rather than a new list treatment.
+  // ==========================================================================
+  const FIND_TAB_ORDER = ['notes', 'tasks', 'projects', 'tags', 'people', 'collections', 'resources'];
+  const FIND_DOMAIN_SCOPED = new Set(['notes', 'tasks', 'projects']);
+  function findIsDomainScoped(entityType) { return FIND_DOMAIN_SCOPED.has(entityType); }
+
+  async function findResolveRelProp(sourceDbId, targetDbId) {
+    try { return await relationPropertyName(sourceDbId, targetDbId); } catch (err) { return null; }
+  }
+
+  function findMetaBlob(title, types, status, domainMeta, relationNames, handle) {
+    return [title, ...(types || []), status, domainMeta ? domainMeta.code : '', ...(relationNames || []), handle]
+      .filter(Boolean).join(' ').toLowerCase();
+  }
+
+  function findRecordBase(p, titleProp, uniqueIdProp, entityType, route) {
+    const title = plainTitle(p, titleProp);
+    const uv = uniqueIdProp ? (p.properties[uniqueIdProp] || {}).unique_id : null;
+    const handle = uv ? formatUniqueId(uv.prefix, uv.number) : null;
+    return { id: p.id, entityType, route: route ? `${route}/${p.id}` : null, title, handle, lastEditedTime: p.last_edited_time };
+  }
+
+  // Builds the whole in-memory index in one pass: every browse DB paginated
+  // to completion, in parallel, plus Domains (resolution-only, §1); every
+  // title/unique_id/status/relation property resolved once (schema calls,
+  // all memoized by the caches this file already keeps); every cross-
+  // reference (a row's domain chip, its relation names for the metaBlob)
+  // resolved locally against the pages already in hand — no per-record
+  // network call anywhere here, per §1's "second pass — resolve cross-
+  // references locally (no extra queries)". In particular, a Task's domain
+  // is the rollup through its first Project (Backend §2/§10's "never a
+  // task-level field"), read here off the Projects pages this same call
+  // already fetched — not a live per-task lookup the way the Task profile's
+  // own resolveTaskProjectAndDomain is (that one exists for a single task,
+  // not an index of every task).
+  async function buildFindIndex() {
+    const dbIds = FIND_TAB_ORDER.map((k) => REL_DB_META[k].dbId);
+    const pagesByKey = await Promise.all(dbIds.map((dbId) => queryAllPages(dbId)));
+    const pages = {};
+    FIND_TAB_ORDER.forEach((k, i) => { pages[k] = pagesByKey[i]; });
+
+    const [
+      basicsList,
+      notesDomainPropInfo, notesTagsProp, notesPeopleProp, notesCollectionsProp,
+      projectsDomainProp, tasksProjectsProp, tasksPeopleProp,
+      notesStatusSchema, tasksStatusSchema, projectsStatusSchema,
+      notesTypeOrder,
+    ] = await Promise.all([
+      Promise.all(FIND_TAB_ORDER.map(async (k) => {
+        const dbId = REL_DB_META[k].dbId;
+        const [titleProp, uniqueIdProp] = await Promise.all([titlePropertyName(dbId), uniqueIdPropertyName(dbId)]);
+        return { titleProp, uniqueIdProp };
+      })),
+      getNotesDomainProp(CONFIG.DB.NOTES),
+      findResolveRelProp(CONFIG.DB.NOTES, CONFIG.DB.TAGS),
+      findResolveRelProp(CONFIG.DB.NOTES, CONFIG.DB.PEOPLE),
+      findResolveRelProp(CONFIG.DB.NOTES, CONFIG.DB.COLLECTIONS),
+      findResolveRelProp(CONFIG.DB.PROJECTS, CONFIG.DB.DOMAINS),
+      findResolveRelProp(CONFIG.DB.TASKS, CONFIG.DB.PROJECTS),
+      findResolveRelProp(CONFIG.DB.TASKS, CONFIG.DB.PEOPLE),
+      getStatusSchema(CONFIG.DB.NOTES).catch(() => null),
+      getStatusSchema(CONFIG.DB.TASKS).catch(() => null),
+      getStatusSchema(CONFIG.DB.PROJECTS).catch(() => null),
+      getNotesTypeOrder(),
+    ]);
+    const basics = {};
+    FIND_TAB_ORDER.forEach((k, i) => { basics[k] = basicsList[i]; });
+
+    function statusNameFor(schema, page) {
+      if (!schema) return null;
+      const prop = page.properties[schema.name];
+      return (prop && prop.status && prop.status.name) || null;
+    }
+
+    // id -> title maps for the only cross-reference lookups the metaBlob/
+    // domain-rollup need (Tags/People/Collections/Projects).
+    const titleMap = { tags: new Map(), people: new Map(), collections: new Map(), projects: new Map() };
+    ['tags', 'people', 'collections', 'projects'].forEach((k) => {
+      pages[k].forEach((p) => titleMap[k].set(p.id, plainTitle(p, basics[k].titleProp)));
+    });
+    function relNames(page, propName, map) {
+      if (!propName) return [];
+      const ids = (page.properties[propName] || {}).relation || [];
+      return ids.map((r) => map.get(r.id)).filter(Boolean);
+    }
+
+    const domainByPageId = new Map(DOMAIN_META.map((d) => [normalizeDbId(d.pageId), d]));
+    const projectDomain = new Map();
+    if (projectsDomainProp) {
+      pages.projects.forEach((p) => {
+        const relIds = (p.properties[projectsDomainProp] || {}).relation || [];
+        const domainId = relIds[0] ? relIds[0].id : null;
+        const meta = domainId ? domainByPageId.get(normalizeDbId(domainId)) : null;
+        if (meta) projectDomain.set(p.id, meta);
+      });
+    }
+    function domainChip(meta) { return meta ? { code: meta.code, fill: meta.fill, text: meta.text } : null; }
+
+    const byEntity = new Map();
+    FIND_TAB_ORDER.forEach((k) => byEntity.set(k, []));
+
+    // Notes
+    pages.notes.forEach((p) => {
+      const base = findRecordBase(p, basics.notes.titleProp, basics.notes.uniqueIdProp, 'notes', REL_DB_META.notes.route);
+      const types = ((p.properties[CONFIG.NOTES_PROP.TYPE] || {}).multi_select || []).map((o) => o.name);
+      const status = statusNameFor(notesStatusSchema, p);
+      let meta = null;
+      if (notesDomainPropInfo) {
+        const propVal = p.properties[notesDomainPropInfo.name];
+        if (notesDomainPropInfo.type === 'relation') {
+          const relIds = (propVal && propVal.relation) || [];
+          const domainId = relIds[0] ? relIds[0].id : null;
+          meta = domainId ? domainByPageId.get(normalizeDbId(domainId)) : null;
+        } else {
+          const selName = propVal && propVal.select && propVal.select.name;
+          meta = selName ? DOMAIN_META.find((d) => d.code === selName) : null;
+        }
+      }
+      const relationNames = [
+        ...relNames(p, notesTagsProp, titleMap.tags),
+        ...relNames(p, notesPeopleProp, titleMap.people),
+        ...relNames(p, notesCollectionsProp, titleMap.collections),
+      ];
+      const dateVal = (p.properties[CONFIG.NOTES_PROP.DATE] || {}).date;
+      byEntity.get('notes').push({
+        ...base, types, status, domain: domainChip(meta), relationNames,
+        metaBlob: findMetaBlob(base.title, types, status, meta, relationNames, base.handle),
+        dateISO: dateVal ? dateVal.start : null, body: '',
+      });
+    });
+
+    // Tasks — domain is the project rollup, never a task-level field
+    pages.tasks.forEach((p) => {
+      const base = findRecordBase(p, basics.tasks.titleProp, basics.tasks.uniqueIdProp, 'tasks', REL_DB_META.tasks.route);
+      const status = statusNameFor(tasksStatusSchema, p);
+      const projectIds = tasksProjectsProp ? ((p.properties[tasksProjectsProp] || {}).relation || []).map((r) => r.id) : [];
+      const meta = projectIds.length ? (projectDomain.get(projectIds[0]) || null) : null;
+      const relationNames = relNames(p, tasksPeopleProp, titleMap.people);
+      const dueVal = (p.properties[CONFIG.TASKS_PROP.DUE_DATE] || {}).date;
+      byEntity.get('tasks').push({
+        ...base, types: null, status, domain: domainChip(meta), relationNames,
+        metaBlob: findMetaBlob(base.title, null, status, meta, relationNames, base.handle),
+        dateISO: dueVal ? dueVal.start : null, body: '',
+      });
+    });
+
+    // Projects — Domain is its own direct relation
+    pages.projects.forEach((p) => {
+      const base = findRecordBase(p, basics.projects.titleProp, basics.projects.uniqueIdProp, 'projects', REL_DB_META.projects.route);
+      const status = statusNameFor(projectsStatusSchema, p);
+      const meta = projectDomain.get(p.id) || null;
+      byEntity.get('projects').push({
+        ...base, types: null, status, domain: domainChip(meta), relationNames: [],
+        metaBlob: findMetaBlob(base.title, null, status, meta, [], base.handle),
+        dateISO: null, body: '',
+      });
+    });
+
+    // Tags/People/Collections/Resources — cross-cutting, no domain (§5)
+    ['tags', 'people', 'collections', 'resources'].forEach((key) => {
+      pages[key].forEach((p) => {
+        const base = findRecordBase(p, basics[key].titleProp, basics[key].uniqueIdProp, key, REL_DB_META[key].route);
+        byEntity.get(key).push({
+          ...base, types: null, status: null, domain: null, relationNames: [],
+          metaBlob: findMetaBlob(base.title, null, null, null, [], base.handle),
+          dateISO: null, body: '',
+        });
+      });
+    });
+
+    const records = FIND_TAB_ORDER.flatMap((k) => byEntity.get(k));
+    return { records, byEntity, notesTypeOrder };
+  }
+
+  // --- Ranking (§3) — exact > prefix > token/substring > fuzzy title >
+  // metaBlob-only, tiebroken by recency. Levenshtein/threshold duplicated
+  // from js/similarity.js (this file stays a self-contained classic script,
+  // same reasoning as schema.js's duplication above) rather than imported. ---
+  function findLevenshtein(a, b) {
+    const m = a.length, n = b.length;
+    if (m === 0) return n;
+    if (n === 0) return m;
+    let prev = new Array(n + 1);
+    let curr = new Array(n + 1);
+    for (let j = 0; j <= n; j++) prev[j] = j;
+    for (let i = 1; i <= m; i++) {
+      curr[0] = i;
+      for (let j = 1; j <= n; j++) {
+        const cost = a[i - 1] === b[j - 1] ? 0 : 1;
+        curr[j] = Math.min(curr[j - 1] + 1, prev[j] + 1, prev[j - 1] + cost);
+      }
+      [prev, curr] = [curr, prev];
+    }
+    return prev[n];
+  }
+  // Scaled to query length (Roadmap known issue: a flat <=2 over-suggests
+  // on very short strings) — short queries get a tight/no allowance, longer
+  // queries loosen up, same table js/similarity.js uses for Capture's
+  // autocomplete.
+  function findFuzzyThreshold(len) {
+    if (len <= 3) return 0;
+    if (len <= 6) return 1;
+    return 2;
+  }
+  function findFuzzyTitleMatch(q, titleLower) {
+    const words = titleLower.split(/\s+/).filter(Boolean);
+    words.push(titleLower);
+    for (const w of words) {
+      const threshold = findFuzzyThreshold(Math.max(q.length, w.length));
+      if (threshold === 0) continue;
+      if (Math.abs(w.length - q.length) > threshold) continue;
+      if (findLevenshtein(q, w) <= threshold) return true;
+    }
+    return false;
+  }
+  function findRecencyValue(r) {
+    const iso = r.dateISO || r.lastEditedTime;
+    const t = iso ? new Date(iso).getTime() : 0;
+    return Number.isFinite(t) ? t : 0;
+  }
+  function findDefaultSort(a, b) { return findRecencyValue(b) - findRecencyValue(a); }
+
+  function findMatchRecord(r, q) {
+    const titleLower = (r.title || '').toLowerCase();
+    if (titleLower === q) return { record: r, tier: 0 };
+    if (titleLower.startsWith(q)) return { record: r, tier: 1 };
+    if (titleLower.includes(q) || titleLower.split(/\s+/).some((w) => w.startsWith(q))) return { record: r, tier: 2 };
+    if (findFuzzyTitleMatch(q, titleLower)) return { record: r, tier: 3 };
+    if (r.metaBlob && r.metaBlob.includes(q)) return { record: r, tier: 4 };
+    return null;
+  }
+  function findCompareMatches(a, b) {
+    if (a.tier !== b.tier) return a.tier - b.tier;
+    return findRecencyValue(b.record) - findRecencyValue(a.record);
+  }
+
+  // "NOTE-247"-shaped queries resolve straight to that record, skipping
+  // ranking entirely — the in-app equivalent of notion.so's own
+  // /{prefix}-{number} deep link (§3). Matched against handles already in
+  // the index, never a hardcoded prefix list.
+  function findIdHandleMatch(query, records) {
+    const m = query.trim().toUpperCase().match(/^([A-Z]{3,4})-(\d+)$/);
+    if (!m) return null;
+    const handle = `${m[1]}-${m[2]}`;
+    return records.find((r) => r.handle && r.handle.toUpperCase() === handle) || null;
+  }
+
+  // Adapts a Find index record to the shape renderRelationRow/
+  // renderNotesTabGrouped already expect (id/title/uniqueId/domainChip/
+  // types/route-as-bare-key) — reusing those wholesale rather than a new
+  // row renderer, per the build brief's explicit "reuse that component".
+  function findToRelationRowShape(r) {
+    return { id: r.id, title: r.title, uniqueId: r.handle, domainChip: r.domain, types: r.types, route: REL_DB_META[r.entityType].route };
+  }
+
+  const findState = {
+    query: '', activeTab: 'notes', domainFilter: 'all', drillEntity: null,
+    loading: false, error: null, index: null,
+  };
+  let findIndexPromise = null;
+  let findDebounceTimer = null;
+
+  function findTabRecords(s, key) {
+    let recs = s.index.byEntity.get(key) || [];
+    if (findIsDomainScoped(key) && s.domainFilter !== 'all') {
+      recs = recs.filter((r) => r.domain && r.domain.code === s.domainFilter);
+    }
+    return recs;
+  }
+
+  function renderFindDomainFilter(s) {
+    const allBtn = `<button type="button" class="today-domain-pill${s.domainFilter === 'all' ? ' active' : ''}" data-find-domain="all">All</button>`;
+    const domBtns = DOMAIN_META.map((dm) => `<button type="button" class="today-domain-pill${s.domainFilter === dm.code ? ' active' : ''}" data-find-domain="${dm.code}" style="${s.domainFilter === dm.code ? `background:${dm.fill};color:${dm.text};` : ''}">${escapeHtml(dm.code)}</button>`).join('');
+    return `<div class="today-domain-filter find-domain-filter" role="group" aria-label="Filter by domain">${allBtn}${domBtns}</div>`;
+  }
+
+  function renderFindBrowse(s) {
+    const tabsHtml = `<div class="dmn-tabs" role="tablist">${FIND_TAB_ORDER.map((key) => {
+      const meta = REL_DB_META[key];
+      const count = findTabRecords(s, key).length;
+      return `<button type="button" class="dmn-tab${key === s.activeTab ? ' active' : ''}" data-find-tab="${key}" role="tab" aria-selected="${key === s.activeTab}">
+        ${escapeHtml(meta.label)}<span class="dmn-n">${count}</span></button>`;
+    }).join('')}</div>`;
+    const activeMeta = REL_DB_META[s.activeTab];
+    const activeRecs = findTabRecords(s, s.activeTab).slice().sort(findDefaultSort);
+    const crossCutting = !findIsDomainScoped(s.activeTab);
+    const captionHtml = (crossCutting && s.domainFilter !== 'all')
+      ? `<div class="find-scope-caption">Not domain-scoped — showing every ${escapeHtml(activeMeta.label.toLowerCase())} record.</div>`
+      : '';
+    const bodyHtml = !activeRecs.length
+      ? `<div class="pf-tab-empty">No ${escapeHtml(activeMeta.label.toLowerCase())} yet.</div>`
+      : s.activeTab === 'notes'
+        ? renderNotesTabGrouped(activeRecs.map(findToRelationRowShape), s.index.notesTypeOrder)
+        : `<div class="pf-row-list">${activeRecs.map((r) => renderRelationRow(findToRelationRowShape(r))).join('')}</div>`;
+    return `<section class="dmn-sec"><div class="dmn-divider"></div>${tabsHtml}${captionHtml}${bodyHtml}</section>`;
+  }
+
+  function findComputeSearchMatches(s) {
+    const q = s.query.trim().toLowerCase();
+    const byEntity = new Map();
+    FIND_TAB_ORDER.forEach((k) => byEntity.set(k, []));
+    s.index.records.forEach((r) => {
+      if (findIsDomainScoped(r.entityType) && s.domainFilter !== 'all') {
+        if (!r.domain || r.domain.code !== s.domainFilter) return;
+      }
+      const m = findMatchRecord(r, q);
+      if (m) byEntity.get(r.entityType).push(m);
+    });
+    byEntity.forEach((arr) => arr.sort(findCompareMatches));
+    return byEntity;
+  }
+
+  function renderFindSearchResults(s) {
+    const byEntity = findComputeSearchMatches(s);
+    const total = FIND_TAB_ORDER.reduce((sum, k) => sum + byEntity.get(k).length, 0);
+    if (!total) return `<div class="find-empty">No matches for “${escapeHtml(s.query.trim())}”.</div>`;
+    const groupsHtml = FIND_TAB_ORDER.map((key) => {
+      const matches = byEntity.get(key);
+      if (!matches.length) return '';
+      const meta = REL_DB_META[key];
+      const capped = matches.slice(0, 5);
+      const crossCutting = !findIsDomainScoped(key);
+      const captionHtml = (crossCutting && s.domainFilter !== 'all') ? `<span class="find-group-caption">not domain-scoped</span>` : '';
+      const rowsHtml = capped.map((m) => renderRelationRow(findToRelationRowShape(m.record))).join('');
+      const showAllHtml = matches.length > 5
+        ? `<button type="button" class="find-show-all" data-find-show-all="${key}">Show all ${matches.length}</button>`
+        : '';
+      return `<section class="find-group">
+        <div class="find-group-head"><span class="find-group-label">${escapeHtml(meta.label)}</span><span class="find-group-n">${matches.length}</span>${captionHtml}</div>
+        <div class="pf-row-list">${rowsHtml}</div>
+        ${showAllHtml}
+      </section>`;
+    }).filter(Boolean).join('');
+    return `<div class="find-results">${groupsHtml}</div>`;
+  }
+
+  function renderFindDrill(s) {
+    const key = s.drillEntity;
+    const meta = REL_DB_META[key];
+    const q = s.query.trim().toLowerCase();
+    let matches = (s.index.byEntity.get(key) || []).map((r) => findMatchRecord(r, q)).filter(Boolean);
+    if (findIsDomainScoped(key) && s.domainFilter !== 'all') {
+      matches = matches.filter((m) => m.record.domain && m.record.domain.code === s.domainFilter);
+    }
+    matches.sort(findCompareMatches);
+    const backHtml = `<button type="button" class="find-back" data-find-back>← Back to results</button>`;
+    const headHtml = `<div class="find-drill-head"><span class="find-group-label">${escapeHtml(meta.label)}</span><span class="find-group-n">${matches.length}</span></div>`;
+    const bodyHtml = matches.length
+      ? `<div class="pf-row-list">${matches.map((m) => renderRelationRow(findToRelationRowShape(m.record))).join('')}</div>`
+      : `<div class="find-empty">No matches for “${escapeHtml(s.query.trim())}”.</div>`;
+    return `${backHtml}${headHtml}${bodyHtml}`;
+  }
+
+  function renderFindBody(s) {
+    if (!s.query.trim()) return renderFindBrowse(s);
+    if (s.drillEntity) return renderFindDrill(s);
+    return renderFindSearchResults(s);
+  }
+
+  function renderFindShell(s, bodyHtml) {
+    return `<div class="dmn-head find-head">
+      <div class="find-head-row">
+        <div class="find-head-main">
+          <div class="dmn-idline">Find</div>
+          <div class="dmn-title-row"><h1 class="dmn-title">Find</h1></div>
+          <div class="find-search-row">
+            <input type="text" class="find-search-input" data-find-query placeholder="Search notes, tasks, projects, tags, people, collections, resources…" value="${escapeHtml(s.query)}">
+            <button type="button" class="find-search-clear${s.query.trim() ? '' : ' hidden'}" data-find-clear>Clear</button>
+            <button type="button" class="find-refresh-link" data-find-refresh>Refresh</button>
+          </div>
+          ${renderFindDomainFilter(s)}
+        </div>
+        ${renderCaptureAffordance()}
+      </div>
+    </div>
+    <div id="findBody">${bodyHtml}</div>`;
+  }
+
+  // Reflects q/domain/tab in the hash (§3, "recommended") via replaceState
+  // — never location.hash=, which would fire hashchange and re-enter the
+  // router (and re-mount Find) on every keystroke. history.replaceState
+  // updates the address bar/refresh-survival without that side effect.
+  function findSyncUrl() {
+    const s = findState;
+    const params = new URLSearchParams();
+    if (s.query.trim()) params.set('q', s.query.trim());
+    if (s.domainFilter !== 'all') params.set('domain', s.domainFilter);
+    if (!s.query.trim() && s.activeTab !== 'notes') params.set('tab', s.activeTab);
+    const qs = params.toString();
+    const newHash = `#/find${qs ? `?${qs}` : ''}`;
+    if (location.hash !== newHash) history.replaceState(null, '', newHash);
+  }
+
+  function paintFind() {
+    const s = findState;
+    if (s.loading) { dmnMain.innerHTML = renderFindShell(s, `<div class="dmn-status">Building the index…</div>`); return; }
+    if (s.error) {
+      dmnMain.innerHTML = renderFindShell(s, `<div class="dmn-status dmn-status--error">${escapeHtml(s.error)}</div>`);
+      return;
+    }
+    dmnMain.innerHTML = renderFindShell(s, renderFindBody(s));
+    findSyncUrl();
+  }
+
+  // Debounced typing (§3, ~150–200ms) repaints only #findBody, leaving the
+  // search <input> itself untouched — a full paintFind() on every keystroke
+  // would tear down and recreate the input, losing focus/cursor mid-type
+  // (same reasoning as the pfe-filter/tg-pop-filter inputs elsewhere in
+  // this file, which only ever repaint their own results sub-element).
+  function paintFindBody() {
+    const bodyEl = dmnMain.querySelector('#findBody');
+    if (bodyEl) bodyEl.innerHTML = renderFindBody(findState);
+    const clearBtn = dmnMain.querySelector('[data-find-clear]');
+    if (clearBtn) clearBtn.classList.toggle('hidden', !findState.query.trim());
+  }
+
+  // Index is built once per page session and cached at module scope
+  // (findIndexPromise) — re-entering Find (rail click, browser back) reuses
+  // it; only an explicit Refresh click (or a load failure) clears it and
+  // re-runs the whole fetch (§1: "Notion has no cheap change-feed — don't
+  // fake live sync").
+  async function mountFind(queryParams) {
+    ensureFramedShell();
+    // No right-rail content on this route (same single-column trade
+    // Weekly Review makes) — Capture renders inline in the header instead.
+    dmnProps.innerHTML = '';
+    const s = findState;
+    s.query = (queryParams && queryParams.get('q')) || '';
+    s.domainFilter = (queryParams && queryParams.get('domain')) || 'all';
+    s.activeTab = (queryParams && queryParams.get('tab')) || 'notes';
+    s.drillEntity = null;
+    s.loading = !s.index;
+    s.error = null;
+    paintFind();
+    if (!findIndexPromise) {
+      findIndexPromise = buildFindIndex().catch((err) => { findIndexPromise = null; throw err; });
+    }
+    try {
+      s.index = await findIndexPromise;
+      s.error = null;
+    } catch (err) {
+      console.error('Failed to build Find index', err);
+      s.error = err.message || 'Could not load Find — check the Worker.';
+    } finally {
+      s.loading = false;
+      if (currentRoute() === 'find') paintFind();
+    }
+  }
+
+  framedRoot.addEventListener('click', (e) => {
+    if (currentRoute() !== 'find') return;
+    const s = findState;
+    const tabEl = e.target.closest('[data-find-tab]');
+    if (tabEl) { s.activeTab = tabEl.dataset.findTab; paintFind(); return; }
+    const domainEl = e.target.closest('[data-find-domain]');
+    if (domainEl) { s.domainFilter = domainEl.dataset.findDomain; paintFind(); return; }
+    const showAllEl = e.target.closest('[data-find-show-all]');
+    if (showAllEl) { s.drillEntity = showAllEl.dataset.findShowAll; paintFind(); return; }
+    const backEl = e.target.closest('[data-find-back]');
+    if (backEl) { s.drillEntity = null; paintFind(); return; }
+    const refreshEl = e.target.closest('[data-find-refresh]');
+    if (refreshEl) { findIndexPromise = null; mountFind(new URLSearchParams(location.hash.split('?')[1] || '')); return; }
+    const clearEl = e.target.closest('[data-find-clear]');
+    if (clearEl) {
+      s.query = ''; s.drillEntity = null;
+      paintFind();
+      const input = dmnMain.querySelector('[data-find-query]');
+      if (input) input.focus();
+      return;
+    }
+  });
+
+  framedRoot.addEventListener('input', (e) => {
+    if (currentRoute() !== 'find') return;
+    if (!e.target.matches('[data-find-query]')) return;
+    const s = findState;
+    s.query = e.target.value;
+    s.drillEntity = null;
+    clearTimeout(findDebounceTimer);
+    findDebounceTimer = setTimeout(() => {
+      if (!s.index) return;
+      const idHit = findIdHandleMatch(s.query, s.index.records);
+      if (idHit && idHit.route) { location.hash = `#/${idHit.route}`; return; }
+      paintFindBody();
+      findSyncUrl();
+    }, 180);
+  });
+
   // --- Hash router ------------------------------------------------------
   // Static routes match the whole hash; entity routes are a singular noun
   // + Notion page id (#/note/{id}, #/task/{id}, ...) — parsed by splitting
   // on "/" rather than matched against a fixed list, since the id half is
   // arbitrary. Anything unrecognized (including a bare entity name with no
   // id) falls back to Home rather than erroring.
-  const STATIC_ROUTES = ['home', 'inbox', 'today', 'weekly-review'];
+  const STATIC_ROUTES = ['home', 'inbox', 'today', 'weekly-review', 'find'];
 
+  // Find (§3/§6, Find Build Brief) is the one route that carries query
+  // state (q/domain/tab) so a search survives refresh/sharing — split off
+  // before segment-parsing rather than baked into the split-on-"/" scheme
+  // every other route uses, since none of them need query params.
   function parseRoute() {
-    const hash = location.hash.replace(/^#\/?/, '');
-    const segments = hash.split('/').filter(Boolean);
+    const raw = location.hash.replace(/^#\/?/, '');
+    const qIdx = raw.indexOf('?');
+    const path = qIdx === -1 ? raw : raw.slice(0, qIdx);
+    const queryString = qIdx === -1 ? '' : raw.slice(qIdx + 1);
+    const segments = path.split('/').filter(Boolean);
     if (segments.length === 0) return { name: 'home' };
     const [first, second] = segments;
-    if (STATIC_ROUTES.includes(first)) return { name: first };
+    if (STATIC_ROUTES.includes(first)) {
+      return first === 'find' ? { name: first, query: new URLSearchParams(queryString) } : { name: first };
+    }
     if (ENTITY_ROUTES.includes(first) && second) return { name: first, id: decodeURIComponent(second) };
     return { name: 'home' };
   }
@@ -11073,6 +11625,14 @@
     // hashchange, which re-enters render() with the corrected URL.
     if (location.hash.replace(/^#\/?/, '') === 'triage') {
       location.hash = '#/inbox';
+      return;
+    }
+    // Find Build Brief §6 — Explore and Search merged into one screen/rail
+    // item; old links to either alias straight through (muscle memory +
+    // any stale bookmarks), same rewrite-and-re-enter shape as triage above.
+    const bareHash = location.hash.replace(/^#\/?/, '').split('?')[0];
+    if (bareHash === 'explore' || bareHash === 'search') {
+      location.hash = '#/find';
       return;
     }
     // A profile's open picker/inline-title-edit is meaningless once you've
@@ -11123,6 +11683,8 @@
       mountTodayDashboard();
     } else if (route.name === 'weekly-review') {
       mountWeeklyReview();
+    } else if (route.name === 'find') {
+      mountFind(route.query);
     } else if (ENTITY_ROUTES.includes(route.name)) {
       content.innerHTML = renderEntityStub(route.name);
     } else {
