@@ -466,3 +466,33 @@ Task completion in-review and project priority both write the **canon** Status/`
 ## Calendar
 
 Silent, read-only, via the same `GET {PROXY}/calendar/events` Today's right rail already calls — no interactive Google auth, no per-session sign-in. Degrades to "Calendar unavailable" without blocking the rest of the screen.
+
+---
+
+# Addendum 5 — Find (as-built)
+
+*Explore (browse) and Search (retrieve) shipped per `RenitaOS-Find-Build-Brief.md` as **one screen, one rail item — "Find"** — over one shared in-memory index. Where this addendum and the body text above disagree (including Addendum 2/3/4's rail-set mentions), this addendum wins.*
+
+## Rail set — supersedes every earlier list
+
+**Home · Today · Inbox (N) · Find · Weekly Review.** Every earlier "… Explore · Search …" rail set in this document (Addendum 2, Addendum 3, Addendum 4) is superseded — Explore and Search no longer exist as separate rail entries or routes. `#/find` is the route; `#/explore` and `#/search` alias straight through to it (old links, muscle memory). Find carries **no count** (it's not a queue). Mobile bottom bar drops from five items to four (Home · Today · Inbox · Find); Weekly Review stays desktop-rail-only per Addendum 4.
+
+## Layout — single-column, same trade as Weekly Review
+
+Chrome yes, the `.shell` three-zone profile grid no (Addendum 2 scope) — Find has no per-record right rail, so it takes the same single-column trade Weekly Review does (Addendum 4): the 230px column is dropped, and Capture rides inline in the header, pinned to that same width. The header (title + pinned search box + domain filter) sticks to the top of the main column on scroll, same sticky-header spirit as Weekly Review's own.
+
+## The index — one build, shared by both faces
+
+On screen entry, all seven browse databases (Notes, Tasks, Projects, Tags, People, Collections, Resources) plus Domains (resolution-only — id → code/color map, never its own tab) are fetched in parallel, each paginated to completion. The result is cached at module scope for the page session — switching tabs, typing in the search box, and toggling the domain filter all read that one in-memory index, never Notion again, until a quiet **Refresh** link re-runs the whole build. A record's domain is resolved **locally** against the already-fetched pages, never a second network round-trip per record: Notes/Projects read their own domain field/relation; a **Task's domain is the rollup through its first Project**, looked up in a project-id → domain map built once from the Projects fetch (not the per-task live lookup the Task profile's own resolver uses — that one exists for a single record, not an index of every task). Tags/People/Collections/Resources carry no domain.
+
+## Browse — the seven-tab dense-row list, reused wholesale
+
+Same tabbed dense-row component the Domain profile's reference shelf and the Tag/Collection/Person trio already ship (`renderRelationRow` / `renderNotesTabGrouped` / the `.dmn-tabs`/`.pf-row` markup) — Find's browse tabs render through the exact same functions, adapted from the index's own record shape. Seven tabs, always shown, zero-count tabs stay clickable to a quiet empty state. Default tab is Notes, grouped by Type in schema order (No Type last), same double-count-with-caption convention as every other Notes-tab consumer. Domain filter narrows Notes/Tasks/Projects only; the four cross-cutting tabs show their full list with a quiet "not domain-scoped" caption when a domain is active, rather than going empty.
+
+## Search — debounced, ranked, over the same index
+
+A single box, pinned in the header, ~180ms debounced, reading the cached index only. Non-empty query swaps the tabs out for unified results grouped by entity type (Notes · Tasks · Projects, then Tags · People · Collections · Resources), capped ~5 per group with a "Show all N" drill-down. Ranking: exact title → prefix → token/substring → fuzzy title (Levenshtein, threshold scaled to query length — the same table `js/similarity.js` uses for Capture's autocomplete, duplicated inline since this file stays a self-contained classic script) → a resolved-relation `metaBlob` match (title/types/status/domain code/Tags·People·Collections names/handle) — tiebroken by recency. A query shaped like `PREFIX-123` resolves straight to that record, skipping ranking, matched against handles already in the index (never a hardcoded prefix list). Search state (`q`/`domain`/`tab`) reflects into the hash via `history.replaceState` — never a `location.hash` assignment, which would re-fire the router and rebuild the index on every keystroke — so a search survives refresh and is shareable without any extra network cost.
+
+## Phase boundary
+
+Ships without body-text search — the index's `body` slot exists on every record but stays empty; matching is title + metaBlob only. Body search (Notes first, progressive background hydration, `last_edited_time`-keyed incremental cache, snippet on match) is the documented Phase 2 and isn't built yet.
