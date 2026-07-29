@@ -63,7 +63,7 @@ House style is **sentence case** everywhere by default (headings, labels, button
 messages) — e.g. "One bin at a time."
 
 Intentional exceptions — do NOT "correct" these on consistency passes:
-- The **"INBOX"** screen heading (top-left, Triage) is an intentional all-caps label.
+- **Dashboard-level screen titles are ALL-CAPS serif** — the `<h1>` naming the screen itself (TODAY, WEEKLY REVIEW, and INBOX before it) is a standard, not a one-off: it's how a *dashboard* (a screen that queries/derives a view, not a single record) reads as a place rather than a sentence. **Record profile titles stay natural case** — a Note/Task/Project/etc.'s title mirrors the record's own text and must never be forced to caps.
 - The **"No Type"** bin label uses Title Case — it's a proper bin name, not a typo.
 - The **"Sort"** pill (top-right, Triage) uses Title Case intentionally.
 
@@ -412,7 +412,7 @@ The cream panel **grows to fit its content on every screen**: min-height = viewp
 
 ## Typography — enforced app-wide
 
-The "Typography & casing conventions" rule (prose = serif, data = sans; sentence case by default, with **INBOX / No Type / Sort** as intentional casing exceptions) is now enforced across every screen. Page titles are **serif** ("Today"); **INBOX** keeps its all-caps exception but in the **serif** voice, not sans.
+The "Typography & casing conventions" rule (prose = serif, data = sans; sentence case by default, with **dashboard titles / No Type / Sort** as intentional casing exceptions) is now enforced across every screen. Page titles are **serif**; **dashboard titles render ALL-CAPS** ("TODAY", "WEEKLY REVIEW") — **INBOX** is the same pattern, in the serif voice, not sans (see the Typography & casing conventions section above).
 
 ## Infrastructure
 
@@ -426,14 +426,23 @@ The runtime plumbing — the `notion-proxy` Cloudflare Worker, its secrets, the 
 
 ## Layout — single-column ritual
 
-Weekly Review is a **dashboard** — chrome yes (the shared nav rail / wordmark / Capture affordance), the `.shell` three-zone profile grid **no** (Addendum 2 Scope). Unlike Today, it carries **no persistent right glance rail** — the sequence (Review → Reflect → Plan) is the point, so everything runs top to bottom in one main column. The one exception: **Act 3 only**, the two-week calendar sits **local two-up** beside the six 1% goal boxes (two-column on desktop, stacked on mobile) — the single place on this screen calendar sits beside inputs.
+Weekly Review is a **dashboard** — chrome yes (the shared nav rail / wordmark / Capture affordance), the `.shell` three-zone profile grid **no** (Addendum 2 Scope). "No `.shell` grid" means no Progress/Dates/Properties glance *content* in the right rail — it does **not** re-home the Capture button: the standard three-column frame (rail / main / right rail) stays exactly as Today's, and the right rail carries only the shared Capture affordance, so the button is pixel-identical across every framed screen rather than a per-screen reimplementation. Unlike Today, there's no glance-rail *content* beyond Capture — the sequence (Review → Reflect → Plan) is the point, so everything else runs top to bottom in one main column. The one exception: **Act 3 only**, the two-week calendar sits **local two-up** beside the six 1% goal boxes (two-column on desktop, stacked on mobile) — the single place on this screen calendar sits beside inputs.
 
 Act headers are a numbered olive ring (1/2/3) + serif act title + muted serif subtitle over a hairline divider — no colored act bands (the standalone's blue/purple/green act tints are retired).
 
 ## Metrics — two tiers
 
-- **Tier 1** (four headline numbers, sans, retrospective): Completed this week · Completion rate · Overdue · Notes to file.
-- **Tier 2** (glance band): condensed one-row-per-In-Progress-project list ("N of M done", derived client-side from already-fetched task data, not a guessed Projects rollup) + six Domain tiles (completions this week, a week-over-week ▲/▼ delta, and a quiet "dormant this week" treatment when a domain has zero completions **and** zero notes that week).
+- **Tier 1** (four headline numbers, sans, retrospective): Completed this week · Completion rate · Overdue · Notes to file (the live count of **Inbox-status** notes — Active notes are already-processed and live in the Review panel instead, not counted here).
+- **Tier 2** (glance band): condensed one-row-per-In-Progress-project list ("N of M done", derived client-side from already-fetched task data, not a guessed Projects rollup) + six Domain tiles, laid out **two rows of three** (completions this week, a week-over-week ▲/▼ delta, and a quiet "dormant this week" treatment when a domain has zero completions **and** zero notes that week). A task whose project carries no resolvable domain buckets under a **"No domain"** label/tile (never a bare `?`), same as everywhere else in the app.
+
+## Inbox / Review panels (Act 1)
+
+Two panels replace the standalone's separate "Completed/Needing attention" split and Note Station, each with its own **Notes / Tasks toggle**:
+
+- **Inbox panel** — unprocessed items needing a first pass. Notes track = Notes with Status = Inbox (Backend Notes §5's "unprocessed" marker); Tasks track = active tasks overdue or due this week.
+- **Review panel** — the retrospective look-back. Notes track = Active-status notes; Tasks track = tasks completed this week.
+
+The Tag Station stays a separate section below both panels, unchanged.
 
 ## Freeze-on-save + week-over-week
 
@@ -450,7 +459,7 @@ On Save, a companion Note is upserted (never duplicated) as the week's complete 
 
 ## Write-layer conformance
 
-Task completion in-review and project priority both write the **canon** Status/`Completed`-date and Priority fields (real stars) — the standalone's old first-checkbox write is retired. Note Station status writes use the real `status` property. A single **global domain filter** (Today's idiom) replaces the standalone's separate domain + project filter bars. Dates are local `YYYY-MM-DD`; rich text over Notion's 2000-char cap is chunked on write. Sessions metrics (`Sessions Count`, `Session Success %`) are left unwritten — no session data flows yet.
+Task completion in-review and project priority both write the **canon** Status/`Completed`-date and Priority fields (real stars) — the standalone's old first-checkbox write is retired. The Inbox/Review panels' status writes use the real `status` property. A single **global domain filter** (Today's idiom) replaces the standalone's separate domain + project filter bars. Dates are local `YYYY-MM-DD`; rich text over Notion's 2000-char cap is chunked on write. Sessions metrics (`Sessions Count`, `Session Success %`) are left unwritten — no session data flows yet.
 
 ## Calendar
 

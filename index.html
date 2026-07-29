@@ -1732,17 +1732,15 @@
   }
 
   /* ---- Weekly Review dashboard (Weekly Review Build Brief) — chrome yes,
-     the .shell three-zone grid no (§1): reuses ensureFramedShell()'s rail
-     for chrome, but collapses the right glance-rail column entirely (this
-     screen's own single-column ritual is the point, not a persistent
-     glance surface — Addendum 3's Today right rail is a different, later
-     decision this screen deliberately doesn't repeat). dmnProps is left
-     empty by mountWeeklyReview() for this route; hiding it here (rather
-     than leaving an empty sage gap) is what actually recovers the width. */
-  body[data-route="weekly-review"] .dmn-shell { grid-template-columns: 150px minmax(0,1fr); }
-  body[data-route="weekly-review"] .dmn-props { display: none; }
+     the .shell three-zone grid no (§1). "No .shell grid" means no
+     Progress/Dates/Properties glance content in the right rail — it does
+     NOT mean a different grid or a re-homed Capture button; the standard
+     3-column dmn-shell (rail/main/props) stays exactly as Today's, and
+     dmnProps carries only the shared Capture affordance (mountWeeklyReview
+     sets it), so the button is pixel-identical to Today's, not a
+     screen-specific reimplementation. */
 
-  .wr-head-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+  .wr-head-row { display: flex; align-items: flex-start; gap: 16px; flex-wrap: wrap; }
   .wr-week-nav { display: flex; align-items: center; gap: 8px; margin-top: 8px; }
   .wr-week-nav-btn { width: 26px; height: 26px; line-height: 1; font-size: 15px; border-radius: 6px; border: 1px solid #DED8CA; background: #F6F2E9; color: #2A3408; cursor: pointer; }
   .wr-week-nav-btn:hover { background: #DBE2C1; }
@@ -1763,7 +1761,7 @@
   .wr-tier2-proj-name { flex: 1; }
   .wr-tier2-proj-frac { font-family: 'IBM Plex Sans', sans-serif; font-size: 12px; color: oklch(0.55 0.012 75); }
   .wr-tier2-domains-wrap { flex: 1 1 300px; }
-  .wr-tier2-domains { display: flex; flex-wrap: wrap; gap: 8px; }
+  .wr-tier2-domains { display: grid; grid-template-columns: repeat(3,1fr); gap: 8px; }
   .wr-domain-tile { border-radius: 10px; padding: 8px 12px; min-width: 76px; }
   .wr-domain-tile--dormant { opacity: .45; }
   .wr-domain-code { font-size: 11px; font-weight: 700; letter-spacing: .03em; }
@@ -1781,6 +1779,13 @@
   .wr-sec-count { font-family: 'IBM Plex Sans', sans-serif; font-size: 12px; text-transform: none; letter-spacing: 0; color: oklch(0.55 0.012 75); }
 
   .wr-two-up { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  /* Grid items default to min-width:auto, which refuses to shrink below
+     their content's min-content size — a nowrap event label (.wr-cal-event)
+     or a bare <textarea> (whose own intrinsic width defaults to its `cols`
+     attribute) can each blow that minimum out far past an even 1fr/1fr
+     split, squeezing the other column to a sliver. min-width:0 here is
+     what actually lets both columns honor the 50/50 split. */
+  .wr-two-up > div { min-width: 0; }
   @media (max-width: 820px) { .wr-two-up { grid-template-columns: 1fr; } }
 
   .wr-row { display: flex; align-items: flex-start; gap: 10px; padding: 9px 0; border-bottom: 1px solid #DED8CA; }
@@ -1805,9 +1810,9 @@
   .wr-dist-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
 
   .wr-cal-week { display: grid; grid-template-columns: repeat(7,1fr); gap: 4px; margin-bottom: 10px; }
-  .wr-cal-day { background: #E7ECD6; border-radius: 8px; padding: 6px 4px; min-height: 84px; }
+  .wr-cal-day { background: #E7ECD6; border-radius: 8px; padding: 6px 4px; min-height: 84px; min-width: 0; }
   .wr-cal-day-label { font-family: 'IBM Plex Sans', sans-serif; font-size: 10px; font-weight: 500; color: oklch(0.55 0.012 75); text-align: center; margin-bottom: 4px; }
-  .wr-cal-event { font-family: 'IBM Plex Sans', sans-serif; font-size: 9px; padding: 2px 4px; border-radius: 3px; margin-bottom: 2px; background: #DBE2C1; color: #2A3408; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .wr-cal-event { width: 100%; font-family: 'IBM Plex Sans', sans-serif; font-size: 9px; padding: 2px 4px; border-radius: 3px; margin-bottom: 2px; background: #DBE2C1; color: #2A3408; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; box-sizing: border-box; }
   .wr-cal-more { font-family: 'IBM Plex Sans', sans-serif; font-size: 9px; color: oklch(0.55 0.012 75); padding: 1px 4px; }
   .wr-cal-unavailable { font-family: 'IBM Plex Sans', sans-serif; font-size: 12px; color: oklch(0.55 0.012 75); text-align: center; padding: 10px 0; }
   @media (max-width: 820px) { .wr-cal-week { grid-template-columns: repeat(7,minmax(30px,1fr)); } .wr-cal-day { min-height: 60px; padding: 4px 2px; } }
@@ -1836,11 +1841,13 @@
   .wr-textarea { width: 100%; font-family: 'IBM Plex Sans', sans-serif; font-size: 13px; resize: vertical; border: 1px solid #DED8CA; border-radius: 8px; padding: 8px 10px; background: #F6F2E9; color: #2A3408; line-height: 1.5; }
   .wr-textarea:focus { outline: none; border-color: #3A4410; }
   .wr-field-label { font-family: 'IBM Plex Sans', sans-serif; font-size: 12px; font-weight: 500; color: oklch(0.55 0.012 75); margin-bottom: 6px; }
-  .wr-reflect-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-  @media (max-width: 820px) { .wr-reflect-grid { grid-template-columns: 1fr; } }
+  /* Stacked, single column — each box runs the full content-column width
+     so the textarea has real room, rather than splitting into a cramped
+     2x2 grid. */
+  .wr-reflect-grid { display: grid; grid-template-columns: 1fr; gap: 16px; }
 
   .wr-plan-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px; }
-  .wr-plan-card { border-radius: 12px; padding: 12px; }
+  .wr-plan-card { min-width: 0; border-radius: 12px; padding: 12px; }
   .wr-plan-label { font-family: 'IBM Plex Sans', sans-serif; font-size: 11px; font-weight: 700; letter-spacing: .04em; margin-bottom: 6px; }
 
   .wr-stars { display: inline-flex; gap: 2px; flex: none; margin-top: 2px; }
@@ -10287,7 +10294,9 @@
     const overduePct = overdueTotal > 0 ? Math.round((overdue.length / overdueTotal) * 100) : 0;
 
     const notesCapturedInWindow = notes.filter((n) => n.date && n.date >= weekStart && n.date <= metricEnd);
-    const notesToFile = notes.filter((n) => (n.statusName || '').toUpperCase() === 'INBOX' || (n.statusName || '').toUpperCase() === 'ACTIVE');
+    // "Unprocessed" = Status is Inbox (Backend Notes §5) — Active is
+    // already-processed-but-still-live, not part of the to-file count.
+    const notesToFile = notes.filter((n) => (n.statusName || '').toUpperCase() === 'INBOX');
 
     const tagCounter = {};
     const typeCounter = {};
@@ -10345,7 +10354,7 @@
 
   const weeklyReviewState = {
     loading: false, error: null, base: null, data: null, record: null, weekOffset: 0, _loadToken: null,
-    planWindow: 'nextweek', inboxFilter: 'INBOX', tagWindow: 'thisweek', activeDomainFilter: null,
+    planWindow: 'nextweek', inboxTrack: 'notes', reviewTrack: 'notes', tagWindow: 'thisweek', activeDomainFilter: null,
     calendar: null, calendarFailed: false, undo: null,
     lastWeekCompletions: null, lastWeekGoals: null, lastWeekDomainCompletions: null,
   };
@@ -10512,7 +10521,11 @@
   async function mountWeeklyReview() {
     const s = weeklyReviewState;
     ensureFramedShell();
-    dmnProps.innerHTML = '';
+    // Chrome yes, .shell grid no (§1) means the *glance-rail content* is
+    // skipped, not the grid slot itself — Capture stays exactly where Today
+    // puts it (top of the right rail) so the button is pixel-identical
+    // across every framed screen, never a per-screen reimplementation.
+    dmnProps.innerHTML = renderCaptureAffordance();
     if (!s.base) {
       s.loading = true;
       s.error = null;
@@ -10629,7 +10642,7 @@
       <div class="wr-head-row">
         <div>
           <div class="dmn-idline">${escapeHtml(label)}</div>
-          <div class="dmn-title-row"><h1 class="dmn-title">Weekly review</h1></div>
+          <div class="dmn-title-row"><h1 class="dmn-title">WEEKLY REVIEW</h1></div>
           <div class="wr-week-nav">
             <button type="button" class="wr-week-nav-btn" data-wr-nav="prev" aria-label="Previous week">‹</button>
             <span class="wr-week-nav-ind">${escapeHtml(ind)}</span>
@@ -10637,7 +10650,6 @@
             ${s.weekOffset !== 0 ? `<button type="button" class="wr-week-nav-today" data-wr-nav="today">Jump to this week</button>` : ''}
           </div>
         </div>
-        ${renderCaptureAffordance()}
       </div>
     </div>`;
   }
@@ -10716,7 +10728,11 @@
     }).join('');
     const legend = entries.map(([code, c]) => {
       const meta = DOMAIN_META.find((m) => m.code === code) || NO_DOMAIN_META;
-      return `<div class="wr-dist-item"><span class="wr-dist-dot" style="background:${meta.fill};"></span>${escapeHtml(code)} ${c} · ${Math.round((c / total) * 100)}%</div>`;
+      // '?' is the internal bucket key for a task whose project has no
+      // resolvable domain (no project, or a domainless project) — shown as
+      // the canon "No domain" label/tile, never the raw key.
+      const label = code === '?' ? 'No domain' : code;
+      return `<div class="wr-dist-item"><span class="wr-dist-dot" style="background:${meta.fill};"></span>${escapeHtml(label)} ${c} · ${Math.round((c / total) * 100)}%</div>`;
     }).join('');
     return `<div class="wr-dist-bar-wrap">${bar}</div><div class="wr-dist-legend">${legend}</div>`;
   }
@@ -10768,29 +10784,60 @@
     if (diffDays >= 0 && diffDays <= 7) return diffDays === 0 ? 'Today' : diffDays === 1 ? '1 day ago' : `${diffDays} days ago`;
     return formatDateShort(when);
   }
-  function wrRenderInboxFilter(s) {
-    const opts = [['THISWEEK', 'This week'], ['INBOX', 'Inbox'], ['ACTIVE', 'Active']];
-    return `<div class="wr-inbox-filter">${opts.map(([v, label]) => `<button type="button" class="wr-seg${s.inboxFilter === v ? ' active' : ''}" data-wr-inbox-filter="${v}">${label}</button>`).join('')}</div>`;
+  function wrNoteRowHtml(n) {
+    const meta = n.domainCode ? (DOMAIN_META.find((m) => m.code === n.domainCode) || NO_DOMAIN_META) : null;
+    const domainChip = meta ? `<span class="wr-domain-chip" style="background:${meta.fill};color:${meta.text};">${escapeHtml(n.domainCode)}</span>` : '';
+    const typeChips = n.types.slice(0, 4).map((t) => `<span class="wr-type-chip">${escapeHtml(t)}</span>`).join('');
+    const opts = ['INBOX', 'ACTIVE', 'CLOSED'].map((v) => `<option value="${v}"${v === (n.statusName || '').toUpperCase() ? ' selected' : ''}>${v}</option>`).join('');
+    return `<div class="wr-note-row">
+      <div class="wr-note-main">
+        <a class="wr-note-title" href="${escapeHtml(n.url)}" target="_blank" rel="noopener">${escapeHtml(n.title || 'Untitled')}</a>
+        <select class="wr-note-status-select" data-wr-note-status data-wr-note-id="${escapeHtml(n.id)}" data-wr-note-prev="${escapeHtml((n.statusName || '').toUpperCase())}">${opts}</select>
+        <span class="wr-note-age">${wrNoteAgeLabel(n)}</span>
+      </div>
+      ${domainChip || typeChips ? `<div class="wr-note-pills">${domainChip}${typeChips}</div>` : ''}
+    </div>`;
   }
-  function wrRenderNoteList(d, s) {
-    let list;
-    if (s.inboxFilter === 'THISWEEK') list = s.base.notes.filter((n) => (n.date || n.createdDate) >= d.weekStart && (n.date || n.createdDate) <= d.weekEnd);
-    else list = s.base.notes.filter((n) => (n.statusName || '').toUpperCase() === s.inboxFilter);
-    if (!list.length) return `<div class="dmn-empty">${s.inboxFilter === 'THISWEEK' ? 'No notes added in this week’s window.' : 'Inbox zero — all notes are processed.'}</div>`;
-    return list.map((n) => {
-      const meta = n.domainCode ? (DOMAIN_META.find((m) => m.code === n.domainCode) || NO_DOMAIN_META) : null;
-      const domainChip = meta ? `<span class="wr-domain-chip" style="background:${meta.fill};color:${meta.text};">${escapeHtml(n.domainCode)}</span>` : '';
-      const typeChips = n.types.slice(0, 4).map((t) => `<span class="wr-type-chip">${escapeHtml(t)}</span>`).join('');
-      const opts = ['INBOX', 'ACTIVE', 'CLOSED'].map((v) => `<option value="${v}"${v === (n.statusName || '').toUpperCase() ? ' selected' : ''}>${v}</option>`).join('');
-      return `<div class="wr-note-row">
-        <div class="wr-note-main">
-          <a class="wr-note-title" href="${escapeHtml(n.url)}" target="_blank" rel="noopener">${escapeHtml(n.title || 'Untitled')}</a>
-          <select class="wr-note-status-select" data-wr-note-status data-wr-note-id="${escapeHtml(n.id)}" data-wr-note-prev="${escapeHtml((n.statusName || '').toUpperCase())}">${opts}</select>
-          <span class="wr-note-age">${wrNoteAgeLabel(n)}</span>
-        </div>
-        ${domainChip || typeChips ? `<div class="wr-note-pills">${domainChip}${typeChips}</div>` : ''}
-      </div>`;
-    }).join('');
+  function wrRenderTrackToggle(current, dataAttr) {
+    return `<div class="wr-inbox-filter">
+      <button type="button" class="wr-seg${current === 'notes' ? ' active' : ''}" data-${dataAttr}="notes">Notes</button>
+      <button type="button" class="wr-seg${current === 'tasks' ? ' active' : ''}" data-${dataAttr}="tasks">Tasks</button>
+    </div>`;
+  }
+  // Inbox panel — unprocessed items needing a first pass: notes with
+  // Status = Inbox (the same "unprocessed" marker Backend Notes §5
+  // defines), tasks that are overdue or due this week (the old "Needing
+  // attention" content, just re-homed under this panel's Tasks track).
+  function wrRenderInboxNotes(s) {
+    const list = s.base.notes.filter((n) => (n.statusName || '').toUpperCase() === 'INBOX');
+    if (!list.length) return `<div class="dmn-empty">Inbox zero — all notes are processed.</div>`;
+    return list.map(wrNoteRowHtml).join('');
+  }
+  function wrRenderInboxPanel(d, s) {
+    const track = s.inboxTrack;
+    const count = track === 'notes' ? d.notesToFile.length : (d.overdue.length + d.dueThisWeek.length);
+    const body = track === 'notes' ? wrRenderInboxNotes(s) : wrRenderAttentionList(d);
+    return `<div class="wr-sec">
+      <div class="wr-sec-hd">Inbox <span class="wr-sec-count">${count}</span></div>
+      ${wrRenderTrackToggle(track, 'wr-inbox-track')}
+      ${body}
+    </div>`;
+  }
+  // Review panel — the retrospective look-back: active notes (already
+  // processed, still live) and tasks completed this week.
+  function wrRenderActiveNotes(s) {
+    const list = s.base.notes.filter((n) => (n.statusName || '').toUpperCase() === 'ACTIVE');
+    if (!list.length) return `<div class="dmn-empty">No active notes.</div>`;
+    return list.map(wrNoteRowHtml).join('');
+  }
+  function wrRenderReviewPanel(d, s) {
+    const track = s.reviewTrack;
+    const body = track === 'notes' ? wrRenderActiveNotes(s) : wrRenderCompletedList(d);
+    return `<div class="wr-sec">
+      <div class="wr-sec-hd">Review</div>
+      ${wrRenderTrackToggle(track, 'wr-review-track')}
+      ${body}
+    </div>`;
   }
 
   function wrRenderTagFilter(s) {
@@ -10826,15 +10873,8 @@
       <div class="wr-sec"><div class="wr-sec-hd">This week's goals &amp; intentions</div>${wrRenderLastWeekGoals(s)}</div>
       <div class="wr-sec"><div class="wr-sec-hd">Domain load — this week</div>${wrRenderDomainBar(d.domainLoadWeek)}</div>
       <div class="wr-sec"><div class="wr-sec-hd">Calendar — this week</div>${wrRenderCalWeek(s, d.weekStart)}</div>
-      <div class="wr-two-up wr-sec">
-        <div><div class="wr-sec-hd">Completed this week</div>${wrRenderCompletedList(d)}</div>
-        <div><div class="wr-sec-hd">Needing attention</div>${wrRenderAttentionList(d)}</div>
-      </div>
-      <div class="wr-sec">
-        <div class="wr-sec-hd">Note station — process &amp; assign <span class="wr-sec-count">${d.notesToFile.length}</span></div>
-        ${wrRenderInboxFilter(s)}
-        ${wrRenderNoteList(d, s)}
-      </div>
+      ${wrRenderInboxPanel(d, s)}
+      ${wrRenderReviewPanel(d, s)}
       <div class="wr-sec">
         <div class="wr-sec-hd">Tag station — look for patterns</div>
         ${wrRenderTagFilter(s)}
@@ -10844,7 +10884,7 @@
   }
 
   function wrReflectBox(id, label) {
-    return `<div><div class="wr-field-label">${escapeHtml(label)}</div><textarea class="wr-textarea" id="${id}" rows="5"></textarea></div>`;
+    return `<div><div class="wr-field-label">${escapeHtml(label)}</div><textarea class="wr-textarea" id="${id}" rows="6"></textarea></div>`;
   }
   function wrRenderActReflect() {
     return `<section class="wr-act">
@@ -10968,8 +11008,10 @@
     if (toggleEl) { if (!pfeState.busy) applyWeeklyTaskComplete(toggleEl.dataset.wrTaskToggle); return; }
     const starEl = e.target.closest('[data-wr-priority]');
     if (starEl) { if (!pfeState.busy) applyWeeklyProjectPriority(starEl.dataset.wrPriority, Number(starEl.dataset.wrStars)); return; }
-    const inboxFilterEl = e.target.closest('[data-wr-inbox-filter]');
-    if (inboxFilterEl) { s.inboxFilter = inboxFilterEl.dataset.wrInboxFilter; paintWeeklyReview(); return; }
+    const inboxTrackEl = e.target.closest('[data-wr-inbox-track]');
+    if (inboxTrackEl) { s.inboxTrack = inboxTrackEl.dataset.wrInboxTrack; paintWeeklyReview(); return; }
+    const reviewTrackEl = e.target.closest('[data-wr-review-track]');
+    if (reviewTrackEl) { s.reviewTrack = reviewTrackEl.dataset.wrReviewTrack; paintWeeklyReview(); return; }
     const tagWinEl = e.target.closest('[data-wr-tag-window]');
     if (tagWinEl) { s.tagWindow = tagWinEl.dataset.wrTagWindow; paintWeeklyReview(); return; }
     const planWinEl = e.target.closest('[data-wr-plan-window]');
