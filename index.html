@@ -1740,6 +1740,21 @@
      sets it), so the button is pixel-identical to Today's, not a
      screen-specific reimplementation. */
 
+  /* Widen to Inbox's full-bleed feel — Inbox runs on the older unframed
+     .shell (no max-width cap at all), which is why it reads noticeably
+     wider than the framed shell's default 1200px .dmn-inner. Overriding
+     the custom property (rather than max-width directly) keeps every
+     other framed route's cap untouched. */
+  body[data-route="weekly-review"] .dmn-inner { --dmn-max-width: none; }
+
+  /* Title + week-nav stick to the top of the main column on scroll
+     (Capture already does, via .dmn-props' own position:sticky —
+     untouched here), same spirit as Inbox's own sticky bin header
+     (Addendum 3: header + its divider pinned, cards scroll under it). */
+  .wr-head {
+    position: sticky; top: 24px; z-index: 15;
+    background: #F6F2E9; padding-bottom: 16px; border-bottom: 1px solid #DED8CA;
+  }
   .wr-head-row { display: flex; align-items: flex-start; gap: 16px; flex-wrap: wrap; }
   .wr-week-nav { display: flex; align-items: center; gap: 8px; margin-top: 8px; }
   .wr-week-nav-btn { width: 26px; height: 26px; line-height: 1; font-size: 15px; border-radius: 6px; border: 1px solid #DED8CA; background: #F6F2E9; color: #2A3408; cursor: pointer; }
@@ -1777,16 +1792,6 @@
   .wr-sec { margin-bottom: 26px; }
   .wr-sec-hd { font-family: 'IBM Plex Sans', sans-serif; font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: oklch(0.55 0.012 75); margin: 0 0 10px; }
   .wr-sec-count { font-family: 'IBM Plex Sans', sans-serif; font-size: 12px; text-transform: none; letter-spacing: 0; color: oklch(0.55 0.012 75); }
-
-  .wr-two-up { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
-  /* Grid items default to min-width:auto, which refuses to shrink below
-     their content's min-content size — a nowrap event label (.wr-cal-event)
-     or a bare <textarea> (whose own intrinsic width defaults to its `cols`
-     attribute) can each blow that minimum out far past an even 1fr/1fr
-     split, squeezing the other column to a sliver. min-width:0 here is
-     what actually lets both columns honor the 50/50 split. */
-  .wr-two-up > div { min-width: 0; }
-  @media (max-width: 820px) { .wr-two-up { grid-template-columns: 1fr; } }
 
   .wr-row { display: flex; align-items: flex-start; gap: 10px; padding: 9px 0; border-bottom: 1px solid #DED8CA; }
   .wr-row:last-child { border-bottom: none; }
@@ -1846,7 +1851,9 @@
      2x2 grid. */
   .wr-reflect-grid { display: grid; grid-template-columns: 1fr; gap: 16px; }
 
-  .wr-plan-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px; }
+  .wr-plan-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 10px; margin-top: 10px; }
+  @media (max-width: 900px) { .wr-plan-grid { grid-template-columns: 1fr 1fr; } }
+  @media (max-width: 560px) { .wr-plan-grid { grid-template-columns: 1fr; } }
   .wr-plan-card { min-width: 0; border-radius: 12px; padding: 12px; }
   .wr-plan-label { font-family: 'IBM Plex Sans', sans-serif; font-size: 11px; font-weight: 700; letter-spacing: .04em; margin-bottom: 6px; }
 
@@ -9940,11 +9947,14 @@
   // screen alongside Today, porting the standalone WeeklyReview.html's three
   // acts (Review/Reflect/Plan) into the shared chrome. Chrome yes, `.shell`
   // grid no (brief §1) — it mounts through the same ensureFramedShell() Today
-  // uses, but the "Framed shell" CSS collapses .dmn-props to nothing for
-  // this route (single main column, no persistent glance rail). Every write
-  // routes through the shared edit-slice helpers above; every week
-  // calculation routes through the td* Sunday-anchored module Today already
-  // defined — neither is reinvented here.
+  // uses; dmnProps carries only the shared Capture affordance (no glance
+  // content), so the main column reads as one long single-column ritual,
+  // wider than Today's since there's no glance rail competing for room (the
+  // "Framed shell" CSS also drops the panel's max-width cap for this route
+  // to match Inbox's full-bleed feel). Every write routes through the
+  // shared edit-slice helpers above; every week calculation routes through
+  // the td* Sunday-anchored module Today already defined — neither is
+  // reinvented here.
   // ==========================================================================
 
   // --- Schema (brief §15) — Weekly Reviews DB field map, resolved live and
@@ -10953,20 +10963,18 @@
       <div class="wr-sec"><div class="wr-sec-hd">Filter by domain</div>${wrRenderDomainFilter(s)}</div>
       <div class="wr-sec"><div class="wr-sec-hd">Active projects — set priorities</div>${wrRenderActiveProjects(d, s)}</div>
       <div class="wr-sec"><div class="wr-sec-hd">Tasks — next two weeks</div>${wrRenderPlanTasks(s)}</div>
-      <div class="wr-two-up wr-sec">
-        <div>
-          <div class="wr-sec-hd">Calendar — two-week outlook</div>
-          ${wrRenderCalWeek(s, d.w1s)}
-          ${wrRenderCalWeek(s, d.w2s)}
-        </div>
-        <div>
-          <div class="wr-sec-hd">1% goals</div>
-          <div class="wr-field-label">Two-week outlook intention</div>
-          <textarea class="wr-textarea" id="wr-plan-theme" rows="2" placeholder="One word, phrase, or sentence that frames the next two weeks…"></textarea>
-          <div class="wr-plan-grid">
-            ${wrGoalBox('rcbs', 'RCBS')}${wrGoalBox('rws', 'RWS')}${wrGoalBox('sm', 'SM')}
-            ${wrGoalBox('mts', 'MTS')}${wrGoalBox('eplc', 'EPLC')}${wrGoalBox('peeps', 'PEEPS')}
-          </div>
+      <div class="wr-sec">
+        <div class="wr-sec-hd">Calendar — two-week outlook</div>
+        ${wrRenderCalWeek(s, d.w1s)}
+        ${wrRenderCalWeek(s, d.w2s)}
+      </div>
+      <div class="wr-sec">
+        <div class="wr-sec-hd">1% goals</div>
+        <div class="wr-field-label">Two-week outlook intention</div>
+        <textarea class="wr-textarea" id="wr-plan-theme" rows="2" placeholder="One word, phrase, or sentence that frames the next two weeks…"></textarea>
+        <div class="wr-plan-grid">
+          ${wrGoalBox('rcbs', 'RCBS')}${wrGoalBox('rws', 'RWS')}${wrGoalBox('sm', 'SM')}
+          ${wrGoalBox('mts', 'MTS')}${wrGoalBox('eplc', 'EPLC')}${wrGoalBox('peeps', 'PEEPS')}
         </div>
       </div>
       <button type="button" class="wr-save-btn" data-wr-save>Save weekly review</button>
