@@ -471,7 +471,7 @@ Silent, read-only, via the same `GET {PROXY}/calendar/events` Today's right rail
 
 # Addendum 5 — Find (as-built)
 
-*Explore (browse) and Search (retrieve) shipped per `RenitaOS-Find-Build-Brief.md` as **one screen, one rail item — "Find"** — over one shared in-memory index. Where this addendum and the body text above disagree (including Addendum 2/3/4's rail-set mentions), this addendum wins.*
+*Explore (browse) and Search (retrieve) shipped per `RenitaOS-Find-Build-Brief.md` as **one screen, one rail item — "Find"** — over one shared in-memory index. Each of the seven entity tabs is a small dashboard: **Insights** (descriptive — what's in here) over a **Library** (the full list). Where this addendum and the body text above disagree (including Addendum 2/3/4's rail-set mentions), this addendum wins.*
 
 ## Rail set — supersedes every earlier list
 
@@ -479,20 +479,54 @@ Silent, read-only, via the same `GET {PROXY}/calendar/events` Today's right rail
 
 ## Layout — single-column, same trade as Weekly Review
 
-Chrome yes, the `.shell` three-zone profile grid no (Addendum 2 scope) — Find has no per-record right rail, so it takes the same single-column trade Weekly Review does (Addendum 4): the 230px column is dropped, and Capture rides inline in the header, pinned to that same width. The header (title + pinned search box + domain filter) sticks to the top of the main column on scroll, same sticky-header spirit as Weekly Review's own.
+Chrome yes, the `.shell` three-zone profile grid no (Addendum 2 scope) — Find has no per-record right rail, so it takes the same single-column trade Weekly Review does (Addendum 4): the 230px column is dropped, and Capture rides inline in the header, pinned to that same width. A single **search bar** and the **global domain filter** sit in that sticky header, screen-level (not per-tab); the seven-tab row lives in the body below it.
 
-## The index — one build, shared by both faces
+## The index — one build, shared by every tab and every Insight
 
-On screen entry, all seven browse databases (Notes, Tasks, Projects, Tags, People, Collections, Resources) plus Domains (resolution-only — id → code/color map, never its own tab) are fetched in parallel, each paginated to completion. The result is cached at module scope for the page session — switching tabs, typing in the search box, and toggling the domain filter all read that one in-memory index, never Notion again, until a quiet **Refresh** link re-runs the whole build. A record's domain is resolved **locally** against the already-fetched pages, never a second network round-trip per record: Notes/Projects read their own domain field/relation; a **Task's domain is the rollup through its first Project**, looked up in a project-id → domain map built once from the Projects fetch (not the per-task live lookup the Task profile's own resolver uses — that one exists for a single record, not an index of every task). Tags/People/Collections/Resources carry no domain.
+On screen entry, all seven browse databases (Notes, Tasks, Projects, Tags, People, Collections, Resources) plus Domains (resolution-only — id → code/color map, never its own tab) are fetched in parallel, each paginated to completion. The result is cached at module scope for the page session — switching tabs, typing in the search box, toggling the domain filter, and every Insight all read that one in-memory index, never Notion again, until a quiet **Refresh** link re-runs the whole build.
 
-## Browse — the seven-tab dense-row list, reused wholesale
+Every cross-reference is resolved **locally**, never a second network round-trip per record:
+- **Domain.** Notes/Projects read their own domain field/relation; a **Task's domain is the rollup through its first Project**, looked up in a project-id → domain map built once from the Projects fetch (not the per-task live lookup the Task profile's own resolver uses — that one exists for a single record, not an index of every task). Tags/People/Collections/Resources carry no domain.
+- **"N of M done" (Projects).** Reads the completed-count rollup directly when the schema has it (the same rollup property the Project/Domain profiles already resolve for their own cards), falling back to `round(progress × total)` only when that rollup is absent.
+- **Member counts (Tags Top-10, Collections Top-3).** Every database that carries its own relation property pointing at Tags/Collections (the same reverse-relation set the Tag/Collection profile's own reference shelf already reads) is tallied once over pages already in memory.
+- **Reverse lookups** power the Tags/People pills and People's Recent Activity Insight: which Notes relate to a given Tag or Person, and which Projects relate to a given Person — all built by walking the already-fetched pages once, not queried per row.
 
-Same tabbed dense-row component the Domain profile's reference shelf and the Tag/Collection/Person trio already ship (`renderRelationRow` / `renderNotesTabGrouped` / the `.dmn-tabs`/`.pf-row` markup) — Find's browse tabs render through the exact same functions, adapted from the index's own record shape. Seven tabs, always shown, zero-count tabs stay clickable to a quiet empty state. Default tab is Notes, grouped by Type in schema order (No Type last), same double-count-with-caption convention as every other Notes-tab consumer. Domain filter narrows Notes/Tasks/Projects only; the four cross-cutting tabs show their full list with a quiet "not domain-scoped" caption when a domain is active, rather than going empty.
+## Screen frame — search bar, tab row, the takeover
 
-## Search — debounced, ranked, over the same index
+A single search bar, pinned in the sticky header, ~180ms debounced, reads the cached index only (no network per keystroke). Below it, the seven-tab row. **Empty bar** → the active tab's Insights + Library render in the body. **Non-empty bar** → unified results (grouped by entity type) replace that body, and the *same* tab row becomes **scoping chips**: clicking a tab narrows results to that entity's full ranked list; a "Search everything" chip (shown only once a scope is set) clears back to the unified view. A fresh search always starts unified, regardless of whichever tab was active in browse mode. Clearing the bar restores the tab's Insights+Library.
 
-A single box, pinned in the header, ~180ms debounced, reading the cached index only. Non-empty query swaps the tabs out for unified results grouped by entity type (Notes · Tasks · Projects, then Tags · People · Collections · Resources), capped ~5 per group with a "Show all N" drill-down. Ranking: exact title → prefix → token/substring → fuzzy title (Levenshtein, threshold scaled to query length — the same table `js/similarity.js` uses for Capture's autocomplete, duplicated inline since this file stays a self-contained classic script) → a resolved-relation `metaBlob` match (title/types/status/domain code/Tags·People·Collections names/handle) — tiebroken by recency. A query shaped like `PREFIX-123` resolves straight to that record, skipping ranking, matched against handles already in the index (never a hardcoded prefix list). Search state (`q`/`domain`/`tab`) reflects into the hash via `history.replaceState` — never a `location.hash` assignment, which would re-fire the router and rebuild the index on every keystroke — so a search survives refresh and is shareable without any extra network cost.
+## The seven tabs — each a Search → Insights → Library dashboard
+
+**Library** (every tab): a flat, dense-bordered row list — `.pf-row`/`.pf-row-main` extended with a **date-added** (`created_time`, compact "Jul 12", year appended only when it isn't the current year) and a second line of **entity-specific pills** (olive-on-sage; a Task's Priority renders as the shared `renderPriorityValue` stars, never a colored pill). The domain chip is the only colored element on the row. **Sorted by `created_time`, newest first, on every tab** — this replaced the earlier per-type Notes grouping; the Type breakdown now lives in Notes' own Insight instead. Zero-count tabs stay clickable to a quiet empty state.
+
+**Insights** (per tab, list-first — donuts are a deferred Phase 1.5, see below): a compact band above the Library, plain serif-title/muted-sans-metric rows (no pill background, so they never outshout the Library or compete with the domain chips for color). Per tab:
+
+| Tab | Insights | Library pills |
+|---|---|---|
+| Notes *(default)* | Breakdown by Type (schema order, No Type last, multi-Type double-counts) · Top 5 Tags (by Note count) · Recent Notes | Type(s) + Tags |
+| Tasks | Recently Added | Status + Priority (stars) + Project |
+| Projects | Recently Added | Status + "N of M done" |
+| Tags | Top 10 by member count · Recently Added | up to 5 most-recent distinct Note-Types |
+| Collections | Top 3 by member count · Recently Added | — (base row only) |
+| Resources | Recently Added | — (base row only) |
+| People | Recently Added · Recent Activity (Notes/Tasks with a People relation, ranked by most-recent of created/edited) | Note-Types + Project |
+
+("Status breakdown" is deliberately omitted from Tasks/Projects Insights — that lives on Today/Domain profiles; repeating it here would blur into evaluative territory, see the Home boundary below.)
+
+## Domain filter
+
+Same **All + the six** control Today/Weekly Review use. On the three domain-bearing tabs (Notes, Tasks, Projects) it scopes **both** the Library and the Insights (e.g. Notes' breakdown and Top-5-Tags recompute within the selected domain). The four cross-cutting tabs (Tags, People, Collections, Resources) have no domain — they keep their full list **and** their (always-global) Insights, with a quiet "not domain-scoped" caption, rather than going empty. In unified search, the same split applies: Notes/Tasks/Projects results are domain-filtered; cross-cutting matches still appear, captioned.
+
+## Search — ranked, over the same index
+
+Ranking within a group: exact title → prefix → title token/substring → fuzzy title (Levenshtein, threshold scaled to query length — the same table `js/similarity.js` uses for Capture's autocomplete, duplicated inline since this file stays a self-contained classic script) → a resolved-relation `metaBlob` match (title/types/status/domain code/relation names/handle) — tiebroken by recency (`created_time`, then `last_edited_time`). Unified results group Notes · Tasks · Projects, then Tags · People · Collections · Resources, capped ~5 per group with a "Show all N" that sets the same scope the tab-row chips do. A query shaped like `PREFIX-123` resolves straight to that record, skipping ranking, matched against handles already in the index (never a hardcoded prefix list). Search state (`q`/`domain`/`tab`) reflects into the hash via `history.replaceState` — never a `location.hash` assignment, which would re-fire the router and rebuild the index on every keystroke — so a search survives refresh and is shareable without any extra network cost.
+
+## The Home boundary — descriptive, not evaluative
+
+Find's Insights answer *what is in here*: composition (breakdown by Type), prominence (Top-N by member count), freshness (Recently Added / Recent Activity). Home's still-deferred layer answers *what needs attention*: drift, dormancy, on-this-day, pulses, comparison-to-baseline. These don't overlap, and shipping Find's Insights does not pull Home's scope forward — an "insight" that starts judging neglect or change-over-time belongs to Home, not here.
 
 ## Phase boundary
 
-Ships without body-text search — the index's `body` slot exists on every record but stays empty; matching is title + metaBlob only. Body search (Notes first, progressive background hydration, `last_edited_time`-keyed incremental cache, snippet on match) is the documented Phase 2 and isn't built yet.
+**Phase 1 (shipped):** Insights as ranked/linked lists; no body-text search — the index's `body` slot exists on every record but stays empty; matching is title + `metaBlob` only.
+**Phase 1.5 (not built):** the Notes-by-Type and Tags-Top-10 Insights get a hand-rolled SVG donut (same from-scratch style as the Domain profile's activity spark) with a rollover popup, alongside their existing list form.
+**Phase 2 (not built):** body-text search — Notes first, progressive background hydration, `last_edited_time`-keyed incremental cache, snippet on match.
