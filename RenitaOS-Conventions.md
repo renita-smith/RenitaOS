@@ -409,6 +409,7 @@ The cream panel **grows to fit its content on every screen**: min-height = viewp
 - **Tight gap** between the bin header and the first card.
 - **Bulk-select actions** (Tag / Status / Delete) sit **near the Select/Done button at the top**, sized like it but a different color — not in a bottom bar.
 - The redundant top-right **"N to Sort" is removed**; the **"N waiting"** subtitle is the single count.
+- **Row layout** — Inbox's own dense rows are a rail-less screen and are governed by Addendum 6's shared grid; retrofitting them (content zone + right-aligned metadata column + body snippet) is tracked as its own Roadmap item, not yet built.
 
 ## Typography — enforced app-wide
 
@@ -497,7 +498,7 @@ A single search bar, pinned in the sticky header, ~180ms debounced, reads the ca
 
 ## The seven tabs — each a Search → Insights → Library dashboard
 
-**Library** (every tab): a flat, dense-bordered row list — `.pf-row`/`.pf-row-main` extended with a **date-added** (`created_time`, compact "Jul 12", year appended only when it isn't the current year) and a second line of **entity-specific pills** (olive-on-sage; a Task's Priority renders as the shared `renderPriorityValue` stars, never a colored pill). The domain chip is the only colored element on the row. **Sorted by `created_time`, newest first, on every tab** — this replaced the earlier per-type Notes grouping; the Type breakdown now lives in Notes' own Insight instead. Zero-count tabs stay clickable to a quiet empty state.
+**Library** (every tab): a flat, dense-bordered row list built on **Addendum 6's rail-less row grid** — a content zone (title + handle, an optional Phase-2 body snippet, then a pills row carrying the domain chip alongside **entity-specific pills**, olive-on-sage; a Task's Priority renders as the shared `renderPriorityValue` stars, never a colored pill) beside a fixed-width, right-aligned **date-added** column (`created_time`, compact "Jul 12", year appended only when it isn't the current year), so dates stack into one column across every row. The domain chip is the only colored element on the row — and resolves to **no chip, never a literal "undefined"**, when a record has none. **Sorted by `created_time`, newest first, on every tab** — this replaced the earlier per-type Notes grouping; the Type breakdown now lives in Notes' own Insight instead. Zero-count tabs stay clickable to a quiet empty state.
 
 **Insights** (per tab, list-first — donuts are a deferred Phase 1.5, see below): a compact band above the Library, plain serif-title/muted-sans-metric rows (no pill background, so they never outshout the Library or compete with the domain chips for color). Per tab:
 
@@ -530,3 +531,34 @@ Find's Insights answer *what is in here*: composition (breakdown by Type), promi
 **Phase 1 (shipped):** Insights as ranked/linked lists; no body-text search — the index's `body` slot exists on every record but stays empty; matching is title + `metaBlob` only.
 **Phase 1.5 (not built):** the Notes-by-Type and Tags-Top-10 Insights get a hand-rolled SVG donut (same from-scratch style as the Domain profile's activity spark) with a rollover popup, alongside their existing list form.
 **Phase 2 (not built):** body-text search — Notes first, progressive background hydration, `last_edited_time`-keyed incremental cache, snippet on match.
+
+---
+
+# Addendum 6 — Rail-less layout (system-wide rule)
+
+*Introduced while building Find, but the rule is not Find-specific — it governs every screen that renders **no right rail** (Find now; Inbox and Home once retrofitted/built — see the Roadmap). Where a screen's own addendum (e.g. Addendum 5) describes a row shape, this addendum is what that row shape is built on.*
+
+## The problem it fixes
+
+On a screen with no right rail, a single content column expands to fill the whole panel, and row metadata (a date, a status) gets pinned to the **panel's own far edge** — splitting each row into a barbell: a left cluster, a dead valley, and a stranded edge cluster. The rail was never what made a screen read as finished; **filled, column-aligned content** was. Content stretched full-bleed reads as unfinished; the same content in aligned columns with a used middle reads as polished. (This is the same root cause behind Weekly Review's sparse lower sections, e.g. its Domain-load bar — see the Roadmap.)
+
+## The rule — three moves, applied together
+
+1. **Content measure + right gutter.** A rail-less screen's content column takes the full panel width **minus `--railless-gutter`** (a modest reclaim — smaller than Today's ~230px rail, so the width stays *used* rather than handed away as void). Content stays **flush-left**, on the same left edge as Today and the nav rail. The gutter is a right margin on the content column itself, never a centered/narrowed panel — narrowing the panel would shift the left edge and break that alignment. `--railless-gutter` and the derived `--content-measure` (`calc(100% - var(--railless-gutter))`) are defined once, in `:root`, alongside the framed panel's own `--dmn-max-width` (Addendum 2/3's max-width rule) — one shared pair of tokens, not hand-tuned per screen.
+2. **Two-zone row grid.** Each row is a grid: a flexible **content zone** (`minmax(0,1fr)`) beside **right-aligned metadata column(s)** of a fixed width, so status/date/etc. stack into **tidy vertical columns across every row** instead of floating at the panel edge, chasing however long each row's title happens to run.
+   - **Content zone:** title (serif) → an optional **one-line body snippet** (muted sans, single line, ellipsized, never wraps) → a pills row (domain chip + type/status/other pills).
+   - **Metadata column(s):** the screen's own right-side data — Find is just a date-added; a screen with more (Inbox: a Status select + a relative date) gets more columns, still fixed-width and right-aligned.
+3. **The snippet fills the valley.** A one-line preview of the record's body turns the dead middle into the thing you're actually reading — triage context on Inbox, recognition on Find — and rescues the rows that would otherwise look emptiest (an untyped, undomained note with no pills).
+
+**General principle:** any *sparse* element — a lone bar, a single stat line — column-aligns or sits within the measure, rather than spanning the full panel width. Apply this same read wherever a screen has a thin, mostly-empty full-width row (Weekly Review's Domain-load bar is the next candidate — see the Roadmap).
+
+## Adoption status
+
+- **Find** — shipped (Conventions Addendum 5): the gutter + two-zone grid land in Phase 1; the body snippet is structurally present but stays empty until Phase 2's body hydration (Find doesn't cache bodies before then).
+- **Inbox** — not yet retrofitted (Roadmap item). Its rows already have body text loaded (no Phase-2-style wait), so its snippet can ship as soon as the grid does.
+- **Home** — inherits this rule when built; no retrofit needed, just build to it from the start.
+- Profile/detail views keep the `.shell` three-zone grid (Addendum 2) and are unaffected — this rule is about rail-less screens only.
+
+## Bug fixed in passing
+
+A record's domain must resolve to **`null`, never the literal string `"undefined"`** — per §1/§7 of the Find brief (task domain via project rollup, else null), a resolution miss renders **no chip**, not a stray "undefined" one. Guarded both where the domain is resolved (coalesce to `null`, not an object with an undefined `.code`) and where the chip renders (check for a real `.code`, not just a truthy object).

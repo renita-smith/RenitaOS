@@ -37,6 +37,20 @@
     --faint-text: oklch(0.68 0.01 75);
     --hairline: oklch(0.92 0.008 75);
 
+    /* Rail-less layout (§2A, Find Build Brief) — shared by every screen
+       with no right rail (Find now; Inbox/Home retrofit later, per the
+       Roadmap). Without a rail column reserving space, a full-bleed
+       content area pins row metadata to the panel's own edge instead of
+       a readable column — --railless-gutter reclaims a modest right
+       margin (deliberately smaller than Today's ~230px rail, so the
+       width stays used rather than given away as void) instead of
+       centering/narrowing the whole panel, which would break left-edge
+       alignment with Today and the nav. --content-measure is the
+       resulting usable width, exposed as its own token for anything
+       that wants to cap to it directly rather than pad into it. */
+    --railless-gutter: 72px;
+    --content-measure: calc(100% - var(--railless-gutter));
+
     color-scheme: light only;
   }
 
@@ -1754,6 +1768,11 @@
      same width. ---- */
   body[data-route="find"] .dmn-shell { grid-template-columns: 150px minmax(0,1fr); }
   body[data-route="find"] .dmn-props { display: none; }
+  /* §2A rail-less layout — the reclaimed 230px isn't handed wholesale to
+     the main column; a modest --railless-gutter comes back as a right
+     margin on the content column itself, applied here (not by narrowing
+     .dmn-shell) so the left edge stays aligned with Today/the nav. */
+  body[data-route="find"] .dmn-col { padding-right: var(--railless-gutter); }
   .find-head-row .dmn-capture { width: 230px; }
   .find-head {
     position: sticky; top: 0; z-index: 15;
@@ -1821,14 +1840,30 @@
   }
   .find-library-head .dmn-n { font-size: 13px; font-weight: 600; text-transform: none; letter-spacing: normal; }
 
-  /* Library row (§3) — extends .pf-row/.pf-row-main/.pf-row-domain
-     (the shipped dense-row look) with a date-added on the top line and an
-     entity-specific pill band on a second line beneath. Pills are olive-
-     on-sage; the domain chip stays the only colored element on the row. */
-  .find-row { flex-direction: column; align-items: stretch; justify-content: flex-start; gap: 6px; }
-  .find-row-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
-  .find-row-date { font-family: 'IBM Plex Sans', sans-serif; font-size: 12px; color: oklch(0.55 0.012 75); }
+  /* Library row (§2A/§3) — the two-zone rail-less row grid: a flexible
+     content zone (title+handle → optional Phase-2 snippet → a pills row
+     that now carries the domain chip alongside the entity pills) beside
+     a fixed-width, right-aligned metadata column (date added) so dates
+     stack into one tidy column across every row instead of floating at
+     the panel's edge, chasing however long each title happens to be.
+     Extends .pf-row (the shipped dense-bordered-row look) rather than
+     replacing it — only the internal layout changed, not the treatment. */
+  .find-row {
+    display: grid; grid-template-columns: minmax(0,1fr) 92px;
+    align-items: start; column-gap: 16px;
+  }
+  .find-row-content { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+  .find-row-title-line { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+  /* Phase 2 only (§5) — empty/absent in Phase 1, since Find doesn't cache
+     bodies yet; the row grid is already shaped to take it without a
+     re-layout once body hydration ships. */
+  .find-row-snippet {
+    font-family: 'IBM Plex Sans', sans-serif; font-size: 13px; color: oklch(0.55 0.012 75);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
   .find-row-pills { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+  .find-row-meta { text-align: right; padding-top: 1px; }
+  .find-row-date { font-family: 'IBM Plex Sans', sans-serif; font-size: 12px; color: oklch(0.55 0.012 75); white-space: nowrap; }
   .find-pill {
     font-family: 'IBM Plex Sans', sans-serif; font-size: 11px; padding: 3px 9px; border-radius: var(--radius-sm);
     background: var(--tg-sage-deep, #DBE2C1); color: #2A3408;
@@ -1838,6 +1873,10 @@
     .find-head { position: static; }
     .find-head-row .dmn-capture { width: auto; }
     .find-search-input { flex-basis: 100%; min-width: 0; }
+    /* The gutter is a desktop reclaim against unused rail width — mobile
+       has none to spare, so the content column goes back to full width. */
+    body[data-route="find"] .dmn-col { padding-right: 0; }
+    .find-row { grid-template-columns: minmax(0,1fr) 72px; column-gap: 10px; }
   }
 
   /* Title + week-nav + Capture stick to the top of the main column on
@@ -2024,7 +2063,7 @@
   // Bumped by hand on every deployed change (Cycle-2 preflight) — logged on
   // load and shown in-app (topbar + framed rail) so it's a glance which
   // build is actually running, instead of inferring it from git history.
-  const BUILD_STAMP = '2026-07-30-find2';
+  const BUILD_STAMP = '2026-07-30-find3';
   console.log(`RenitaOS build ${BUILD_STAMP}`);
 
   // --- Shared bootstrap: defined once, in one place. -----------------------
@@ -11264,7 +11303,10 @@
         if (meta) projectDomain.set(p.id, meta);
       });
     }
-    function domainChip(meta) { return meta ? { code: meta.code, fill: meta.fill, text: meta.text } : null; }
+    // §2A checklist — a domain field resolves to null, never a truthy
+    // object with an undefined .code (which would otherwise render a
+    // literal "undefined" chip); meta.code is required, not just meta.
+    function domainChip(meta) { return (meta && meta.code) ? { code: meta.code, fill: meta.fill, text: meta.text } : null; }
 
     // Member counts (§1/§3 Tags Top-10, Collections Top-3) — every DB that
     // carries its own relation property pointing at Tags/Collections
@@ -11559,26 +11601,40 @@
     return pills;
   }
 
+  // §2A two-zone row: a flexible content zone (title/handle, an optional
+  // Phase-2 snippet, and a pills row carrying the domain chip alongside
+  // the entity pills) beside a fixed-width right-aligned metadata column
+  // (date added) — so dates line up in one column across every row
+  // instead of trailing however long each title happens to run.
+  // `r.domain && r.domain.code` (not just `r.domain`) is the guard against
+  // a truthy-but-empty domain object ever rendering a literal "undefined"
+  // chip — belt-and-suspenders alongside domainChip()'s own null coalescing.
   function renderFindLibraryRow(r, index) {
     const navAttr = r.route ? ` data-pf-nav="${escapeHtml(r.route)}"` : '';
-    const domainHtml = r.domain
+    const domainHtml = (r.domain && r.domain.code)
       ? `<span class="pf-row-domain" style="background:${r.domain.fill};color:${r.domain.text};">${escapeHtml(r.domain.code)}</span>`
       : '';
     const priorityHtml = (r.entityType === 'tasks' && r.priorityName)
       ? `<span class="find-pill find-pill--priority">${renderPriorityValue(r.priorityName)}</span>` : '';
     const pillsHtml = findPillsFor(r, index).map((t) => `<span class="find-pill">${escapeHtml(t)}</span>`).join('');
-    const tailHtml = (priorityHtml || pillsHtml)
-      ? `<div class="find-row-pills">${priorityHtml}${pillsHtml}</div>` : '';
+    const pillsRowHtml = (domainHtml || priorityHtml || pillsHtml)
+      ? `<div class="find-row-pills">${domainHtml}${priorityHtml}${pillsHtml}</div>` : '';
+    // Phase 1 never populates r.body (§5) — this stays empty/absent until
+    // Phase 2's hydration lands, at which point it folds straight into
+    // this same slot with no row re-layout.
+    const snippetHtml = r.body ? `<div class="find-row-snippet">${escapeHtml(r.body)}</div>` : '';
     return `<div class="pf-row find-row${r.route ? ' pf-row--nav' : ''}"${navAttr}>
-      <div class="find-row-top">
-        <div class="pf-row-main">
+      <div class="find-row-content">
+        <div class="find-row-title-line">
           <span class="pf-row-title">${escapeHtml(r.title || 'Untitled')}</span>
           <span class="pf-row-id">${r.handle ? escapeHtml(r.handle) : '—'}</span>
-          <span class="find-row-date">${escapeHtml(findFormatDateAdded(r.createdTime))}</span>
         </div>
-        ${domainHtml}
+        ${snippetHtml}
+        ${pillsRowHtml}
       </div>
-      ${tailHtml}
+      <div class="find-row-meta">
+        <span class="find-row-date">${escapeHtml(findFormatDateAdded(r.createdTime))}</span>
+      </div>
     </div>`;
   }
 
