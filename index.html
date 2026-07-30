@@ -1869,6 +1869,37 @@
     background: var(--tg-sage-deep, #DBE2C1); color: #2A3408;
   }
   .find-pill--priority { background: transparent; padding: 3px 0; letter-spacing: 1px; }
+
+  /* Chart primitives (Revision changeset) — deliberately distinct shapes.
+     A. Load bar: label-left + .dmn-bar track (Today/Weekly Review's own
+     domain-load bar language, reused wholesale) + count-right. By-domain
+     bars pass a `fill` (the six domain hexes — wayfinding, the app's one
+     saturated system); by-type bars (Notes/Resources) omit it and fall
+     through to .dmn-bar's own default olive fill — ambient, not
+     wayfinding, never domain-colored or rainbowed. */
+  .find-load { display: flex; flex-direction: column; gap: 6px; }
+  .find-load-row { display: flex; align-items: center; gap: 10px; }
+  .find-load-label {
+    font-family: 'IBM Plex Sans', sans-serif; font-size: 12px; color: #2A3408;
+    flex: 0 0 132px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .find-load-n { font-family: 'IBM Plex Sans', sans-serif; font-size: 12px; color: oklch(0.55 0.012 75); width: 26px; text-align: right; flex-shrink: 0; }
+
+  /* B. Bar chart (Tags Top-10 only) — the label rides inside the fill
+     itself rather than a separate left column, which is what keeps this
+     from reading as just another load bar. Olive-on-sage only — Tag color
+     is ambient, never wayfinding, so this never domain-colors either. */
+  .find-barchart { display: flex; flex-direction: column; gap: 6px; }
+  .find-bar-row { display: flex; align-items: center; gap: 10px; cursor: pointer; }
+  .find-bar-track { flex: 1; position: relative; height: 24px; background: #00000008; border-radius: 4px; overflow: hidden; min-width: 0; }
+  .find-bar-fill { position: absolute; top: 0; left: 0; bottom: 0; background: var(--tg-sage-deep, #DBE2C1); }
+  .find-bar-label {
+    position: relative; z-index: 1; display: block; padding: 0 8px; line-height: 24px;
+    font-family: 'IBM Plex Sans', sans-serif; font-size: 12px; color: #2A3408;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .find-bar-row:hover .find-bar-label { text-decoration: underline; }
+  .find-bar-n { font-family: 'IBM Plex Sans', sans-serif; font-size: 12px; color: oklch(0.55 0.012 75); width: 26px; text-align: right; flex-shrink: 0; }
   @media (max-width: 820px) {
     .find-head { position: static; }
     .find-head-row .dmn-capture { width: auto; }
@@ -2063,7 +2094,7 @@
   // Bumped by hand on every deployed change (Cycle-2 preflight) — logged on
   // load and shown in-app (topbar + framed rail) so it's a glance which
   // build is actually running, instead of inferring it from git history.
-  const BUILD_STAMP = '2026-07-30-find3';
+  const BUILD_STAMP = '2026-07-30-find4';
   console.log(`RenitaOS build ${BUILD_STAMP}`);
 
   // --- Shared bootstrap: defined once, in one place. -----------------------
@@ -11189,6 +11220,33 @@
     try { return await relationPropertyName(sourceDbId, targetDbId); } catch (err) { return null; }
   }
 
+  // Resources' own Type field isn't assumed multi_select vs select (unlike
+  // Notes, where CONFIG.NOTES_PROP.TYPE is a known fixed name) — resolved
+  // generically by type + a "type" keyword match, same principle as every
+  // other keyword resolver in this file. Returns null (never throws) when
+  // unresolvable, so the Resources tab can fall back to Recent Activity
+  // only (Revision changeset §"Field-resolution notes") instead of a
+  // broken/empty bar.
+  async function findGenericTypeProp(dbId) {
+    const db = await getSchema(dbId);
+    const entry = Object.entries(db.properties).find(
+      ([name, prop]) => (prop.type === 'multi_select' || prop.type === 'select') && normalizePropKeyword(name).includes('type')
+    );
+    if (!entry) return null;
+    const [name, prop] = entry;
+    const kind = prop.type;
+    const options = kind === 'multi_select' ? ((prop.multi_select && prop.multi_select.options) || []) : ((prop.select && prop.select.options) || []);
+    return { name, kind, order: options.map((o) => o.name) };
+  }
+  function findReadTypeValues(page, typeProp) {
+    if (!typeProp) return [];
+    const val = page.properties[typeProp.name];
+    if (!val) return [];
+    if (typeProp.kind === 'multi_select') return (val.multi_select || []).map((o) => o.name);
+    if (typeProp.kind === 'select') return val.select ? [val.select.name] : [];
+    return [];
+  }
+
   function findMetaBlob(title, types, status, domainMeta, relationNames, handle) {
     return [title, ...(types || []), status, domainMeta ? domainMeta.code : '', ...(relationNames || []), handle]
       .filter(Boolean).join(' ').toLowerCase();
@@ -11240,6 +11298,7 @@
       peopleTagsProp, peopleCollectionsProp,
       collectionsTagsProp, tagsCollectionsProp,
       resourcesTagsProp, resourcesCollectionsProp,
+      notesResourcesProp, resourcesTypeProp,
     ] = await Promise.all([
       Promise.all(FIND_TAB_ORDER.map(async (k) => {
         const dbId = REL_DB_META[k].dbId;
@@ -11270,6 +11329,8 @@
       findResolveRelProp(CONFIG.DB.TAGS, CONFIG.DB.COLLECTIONS),
       findResolveRelProp(CONFIG.DB.RESOURCES, CONFIG.DB.TAGS),
       findResolveRelProp(CONFIG.DB.RESOURCES, CONFIG.DB.COLLECTIONS),
+      findResolveRelProp(CONFIG.DB.NOTES, CONFIG.DB.RESOURCES),
+      findGenericTypeProp(CONFIG.DB.RESOURCES).catch(() => null),
     ]);
     const basics = {};
     FIND_TAB_ORDER.forEach((k, i) => { basics[k] = basicsList[i]; });
@@ -11281,9 +11342,10 @@
     }
 
     // id -> title maps for the cross-reference lookups the metaBlob/domain-
-    // rollup/pills need (Tags/People/Collections/Projects).
-    const titleMap = { tags: new Map(), people: new Map(), collections: new Map(), projects: new Map() };
-    ['tags', 'people', 'collections', 'projects'].forEach((k) => {
+    // rollup/pills/Recent-Activity need (Tags/People/Collections/Projects/
+    // Resources).
+    const titleMap = { tags: new Map(), people: new Map(), collections: new Map(), projects: new Map(), resources: new Map() };
+    ['tags', 'people', 'collections', 'projects', 'resources'].forEach((k) => {
       pages[k].forEach((p) => titleMap[k].set(p.id, plainTitle(p, basics[k].titleProp)));
     });
     function relIdsOf(page, propName) {
@@ -11368,10 +11430,11 @@
       const tagNames = tagIds.map((id) => titleMap.tags.get(id)).filter(Boolean);
       const peopleNames = peopleIds.map((id) => titleMap.people.get(id)).filter(Boolean);
       const collectionNames = relNamesOf(p, notesCollectionsProp, titleMap.collections);
+      const resourceNames = relNamesOf(p, notesResourcesProp, titleMap.resources);
       const record = {
         ...base, types, status, priorityName: null, doneRollup: null,
-        domain: domainChip(meta), tagIds, tagNames, peopleNames, collectionNames, projectNames: [],
-        metaBlob: findMetaBlob(base.title, types, status, meta, [...tagNames, ...peopleNames, ...collectionNames], base.handle),
+        domain: domainChip(meta), tagIds, tagNames, peopleNames, collectionNames, projectNames: [], resourceNames,
+        metaBlob: findMetaBlob(base.title, types, status, meta, [...tagNames, ...peopleNames, ...collectionNames, ...resourceNames], base.handle),
         body: '',
       };
       byEntity.get('notes').push(record);
@@ -11415,23 +11478,33 @@
       const doneRollup = (done != null && total != null) ? { done, total } : null;
       const peopleIds = relIdsOf(p, projectsPeopleProp);
       peopleIds.forEach((pid) => pushInto(projectsByPersonId, pid, base.title));
+      // Tags/Collections aren't shown as Project pills (§3 spec), but a
+      // Project does carry both relations, and Tags/Collections' own
+      // Recent Activity insight needs them (Revision changeset — "Related"
+      // spans notes/projects/etc., not Notes alone).
+      const tagNames = relNamesOf(p, projectsTagsProp, titleMap.tags);
+      const collectionNames = relNamesOf(p, projectsCollectionsProp, titleMap.collections);
       const record = {
         ...base, types: null, status, priorityName: null, doneRollup,
-        domain: domainChip(meta), tagNames: [], peopleNames: [], collectionNames: [], projectNames: [],
-        metaBlob: findMetaBlob(base.title, null, status, meta, [], base.handle),
+        domain: domainChip(meta), tagNames, peopleNames: [], collectionNames, projectNames: [],
+        metaBlob: findMetaBlob(base.title, null, status, meta, [...tagNames, ...collectionNames], base.handle),
         body: '',
       };
       byEntity.get('projects').push(record);
     });
 
-    // Tags/People/Collections/Resources — cross-cutting, no domain (§5/§7)
+    // Tags/People/Collections/Resources — cross-cutting, no domain (§5/§7).
+    // Resources alone carries a Type field (Revision changeset — Resources
+    // by Type load bar); read via findReadTypeValues, empty when
+    // resourcesTypeProp didn't resolve.
     ['tags', 'people', 'collections', 'resources'].forEach((key) => {
       pages[key].forEach((p) => {
         const base = findRecordBase(p, basics[key].titleProp, basics[key].uniqueIdProp, key, REL_DB_META[key].route);
+        const types = key === 'resources' ? findReadTypeValues(p, resourcesTypeProp) : null;
         byEntity.get(key).push({
-          ...base, types: null, status: null, priorityName: null, doneRollup: null,
+          ...base, types, status: null, priorityName: null, doneRollup: null,
           domain: null, tagNames: [], peopleNames: [], collectionNames: [], projectNames: [],
-          metaBlob: findMetaBlob(base.title, null, null, null, [], base.handle),
+          metaBlob: findMetaBlob(base.title, types, null, null, [], base.handle),
           body: '',
         });
       });
@@ -11441,7 +11514,7 @@
 
     const records = FIND_TAB_ORDER.flatMap((k) => byEntity.get(k));
     return {
-      records, byEntity, notesTypeOrder, tagById,
+      records, byEntity, notesTypeOrder, tagById, resourcesTypeProp,
       notesByTagId, notesByPersonId, projectsByPersonId,
       tagMemberCount, collectionMemberCount,
     };
@@ -11659,9 +11732,58 @@
     </div>`;
   }
 
+  // --- Chart primitives (Revision changeset) — two distinct shapes, never
+  // conflated. A. Load bar: reuses Today/Weekly Review's own domain-load
+  // bar visual language (label + .dmn-bar track+fill + count) — one row
+  // per category, scaled to the max. B. Bar chart (Tags Top-10 only): the
+  // label rides *inside* the fill itself rather than in a separate left
+  // column, which is what keeps it from reading as just another load bar.
+  function findRenderLoadBar(rows) {
+    const max = Math.max(1, ...rows.map((r) => r.count));
+    return `<div class="find-load">${rows.map((r) => {
+      const pct = Math.round((r.count / max) * 100);
+      const fillStyle = r.fill ? ` background:${r.fill};opacity:1;` : '';
+      return `<div class="find-load-row">
+        <span class="find-load-label">${escapeHtml(r.label)}</span>
+        <span class="dmn-bar"><i style="width:${pct}%;${fillStyle}"></i></span>
+        <span class="find-load-n">${r.count}</span>
+      </div>`;
+    }).join('')}</div>`;
+  }
+  function findRenderBarChart(rows) {
+    const max = Math.max(1, ...rows.map((r) => r.count));
+    return `<div class="find-barchart">${rows.map((r) => {
+      const pct = Math.round((r.count / max) * 100);
+      const navAttr = r.route ? ` data-pf-nav="${escapeHtml(r.route)}"` : '';
+      return `<div class="find-bar-row"${navAttr}>
+        <div class="find-bar-track">
+          <div class="find-bar-fill" style="width:${pct}%"></div>
+          <span class="find-bar-label">${escapeHtml(r.label)}</span>
+        </div>
+        <span class="find-bar-n">${r.count}</span>
+      </div>`;
+    }).join('')}</div>`;
+  }
+
+  // By-domain counts always show all six domains, zero or not (a stable
+  // shape beats a bar that reflows every time a domain empties out); under
+  // a single-domain filter this collapses to that one domain's count with
+  // no special-casing, since `records` is already domain-filtered by the
+  // caller (findTabRecords) before it ever reaches here.
+  function findByDomainCounts(records) {
+    const counts = new Map();
+    records.forEach((r) => {
+      if (!r.domain || !r.domain.code) return;
+      counts.set(r.domain.code, (counts.get(r.domain.code) || 0) + 1);
+    });
+    return DOMAIN_META.map((dm) => ({ label: dm.code, count: counts.get(dm.code) || 0, fill: dm.fill }));
+  }
+
   // Note-count per Type, multi-Type notes counted under each Type (same
   // double-count convention Inbox's own by-type bins use), ordered by the
-  // Notes DB's live Type-option schema order with "No Type" last.
+  // Notes DB's live Type-option schema order. Zero-count Types are never
+  // included in the first place (only Types actually seen on a note ever
+  // enter `byType`), so no separate "drop the zeros" pass is needed.
   function findNotesTypeBreakdown(filteredNotes, typeOrder) {
     const byType = new Map();
     filteredNotes.forEach((n) => {
@@ -11680,10 +11802,50 @@
       return { name, icon, count: byType.get(key) };
     });
   }
+  // Same shape as findNotesTypeBreakdown but without the "No Type" tail —
+  // Resources has no equivalent untyped-bucket convention to preserve, so
+  // an untyped resource just doesn't appear (already-zero-count categories
+  // never enter `byType` either way).
+  function findResourcesTypeBreakdown(resources, typeOrder) {
+    const byType = new Map();
+    resources.forEach((r) => (r.types || []).forEach((t) => byType.set(t, (byType.get(t) || 0) + 1)));
+    const orderedKeys = (typeOrder && typeOrder.length)
+      ? typeOrder.filter((t) => byType.has(t))
+      : [...byType.keys()].sort((a, b) => byType.get(b) - byType.get(a));
+    return orderedKeys.map((key) => {
+      const { name, icon } = splitTrailingEmoji(key);
+      return { name, icon, count: byType.get(key) };
+    });
+  }
+  function findLoadBarRowsFromBreakdown(breakdown) {
+    return breakdown.map((b) => ({ label: b.icon ? `${b.icon} ${b.name}` : b.name, count: b.count }));
+  }
 
-  function findRenderNotesInsights(s, filteredNotes) {
+  // Recent Activity (Revision changeset, shared definition) — the records
+  // (Notes/Tasks/Projects, whichever actually carry the relation) that
+  // reference this entity, ranked by whichever of (created, edited) is
+  // more recent, ~5 items. `sourceArrays` are already-fetched record
+  // arrays; `key` is the relation-name field to check for non-emptiness
+  // (tagNames/collectionNames/resourceNames/peopleNames) — always global,
+  // never domain-filtered (cross-cutting tabs, §7).
+  function findRecentActivityFor(sourceArrays, key) {
+    return sourceArrays.flat()
+      .filter((r) => r[key] && r[key].length)
+      .map((r) => ({ record: r, maxTime: Math.max(new Date(r.createdTime).getTime(), new Date(r.lastEditedTime).getTime()), names: r[key] }))
+      .sort((a, b) => b.maxTime - a.maxTime)
+      .slice(0, 5);
+  }
+  function findRenderActivity(activity) {
+    const rowsHtml = activity
+      .map(({ record, maxTime, names }) => findInsightLinkRow(record.title, new Date(maxTime).toISOString(), record.route, names.join(', ')))
+      .join('');
+    return findInsightSection('Recent activity', rowsHtml);
+  }
+
+  function findRenderNotesInsights(s) {
+    const filteredNotes = findTabRecords(s, 'notes');
     const breakdown = findNotesTypeBreakdown(filteredNotes, s.index.notesTypeOrder);
-    const breakdownHtml = breakdown.map((b) => findInsightCountRow(b.name, b.count, null, b.icon)).join('');
+    const loadBarHtml = findRenderLoadBar(findLoadBarRowsFromBreakdown(breakdown));
     const tagCounts = new Map();
     filteredNotes.forEach((n) => (n.tagIds || []).forEach((tid) => tagCounts.set(tid, (tagCounts.get(tid) || 0) + 1)));
     const topTagsHtml = [...tagCounts.entries()].sort((a, b) => b[1] - a[1]).slice(0, 5)
@@ -11691,28 +11853,26 @@
         const t = s.index.tagById.get(tagId);
         return t ? findInsightCountRow(t.title, count, t.route) : '';
       }).join('');
-    const recentHtml = filteredNotes.slice().sort(findCreatedDesc).slice(0, 5)
-      .map((n) => findInsightLinkRow(n.title, n.createdTime, n.route)).join('');
-    return `${findInsightSection('Breakdown by type', breakdownHtml)}${findInsightSection('Top 5 tags', topTagsHtml)}${findInsightSection('Recent notes', recentHtml)}`;
+    return `${findInsightSection('Notes by type', loadBarHtml)}${findInsightSection('Top 5 tags', topTagsHtml)}`;
   }
 
-  function findRenderRecentlyAdded(filtered) {
-    const rowsHtml = filtered.slice().sort(findCreatedDesc).slice(0, 5)
-      .map((r) => findInsightLinkRow(r.title, r.createdTime, r.route)).join('');
-    return findInsightSection('Recently added', rowsHtml);
+  function findRenderTasksInsights(s) {
+    return findInsightSection('Tasks by domain', findRenderLoadBar(findByDomainCounts(findTabRecords(s, 'tasks'))));
+  }
+  function findRenderProjectsInsights(s) {
+    return findInsightSection('Projects by domain', findRenderLoadBar(findByDomainCounts(findTabRecords(s, 'projects'))));
   }
 
-  // Tags/Collections Insights are never domain-filtered (cross-cutting,
-  // §7) — always the full global set.
+  // Tags/Collections/Resources/People Insights are never domain-filtered
+  // (cross-cutting, §7) — always the full global set.
   function findRenderTagsInsights(s) {
     const tags = s.index.byEntity.get('tags');
-    const top10Html = tags.slice()
+    const top10Rows = tags.slice()
       .sort((a, b) => (s.index.tagMemberCount.get(b.id) || 0) - (s.index.tagMemberCount.get(a.id) || 0))
       .slice(0, 10)
-      .map((t) => findInsightCountRow(t.title, s.index.tagMemberCount.get(t.id) || 0, t.route)).join('');
-    const recentHtml = tags.slice().sort(findCreatedDesc).slice(0, 5)
-      .map((t) => findInsightLinkRow(t.title, t.createdTime, t.route)).join('');
-    return `${findInsightSection('Top 10 by member count', top10Html)}${findInsightSection('Recently added', recentHtml)}`;
+      .map((t) => ({ label: t.title, count: s.index.tagMemberCount.get(t.id) || 0, route: t.route }));
+    const activity = findRecentActivityFor([s.index.byEntity.get('notes'), s.index.byEntity.get('projects')], 'tagNames');
+    return `${findInsightSection('Top 10 tags', findRenderBarChart(top10Rows))}${findRenderActivity(activity)}`;
   }
 
   function findRenderCollectionsInsights(s) {
@@ -11721,40 +11881,36 @@
       .sort((a, b) => (s.index.collectionMemberCount.get(b.id) || 0) - (s.index.collectionMemberCount.get(a.id) || 0))
       .slice(0, 3)
       .map((c) => findInsightCountRow(c.title, s.index.collectionMemberCount.get(c.id) || 0, c.route)).join('');
-    const recentHtml = cols.slice().sort(findCreatedDesc).slice(0, 5)
-      .map((c) => findInsightLinkRow(c.title, c.createdTime, c.route)).join('');
-    return `${findInsightSection('Top 3 by member count', top3Html)}${findInsightSection('Recently added', recentHtml)}`;
+    const activity = findRecentActivityFor([s.index.byEntity.get('notes'), s.index.byEntity.get('projects')], 'collectionNames');
+    return `${findInsightSection('Top 3 collections', top3Html)}${findRenderActivity(activity)}`;
   }
 
-  // Notes/Tasks carrying any People relation, ranked by whichever of
-  // (createdTime, lastEditedTime) is more recent — "recently created or
-  // updated" (§3), always global (People is cross-cutting, §7).
-  function findPeopleRecentActivity(index) {
-    return [...index.byEntity.get('notes'), ...index.byEntity.get('tasks')]
-      .filter((r) => r.peopleNames && r.peopleNames.length)
-      .map((r) => ({ record: r, maxTime: Math.max(new Date(r.createdTime).getTime(), new Date(r.lastEditedTime).getTime()) }))
-      .sort((a, b) => b.maxTime - a.maxTime)
-      .slice(0, 5);
+  // Falls back to Recent Activity only when Resources' Type field didn't
+  // resolve (Revision changeset "Field-resolution notes") rather than an
+  // empty/broken bar.
+  function findRenderResourcesInsights(s) {
+    let breakdownHtml = '';
+    if (s.index.resourcesTypeProp) {
+      const breakdown = findResourcesTypeBreakdown(s.index.byEntity.get('resources'), s.index.resourcesTypeProp.order);
+      breakdownHtml = findInsightSection('Resources by type', findRenderLoadBar(findLoadBarRowsFromBreakdown(breakdown)));
+    }
+    const activity = findRecentActivityFor([s.index.byEntity.get('notes')], 'resourceNames');
+    return `${breakdownHtml}${findRenderActivity(activity)}`;
   }
 
   function findRenderPeopleInsights(s) {
-    const people = s.index.byEntity.get('people');
-    const recentHtml = people.slice().sort(findCreatedDesc).slice(0, 5)
-      .map((p) => findInsightLinkRow(p.title, p.createdTime, p.route)).join('');
-    const activityHtml = findPeopleRecentActivity(s.index)
-      .map(({ record, maxTime }) => findInsightLinkRow(record.title, new Date(maxTime).toISOString(), record.route, record.peopleNames.join(', ')))
-      .join('');
-    return `${findInsightSection('Recently added', recentHtml)}${findInsightSection('Recent activity', activityHtml)}`;
+    const activity = findRecentActivityFor([s.index.byEntity.get('notes'), s.index.byEntity.get('tasks')], 'peopleNames');
+    return findRenderActivity(activity);
   }
 
   function findRenderInsights(s) {
     const key = s.activeTab;
-    if (key === 'notes') return findRenderNotesInsights(s, findTabRecords(s, 'notes'));
-    if (key === 'tasks') return findRenderRecentlyAdded(findTabRecords(s, 'tasks'));
-    if (key === 'projects') return findRenderRecentlyAdded(findTabRecords(s, 'projects'));
+    if (key === 'notes') return findRenderNotesInsights(s);
+    if (key === 'tasks') return findRenderTasksInsights(s);
+    if (key === 'projects') return findRenderProjectsInsights(s);
     if (key === 'tags') return findRenderTagsInsights(s);
     if (key === 'collections') return findRenderCollectionsInsights(s);
-    if (key === 'resources') return findRenderRecentlyAdded(findTabRecords(s, 'resources'));
+    if (key === 'resources') return findRenderResourcesInsights(s);
     if (key === 'people') return findRenderPeopleInsights(s);
     return '';
   }
