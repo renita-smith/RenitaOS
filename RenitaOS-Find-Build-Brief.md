@@ -79,7 +79,7 @@ A compact band above the Library — a **chart primitive** (below) or a plain li
 | **Tasks** | **Tasks by Domain** (load bar, domain-colored, via project rollup) | Status + Priority (stars) + Project |
 | **Projects** | **Projects by Domain** (load bar, domain-colored) | Status + "N of M done" |
 | **Tags** | **Top 10 Tags** (bar chart, one bar per tag, ranked desc) · Recent Activity | up to 5 most-recent distinct Note-Types |
-| **Collections** | Top 3 Collections (list, by member count) · Recent Activity | — (base row only) |
+| **Collections** | **Top 5 Collections** + Recent Activity, side by side in a **two-column panel** (list, by member count) | — (base row only) |
 | **Resources** | **Resources by Type** (load bar; if the Type field can't be resolved, this chart is omitted and the tab shows Recent Activity only) · Recent Activity | — (base row only) |
 | **People** | Recent Activity only | Note-Types + Project |
 
@@ -89,7 +89,7 @@ A compact band above the Library — a **chart primitive** (below) or a plain li
 
 ### The two chart primitives
 
-**A. Load bar** — reuses Today/Weekly Review's own domain-load bar component (a label + the shared `.dmn-bar` track-and-fill + a count), one row per category, fill scaled to the max category. Used by Notes by Type, Tasks/Projects by Domain, Resources by Type.
+**A. Load bar** — reuses Weekly Review's own Domain-load bar wholesale (`wrRenderDomainBar`'s exact markup/classes: a single stacked segmented bar sized by each category's share of the total, plus a dot-legend below with label/count/%), not a row-per-category track. Zero-count categories are dropped; a Task/Project with no resolvable domain gets its own "No domain" segment rather than going uncounted. Used by Notes by Type, Tasks/Projects by Domain, Resources by Type.
 
 **B. Bar chart** (Tags Top-10 only) — a true ranked bar chart, one bar per tag, bar length scaled to the largest count, count labeled, ranked descending. **Distinct from the load bar**: the label rides *inside* the bar's own fill rather than a separate left-hand label column, so it doesn't just read as another load bar.
 
