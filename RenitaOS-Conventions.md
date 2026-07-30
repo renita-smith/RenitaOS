@@ -500,17 +500,27 @@ A single search bar, pinned in the sticky header, ~180ms debounced, reads the ca
 
 **Library** (every tab): a flat, dense-bordered row list built on **Addendum 6's rail-less row grid** — a content zone (title + handle, an optional Phase-2 body snippet, then a pills row carrying the domain chip alongside **entity-specific pills**, olive-on-sage; a Task's Priority renders as the shared `renderPriorityValue` stars, never a colored pill) beside a fixed-width, right-aligned **date-added** column (`created_time`, compact "Jul 12", year appended only when it isn't the current year), so dates stack into one column across every row. The domain chip is the only colored element on the row — and resolves to **no chip, never a literal "undefined"**, when a record has none. **Sorted by `created_time`, newest first, on every tab** — this replaced the earlier per-type Notes grouping; the Type breakdown now lives in Notes' own Insight instead. Zero-count tabs stay clickable to a quiet empty state.
 
-**Insights** (per tab, list-first — donuts are a deferred Phase 1.5, see below): a compact band above the Library, plain serif-title/muted-sans-metric rows (no pill background, so they never outshout the Library or compete with the domain chips for color). Per tab:
+**Insights** (per tab): a compact band above the Library, either a **chart primitive** (below) or a plain serif-title/muted-sans-metric list (no pill background) — either way quiet enough that it never outshouts the Library or competes with the domain chips for color. **"Recently Added" was removed from every tab** (Revision changeset) — redundant once the Library itself is already sorted by date added; the tabs that lost it were refilled with a chart instead. Per tab:
 
 | Tab | Insights | Library pills |
 |---|---|---|
-| Notes *(default)* | Breakdown by Type (schema order, No Type last, multi-Type double-counts) · Top 5 Tags (by Note count) · Recent Notes | Type(s) + Tags |
-| Tasks | Recently Added | Status + Priority (stars) + Project |
-| Projects | Recently Added | Status + "N of M done" |
-| Tags | Top 10 by member count · Recently Added | up to 5 most-recent distinct Note-Types |
-| Collections | Top 3 by member count · Recently Added | — (base row only) |
-| Resources | Recently Added | — (base row only) |
-| People | Recently Added · Recent Activity (Notes/Tasks with a People relation, ranked by most-recent of created/edited) | Note-Types + Project |
+| Notes *(default)* | **Notes by Type** (load bar, zero-count Types excluded, schema order) · Top 5 Tags (list, by Note count) | Type(s) + Tags |
+| Tasks | **Tasks by Domain** (load bar, domain-colored, via project rollup) | Status + Priority (stars) + Project |
+| Projects | **Projects by Domain** (load bar, domain-colored) | Status + "N of M done" |
+| Tags | **Top 10 Tags** (bar chart, one bar per tag, ranked desc) · Recent Activity | up to 5 most-recent distinct Note-Types |
+| Collections | Top 3 Collections (list, by member count) · Recent Activity | — (base row only) |
+| Resources | **Resources by Type** (load bar; falls back to Recent Activity only if the Type field can't be resolved) · Recent Activity | — (base row only) |
+| People | Recent Activity only | Note-Types + Project |
+
+**Recent Activity** (Tags/Collections/Resources/People — a shared definition, not four separate ones): the records that *carry this entity's relation* (a Tag's related Notes/Projects, a Resource's referencing Notes, a Person's related Notes/Tasks — whichever source databases actually carry that relation), ranked by whichever of `created_time`/`last_edited_time` is more recent, ~5 compact links (title + date, navigates). Always the full **global** set — never domain-filtered, same as every other cross-cutting Insight (§7 below).
+
+### The two chart primitives — distinct, not interchangeable
+
+- **Load bar** — reuses Today/Weekly Review's own domain-load bar (a label + the shared `.dmn-bar` track-and-fill + a count), one row per category, scaled to the max. Used by Notes by Type, Tasks/Projects by Domain, Resources by Type.
+- **Bar chart** (Tags Top-10 only) — a true ranked bar chart, one bar per tag, length scaled to the largest count, count labeled; visually distinct from the load bar because the label rides *inside* the bar's own fill rather than a separate label column.
+- **Color discipline:** **by-*domain* bars are domain-colored** (Tasks/Projects by Domain — this is wayfinding, the app's one saturated system). **By-*type* bars and the Tags bar chart stay olive-on-sage** — Type and Tag color is ambient, never wayfinding; never domain-color or rainbow them.
+- Under a single-domain filter, a by-domain bar simply **collapses to that one domain's count** — no special-casing, since the records feeding it are already domain-filtered before the chart ever sees them.
+- **The Phase 1.5 donut phase is deleted** (Revision changeset) — both chart primitives above are bars, full stop; there is no chart-library or SVG-donut work planned for Find.
 
 ("Status breakdown" is deliberately omitted from Tasks/Projects Insights — that lives on Today/Domain profiles; repeating it here would blur into evaluative territory, see the Home boundary below.)
 
@@ -528,9 +538,10 @@ Find's Insights answer *what is in here*: composition (breakdown by Type), promi
 
 ## Phase boundary
 
-**Phase 1 (shipped):** Insights as ranked/linked lists; no body-text search — the index's `body` slot exists on every record but stays empty; matching is title + `metaBlob` only.
-**Phase 1.5 (not built):** the Notes-by-Type and Tags-Top-10 Insights get a hand-rolled SVG donut (same from-scratch style as the Domain profile's activity spark) with a rollover popup, alongside their existing list form.
-**Phase 2 (not built):** body-text search — Notes first, progressive background hydration, `last_edited_time`-keyed incremental cache, snippet on match.
+**Phase 1 (shipped):** Insights as chart primitives (load bars + the Tags bar chart) and lists, per the table above; no body-text search — the index's `body` slot exists on every record but stays empty; matching is title + `metaBlob` only. The row's body-snippet slot (Addendum 6) is structurally present but stays empty until Phase 2.
+**Phase 2 (not built):** body-text search — Notes first, progressive background hydration, `last_edited_time`-keyed incremental cache, snippet on match, which is also what fills the row snippet.
+
+*(The donut phase originally planned between these two was deleted by the Revision changeset — both chart primitives are bars.)*
 
 ---
 
