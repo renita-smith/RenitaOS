@@ -1,6 +1,6 @@
 /* Standardization Pass 3 — the ONE nav-rail implementation shared by every
-   screen: index.html's shell (Today + every profile's .dmn-rail, plus the
-   old-shell Home/Inbox mount) and capture.html's reduced footer nav. Loaded
+   screen: index.html's shell (Today/Home + every profile's .dmn-rail, plus
+   the old-shell Inbox mount) and capture.html's reduced footer nav. Loaded
    as a plain classic <script src> (not an ES module) on purpose — index.html
    stays a single self-contained classic script (see its own comment) and
    capture.html can read window.RenitaNavRail from its module script just as
