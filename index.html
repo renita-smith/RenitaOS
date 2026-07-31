@@ -51,10 +51,17 @@
        --railless-date-col is the "navigation" row pattern's fixed-width
        date spine (§2A revised) — sized for the longest date form a row
        will show ("Dec 8, 2024"), set once so every title starts flush at
-       the same left edge regardless of how long each date renders. */
+       the same left edge regardless of how long each date renders.
+       --action-status-col is the sibling "action" row pattern's own
+       fixed-width right column (Inbox screen cards + Weekly Review
+       mini-inbox, Inbox/Weekly Review Retrofit brief §3) — wide enough to
+       read as a deliberate status column, caret included, not a stranded
+       pill; shares --railless-date-col for its own left spine so both row
+       patterns measure identically. */
     --railless-gutter: 72px;
     --content-measure: calc(100% - var(--railless-gutter));
     --railless-date-col: 92px;
+    --action-status-col: 150px;
 
     color-scheme: light only;
   }
@@ -442,21 +449,53 @@
   .tg-card-swipeable.dragging { transition: none; }
   .tg-card-swipeable.swiped { transform: translateX(-84px); }
 
+  /* Inbox/Weekly Review Retrofit §1 — the Inbox screen's own card fill,
+     restored to the canonical sage mass (matches Weekly Review's tiles)
+     instead of the near-white cream it had drifted to, which sat too
+     close to the cream panel behind it to read as a separate shape on
+     desktop. The dark olive left edge is unchanged. Every inner element
+     below (chips/ghosts, the status control) gets its own lighter fill so
+     it still separates now that the card itself is sage, not cream. */
   .tg-card {
-    position: relative; background: oklch(0.995 0.003 75); border-radius: var(--radius-lg);
+    position: relative; background: #E7ECD6; border-radius: var(--radius-lg);
     box-shadow: 0 1px 2px rgba(0,0,0,.04), inset 0 0 0 1px var(--hairline);
     border-left: 3px solid var(--text);
     /* Extra bottom padding reserves room for .tg-open-record, which now
        sits in this corner instead of overlapping the chip row above it. */
     padding: 18px 18px 44px;
   }
-  .tg-card .body {
-    font-family: 'Newsreader', serif; font-size: 18px; line-height: 1.5;
-    color: oklch(0.24 0.014 75); white-space: pre-wrap; padding-right: 22px;
-  }
   .tg-card-inner { display: flex; gap: 12px; align-items: flex-start; }
   .tg-card-main { flex: 1; min-width: 0; }
-  .tg-empty-body { font-style: italic; color: var(--muted-text); }
+
+  /* §3 action-row layout, Inbox-screen container — date-left spine +
+     content cluster (title/handle line, one-line snippet, pills) + a
+     wider right status column. --status modifier adds the third column;
+     plain notes (no per-card status control exists for them — Refresh is
+     the only way a note leaves Inbox) skip it and stay two columns, so
+     there's no empty stranded box on every note card. Mobile collapses
+     both variants to a narrower date column with status (when present)
+     dropping under the content instead of squeezing it — three fixed-
+     width columns don't fit a phone screen. */
+  .tg-card-row { display: grid; grid-template-columns: var(--railless-date-col) minmax(0,1fr); align-items: start; column-gap: 14px; }
+  .tg-card-row--status { grid-template-columns: var(--railless-date-col) minmax(0,1fr) var(--action-status-col); }
+  .tg-row-date {
+    font-family: 'IBM Plex Sans', sans-serif; font-size: 12px; color: var(--muted-text);
+    white-space: nowrap; padding-top: 3px; cursor: pointer;
+  }
+  .tg-row-date.ghost { color: var(--tg-ghost); font-weight: 600; }
+  .tg-row-title-line { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+  .tg-row-title { font-family: 'Newsreader', serif; font-size: 16px; color: var(--text); }
+  .tg-row-handle { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace; font-size: 11px; color: var(--tg-muted-2); letter-spacing: .02em; }
+  .tg-row-snippet {
+    font-family: 'IBM Plex Sans', sans-serif; font-size: 13px; color: var(--muted-text);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 4px;
+  }
+  .tg-row-snippet--empty { font-style: italic; }
+  .tg-row-status { display: flex; justify-content: flex-end; align-items: flex-start; }
+  @media (max-width: 767px) {
+    .tg-card-row, .tg-card-row--status { grid-template-columns: 64px minmax(0,1fr); }
+    .tg-card-row--status .tg-row-status { grid-column: 2; justify-content: flex-start; margin-top: 8px; }
+  }
 
   .tg-check {
     position: absolute; top: 14px; right: 14px; width: 20px; height: 20px; border-radius: 50%;
@@ -466,9 +505,14 @@
   .tg-card.qualified .tg-check { display: flex; }
 
   .tg-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 14px; align-items: center; }
+  /* §1 — lightened off the card's own new sage fill (was --surface-soft,
+     the same #E7ECD6 as the card itself — sage-on-sage, invisible) so
+     every pill still separates from the card behind it. Domain chips are
+     unaffected: they carry their own inline background/color (already
+     colored) that wins over this by cascade order. */
   .tg-chip {
     display: flex; align-items: center; gap: 5px; padding: 4px 10px;
-    border-radius: var(--radius-sm); background: var(--surface-soft);
+    border-radius: var(--radius-sm); background: #F1F0E4;
     font-size: 11px; font-weight: 600; color: var(--text);
   }
   .tg-ghost {
@@ -476,6 +520,19 @@
     font-size: 11px; font-weight: 600;
     color: var(--tg-ghost); background: color-mix(in oklch, var(--tg-ghost) 10%, white);
     border: 1.5px dashed var(--tg-ghost);
+  }
+
+  /* §1/§3 — the per-card Status control (Tasks only; a write affordance
+     that advances the task out of Inbox, not a read-only label — every
+     task here already IS Inbox status, so this needs to read as a
+     tappable control, not just another value pill). Lighter fill + a
+     visible border, same "separate from the sage card" goal as .tg-chip
+     above, but distinct enough to signal it's the row's one interactive
+     control rather than a value chip. Lives in .tg-row-status. */
+  .tg-status-chip {
+    display: inline-flex; align-items: center; gap: 5px; padding: 5px 12px;
+    border-radius: var(--radius-sm); background: #F1F0E4; border: 1px solid oklch(0.82 0.02 120);
+    font-size: 12px; font-weight: 600; color: var(--text);
   }
 
   /* Interactive chips/ghosts (writes slice) — Type is always tappable;
@@ -759,25 +816,18 @@
     .tg-layout[data-active-pane="bin"] .tg-stack { flex: none; height: auto; max-height: none; overflow: visible; }
     #content > .tg-view:has(.tg-layout[data-active-pane="bin"]) { align-self: flex-start; height: auto; overflow: visible; }
 
-    /* B6 (Cycle 3) — scroll fix. With a realistic number of Type/Domain
-       bins, the wrapped chip row above grows to 2+ rows, and — because
-       both panes stack in one column on desktop (.tg-pane-overview keeps
-       its natural height; .tg-pane-bin only gets whatever's left) — the
-       opened bin's card list would get squeezed down to a sliver, low on
-       the page (confirmed: ~2 cards visible before this fix). Once a bin
-       IS open, the chip row only needs to stay reachable for quick
-       bin-switching, not fully expanded — a single non-wrapping row that
-       scrolls horizontally keeps every bin one scroll away, but bounds
-       the overview pane's height to a fixed, small amount regardless of
-       how many bins exist, so the list reliably gets the rest of the
-       screen. Scoped to the bin-open state only: browsing bins with no
-       bin open yet (data-active-pane="overview") keeps the roomy wrapped
-       grid above untouched, and mobile's own full-screen overview pane
-       (a completely different, un-stacked context) is unaffected. */
-    .tg-layout[data-active-pane="bin"] .tg-chiprow {
-      flex-wrap: nowrap; overflow-x: auto; overflow-y: hidden; max-height: none;
-    }
-    .tg-layout[data-active-pane="bin"] .tg-bin-chip { flex-shrink: 0; }
+    /* B6 (Cycle 3) — scroll fix, RETIRED by the Inbox/Weekly Review
+       Retrofit brief §2. This used to force the chip row to a single
+       non-wrapping horizontally-scrolling line once a bin was open, so
+       the opened bin's own card list wouldn't get squeezed down to a
+       sliver. That traded away visibility of every bin past the first
+       screenful — with ~17 Note types this hid most of them off-screen,
+       discoverable only by scrolling sideways. Nita's call: wrap freely,
+       all bins visible beats a hidden few, not a hard two-row cap — so
+       this now just falls through to .tg-chiprow's own base rule above
+       (wrap + a generous 45vh cap with its own vertical scroll, the same
+       treatment the no-bin-open overview state already used), instead of
+       a bin-open-only override that hid bins sideways. */
 
     /* B6 (Cycle 3) — bring Inbox into the framed page-on-panel treatment
        (Addendum 2: deeper page background as a frame around a lighter
@@ -1997,14 +2047,36 @@
   .wr-seg { border: none; background: transparent; font-family: 'IBM Plex Sans', sans-serif; font-size: 12px; padding: 5px 14px; border-radius: 6px; cursor: pointer; color: #4A5230; }
   .wr-seg.active { background: #F6F2E9; color: #2A3408; font-weight: 600; }
 
-  .wr-note-row { padding: 9px 0; border-bottom: 1px solid #DED8CA; }
+  /* §3/§4 retrofit (Inbox/Weekly Review Retrofit brief) — un-barbelled:
+     date-left spine (shared --railless-date-col) + content cluster
+     (title/handle line, one-line snippet when a body was fetched, pills)
+     + a fixed right status column (shared --action-status-col) — instead
+     of date+status both crammed at the row's right edge with a dead
+     valley before them. Still borderless: no background fill, no green
+     edge — that stays the Inbox screen's own sage-card treatment (§6),
+     not this dashboard section. */
+  .wr-note-row {
+    display: grid; grid-template-columns: var(--railless-date-col) minmax(0,1fr) var(--action-status-col);
+    align-items: start; column-gap: 14px; padding: 9px 0; border-bottom: 1px solid #DED8CA;
+  }
   .wr-note-row:last-child { border-bottom: none; }
-  .wr-note-main { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-  .wr-note-title { flex: 1; min-width: 120px; font-size: 14px; color: #2A3408; cursor: pointer; }
+  .wr-note-date { font-family: 'IBM Plex Sans', sans-serif; font-size: 12px; color: oklch(0.55 0.012 75); white-space: nowrap; padding-top: 2px; }
+  .wr-note-content { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+  .wr-note-title-line { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+  .wr-note-title { font-size: 14px; color: #2A3408; cursor: pointer; }
   .wr-note-title:hover { text-decoration: underline; }
-  .wr-note-age { font-family: 'IBM Plex Sans', sans-serif; font-size: 12px; color: oklch(0.55 0.012 75); white-space: nowrap; }
+  .wr-note-handle { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace; font-size: 11px; color: oklch(0.55 0.012 75); letter-spacing: .02em; }
+  .wr-note-snippet {
+    font-family: 'IBM Plex Sans', sans-serif; font-size: 12px; color: oklch(0.55 0.012 75);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .wr-note-status { display: flex; justify-content: flex-end; }
   .wr-note-status-select { font-family: 'IBM Plex Sans', sans-serif; font-size: 12px; padding: 4px 8px; border-radius: 6px; border: 1px solid #DED8CA; background: #F6F2E9; color: #2A3408; }
-  .wr-note-pills { display: flex; gap: 5px; flex-wrap: wrap; margin: 6px 0 0; }
+  .wr-note-pills { display: flex; gap: 5px; flex-wrap: wrap; margin: 2px 0 0; }
+  @media (max-width: 767px) {
+    .wr-note-row { grid-template-columns: 64px minmax(0,1fr); row-gap: 4px; }
+    .wr-note-status { grid-column: 2; justify-content: flex-start; }
+  }
 
   .wr-tag-row { margin-bottom: 8px; }
   .wr-tag-row-head { display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 2px; }
@@ -2101,7 +2173,7 @@
   // Bumped by hand on every deployed change (Cycle-2 preflight) — logged on
   // load and shown in-app (topbar + framed rail) so it's a glance which
   // build is actually running, instead of inferring it from git history.
-  const BUILD_STAMP = '2026-07-30-find6';
+  const BUILD_STAMP = '2026-07-31-inboxwr1';
   console.log(`RenitaOS build ${BUILD_STAMP}`);
 
   // --- Shared bootstrap: defined once, in one place. -----------------------
@@ -2764,6 +2836,13 @@
     const notesPeoplePropPromise = relationPropertyName(CONFIG.DB.NOTES, CONFIG.DB.PEOPLE);
     const tasksProjectsPropPromise = relationPropertyName(CONFIG.DB.TASKS, CONFIG.DB.PROJECTS);
     const tasksTitlePropPromise = titlePropertyName(CONFIG.DB.TASKS);
+    // §3 retrofit — title/handle for the action-row content cluster
+    // (Inbox/Weekly Review Retrofit brief). Notes had no title fetched at
+    // all before this; Tasks already had tasksTitleProp above (its title
+    // doubles as `body`) and only need the unique-id handle added.
+    const notesTitlePropPromise = titlePropertyName(CONFIG.DB.NOTES);
+    const notesUniqueIdPropPromise = uniqueIdPropertyName(CONFIG.DB.NOTES);
+    const tasksUniqueIdPropPromise = uniqueIdPropertyName(CONFIG.DB.TASKS);
     const projectsDomainsPropPromise = relationPropertyName(CONFIG.DB.PROJECTS, CONFIG.DB.DOMAINS);
     const tagTitlePropPromise = titlePropertyName(CONFIG.DB.TAGS);
     const peopleTitlePropPromise = titlePropertyName(CONFIG.DB.PEOPLE);
@@ -2804,14 +2883,14 @@
 
     const [
       notesFilter, tasksFilter, notesStatusSchema, tasksStatusSchema, notesTypeOptions, notesDomainProp,
-      notesTagsProp, notesPeopleProp, tasksProjectsProp, tasksTitleProp, projectsDomainsProp,
+      notesTagsProp, notesPeopleProp, tasksProjectsProp, tasksTitleProp, notesTitleProp, notesUniqueIdProp, tasksUniqueIdProp, projectsDomainsProp,
       tagTitleProp, peopleTitleProp, projectTitleProp, domainTitleProp,
       tagsDbIcon, peopleDbIcon, projectsDbIcon, domainsDbIcon,
       tagPages, peoplePages, projectPages, domainPages, notePages, taskPages,
       projectsArchivedProp,
     ] = await Promise.all([
       notesFilterPromise, tasksFilterPromise, notesStatusSchemaPromise, tasksStatusSchemaPromise, notesTypeOptionsPromise, notesDomainPropPromise,
-      notesTagsPropPromise, notesPeoplePropPromise, tasksProjectsPropPromise, tasksTitlePropPromise, projectsDomainsPropPromise,
+      notesTagsPropPromise, notesPeoplePropPromise, tasksProjectsPropPromise, tasksTitlePropPromise, notesTitlePropPromise, notesUniqueIdPropPromise, tasksUniqueIdPropPromise, projectsDomainsPropPromise,
       tagTitlePropPromise, peopleTitlePropPromise, projectTitlePropPromise, domainTitlePropPromise,
       tagsDbIconPromise, peopleDbIconPromise, projectsDbIconPromise, domainsDbIconPromise,
       tagPagesPromise, peoplePagesPromise, projectPagesPromise, domainPagesPromise, notePagesPromise, taskPagesPromise,
@@ -2875,6 +2954,8 @@
         }
       }
 
+      const notesUv = notesUniqueIdProp ? (page.properties[notesUniqueIdProp] || {}).unique_id : null;
+
       return {
         id: page.id,
         types,
@@ -2882,6 +2963,8 @@
         tags: tagIds.map((id) => tagById.get(id)).filter(Boolean),
         people: peopleIds.map((id) => peopleNameById.get(id)).filter(Boolean).map((name) => ({ name })),
         body: noteBodies[i],
+        title: plainTitle(page, notesTitleProp),
+        handle: notesUv ? formatUniqueId(notesUv.prefix, notesUv.number) : null,
         date: date ? date.start : null,
         domainId,
         domainName,
@@ -2895,9 +2978,11 @@
       const projectId = projectIds[0] || null;
       const projectInfo = projectId ? projectById.get(projectId) : null;
       const due = (page.properties[CONFIG.TASKS_PROP.DUE_DATE] || {}).date;
+      const tasksUv = tasksUniqueIdProp ? (page.properties[tasksUniqueIdProp] || {}).unique_id : null;
       return {
         id: page.id,
         body: plainTitle(page, tasksTitleProp),
+        handle: tasksUv ? formatUniqueId(tasksUv.prefix, tasksUv.number) : null,
         projectId: projectInfo ? projectId : null,
         projectName: projectInfo ? projectInfo.name : null,
         domainCode: projectInfo ? projectInfo.domainCode : null,
@@ -3134,12 +3219,14 @@
     const peopleIconHtml = renderChipIcon(triageState.data.icons.people);
     const peopleChips = card.people.map((p) => `<div class="tg-chip">${peopleIconHtml}${escapeHtml(p.name)}</div>`).join('');
 
-    // Date has no backing database, so it gets a fixed glyph (🗓) instead
-    // of a resolved icon. Always has a value (Capture auto-sets it to
-    // today), so it's a normal filled chip, not a ghost — but always
-    // editable, like Status.
+    // §3 retrofit — the date moved off the chip row onto the card's own
+    // left spine (.tg-card-row's fixed date column below); still the same
+    // tappable date-popover trigger, just restyled as spine text instead
+    // of a filled chip. Always has a value (Capture auto-sets it to
+    // today), so the ghost state only ever shows if a note's date is
+    // somehow cleared.
     const dateHtml = `<div class="tg-pop-wrap">
-      <div class="${card.date ? 'tg-chip' : 'tg-ghost'}" data-chip-action="date" data-card-id="${card.id}"><span class="tg-chip-icon">🗓</span>${card.date ? escapeHtml(formatDateShort(card.date)) : 'Set Date'}</div>
+      <div class="tg-row-date${card.date ? '' : ' ghost'}" data-chip-action="date" data-card-id="${card.id}">${card.date ? escapeHtml(formatDateShort(card.date)) : 'Set Date'}</div>
       ${popoverOpenFor(card.id, 'date') ? renderNoteDatePopover(card) : ''}
     </div>`;
 
@@ -3154,7 +3241,21 @@
       ${popoverOpenFor(card.id, 'notedomain') ? renderNoteDomainPopover(card) : ''}
     </div>` : '';
 
-    const bodyHtml = card.body ? escapeHtml(card.body) : `<span class="tg-empty-body">(empty)</span>`;
+    // §3 retrofit — the content cluster: title (serif) + handle (mono)
+    // inline, then the body as a one-line muted snippet (the full text is
+    // still one tap away via .tg-open-record; the note qualifies for the
+    // Inbox screen's own dataset the same way it always did, this only
+    // changes how much of the body renders inline). Title/handle come
+    // from the Notes DB's own Title and unique-id properties, fetched
+    // alongside everything else this card already needed — no schema
+    // change, just two more properties read off pages already in hand.
+    const titleLineHtml = `<div class="tg-row-title-line">
+      <span class="tg-row-title">${escapeHtml(card.title || 'Untitled')}</span>
+      <span class="tg-row-handle">${card.handle ? escapeHtml(card.handle) : '—'}</span>
+    </div>`;
+    const snippetHtml = card.body
+      ? `<div class="tg-row-snippet">${escapeHtml(card.body)}</div>`
+      : `<div class="tg-row-snippet tg-row-snippet--empty">(empty)</div>`;
 
     // Pill order: Type first (short, fine up front), then the fixed
     // (non-relation-growth) pills, Tags last so their growth wraps to its
@@ -3177,9 +3278,13 @@
           <div class="tg-check">✓</div>
           <div class="tg-card-inner">
             ${renderCheckbox(card)}
-            <div class="tg-card-main">
-              <div class="body">${bodyHtml}</div>
-              <div class="tg-chips">${typeHtml}${peopleChips}${dateHtml}${domainHtml}${tagHtml}</div>
+            <div class="tg-card-row">
+              ${dateHtml}
+              <div class="tg-card-main">
+                ${titleLineHtml}
+                ${snippetHtml}
+                <div class="tg-chips">${typeHtml}${peopleChips}${domainHtml}${tagHtml}</div>
+              </div>
             </div>
           </div>
         </div>
@@ -3219,16 +3324,29 @@
       ${popoverOpenFor(card.id, 'project') ? renderProjectPopover(card) : ''}
     </div>`;
 
+    // §3 retrofit — Due moves to the card's own left spine (same tappable
+    // due-popover trigger, restyled as spine text); Status moves to the
+    // right column, restyled as a control (.tg-status-chip) rather than a
+    // value pill — every task shown here already IS Inbox status, so this
+    // is the one write affordance that actually changes it.
     const dueHtml = `<div class="tg-pop-wrap">
-      <div class="${card.due ? 'tg-chip' : 'tg-ghost'}" data-chip-action="due" data-card-id="${card.id}"><span class="tg-chip-icon">🗓</span>${card.due ? escapeHtml(formatDateShort(card.due)) : 'Set Due'}</div>
+      <div class="tg-row-date${card.due ? '' : ' ghost'}" data-chip-action="due" data-card-id="${card.id}">${card.due ? escapeHtml(formatDateShort(card.due)) : 'Set Due'}</div>
       ${popoverOpenFor(card.id, 'due') ? renderDuePopover(card) : ''}
     </div>`;
 
     const statusHtml = `<div class="tg-pop-wrap">
-      <div class="tg-chip" data-chip-action="status" data-card-id="${card.id}">${escapeHtml(card.status)}</div>
+      <div class="tg-status-chip" data-chip-action="status" data-card-id="${card.id}">${escapeHtml(card.status)}</div>
       ${popoverOpenFor(card.id, 'status') ? renderCardStatusPopover(card, 'tasks') : ''}
     </div>`;
-    const bodyHtml = card.body ? escapeHtml(card.body) : `<span class="tg-empty-body">(untitled)</span>`;
+
+    // A task's own title/body/handle: unlike Notes there's no separate
+    // page content to snippet — the title (already fetched as `body`,
+    // §5 catch-all wiring) IS the whole of what a task record holds here
+    // — so the content cluster is just the title/handle line, no snippet.
+    const titleLineHtml = `<div class="tg-row-title-line">
+      <span class="tg-row-title">${escapeHtml(card.body || 'Untitled')}</span>
+      <span class="tg-row-handle">${card.handle ? escapeHtml(card.handle) : '—'}</span>
+    </div>`;
 
     return `
       <div class="tg-card${qualified ? ' qualified' : ''}" style="border-left-color:${edge};">
@@ -3236,9 +3354,13 @@
         <div class="tg-check">✓</div>
         <div class="tg-card-inner">
           ${renderCheckbox(card)}
-          <div class="tg-card-main">
-            <div class="body">${bodyHtml}</div>
-            <div class="tg-chips">${domainHtml}${projectHtml}${dueHtml}${statusHtml}</div>
+          <div class="tg-card-row tg-card-row--status">
+            ${dueHtml}
+            <div class="tg-card-main">
+              ${titleLineHtml}
+              <div class="tg-chips">${domainHtml}${projectHtml}</div>
+            </div>
+            <div class="tg-row-status">${statusHtml}</div>
           </div>
         </div>
       </div>`;
@@ -10161,7 +10283,7 @@
       wrDb,
       tasksStatusSchema, tasksDueProp, tasksCompletedProp, tasksPriorityProp, tasksProjectsProp, tasksTitleProp,
       projTitleProp, projStatusSchema, projectsDomainsProp,
-      notesStatusSchema, notesDateProp, notesTagsProp, notesTitleProp, notesDomainProp,
+      notesStatusSchema, notesDateProp, notesTagsProp, notesTitleProp, notesDomainProp, notesUniqueIdProp,
       wrNotesRelProp,
       completions, notesCaptured, overduePct,
     ] = await Promise.all([
@@ -10180,6 +10302,10 @@
       relationPropertyName(CONFIG.DB.NOTES, CONFIG.DB.TAGS),
       titlePropertyName(CONFIG.DB.NOTES),
       getNotesDomainProp(CONFIG.DB.NOTES),
+      // §3 retrofit — the mini-inbox row's mono handle (Inbox/Weekly
+      // Review Retrofit brief), same property Find/the Inbox screen
+      // already resolve for their own title+handle rows.
+      uniqueIdPropertyName(CONFIG.DB.NOTES),
       relationPropertyNameSafe(CONFIG.DB.WEEKLY_REVIEWS, CONFIG.DB.NOTES),
       getFlexiblePropByKeyword(CONFIG.DB.WEEKLY_REVIEWS, ['number', 'rich_text'], 'completion'),
       getFlexiblePropByKeyword(CONFIG.DB.WEEKLY_REVIEWS, ['number', 'rich_text'], 'notes', 'captur'),
@@ -10214,7 +10340,7 @@
       fields,
       tasksStatusSchema, tasksDueProp, tasksCompletedProp, tasksPriorityProp, tasksProjectsProp, tasksTitleProp,
       projTitleProp, projStatusSchema, projectsDomainsProp,
-      notesStatusSchema, notesDateProp, notesTagsProp, notesTitleProp, notesDomainProp,
+      notesStatusSchema, notesDateProp, notesTagsProp, notesTitleProp, notesDomainProp, notesUniqueIdProp,
     };
   }
 
@@ -10290,13 +10416,25 @@
           domainCode = sel ? sel.name : null;
         }
       }
+      const uv = schema.notesUniqueIdProp ? (p.properties[schema.notesUniqueIdProp] || {}).unique_id : null;
       return {
         id: p.id, title: plainTitle(p, schema.notesTitleProp), statusName,
+        handle: uv ? formatUniqueId(uv.prefix, uv.number) : null,
         date: dateVal ? tdDateOnly(dateVal.start) : null,
         createdDate: tdDateOnly(p.created_time),
         types, tagIds, domainCode,
       };
     });
+
+    // §3 retrofit — the mini-inbox row's one-line body snippet. Bounded to
+    // just the unprocessed (Status=Inbox) notes actually shown in the
+    // Inbox panel — the same backlog the Inbox screen's own triage view
+    // fetches bodies for — not every note ever captured; the Review
+    // panel's Active-notes list (wrNoteRowHtml's other caller) gets no
+    // snippet, same as it always has.
+    const inboxNotesForBody = notes.filter((n) => (n.statusName || '').toUpperCase() === 'INBOX');
+    const inboxBodies = await runWithConcurrency(inboxNotesForBody, 6, (n) => fetchPageBodyText(n.id));
+    inboxNotesForBody.forEach((n, i) => { n.body = inboxBodies[i]; });
 
     const wrByWeekEnding = new Map();
     wrPages.forEach((p) => {
@@ -10965,18 +11103,35 @@
     if (diffDays >= 0 && diffDays <= 7) return diffDays === 0 ? 'Today' : diffDays === 1 ? '1 day ago' : `${diffDays} days ago`;
     return formatDateShort(when);
   }
+  // §3/§4 retrofit — un-barbelled: date moves to a fixed left spine
+  // (shared --railless-date-col, same measure Find/the Inbox screen use),
+  // Status moves to a fixed right column (--action-status-col) instead of
+  // sitting shoulder-to-shoulder with the date at the row's right edge.
+  // Still borderless (no sage fill, no green edge — that treatment stays
+  // the Inbox screen's own, §6) — this only repositions content, same as
+  // the Inbox screen's own cards. Snippet only renders when a body was
+  // actually fetched (the Inbox panel's Status=Inbox notes only, see
+  // loadWeeklyReviewBase — the Review panel's Active notes have none, and
+  // silently render without a snippet line, same as always).
   function wrNoteRowHtml(n) {
     const meta = n.domainCode ? (DOMAIN_META.find((m) => m.code === n.domainCode) || NO_DOMAIN_META) : null;
     const domainChip = meta ? `<span class="wr-domain-chip" style="background:${meta.fill};color:${meta.text};">${escapeHtml(n.domainCode)}</span>` : '';
     const typeChips = n.types.slice(0, 4).map((t) => `<span class="wr-type-chip">${escapeHtml(t)}</span>`).join('');
     const opts = ['INBOX', 'ACTIVE', 'CLOSED'].map((v) => `<option value="${v}"${v === (n.statusName || '').toUpperCase() ? ' selected' : ''}>${v}</option>`).join('');
+    const snippetHtml = n.body ? `<div class="wr-note-snippet">${escapeHtml(n.body)}</div>` : '';
     return `<div class="wr-note-row">
-      <div class="wr-note-main">
-        <span class="wr-note-title" data-pf-nav="note/${escapeHtml(n.id)}">${escapeHtml(n.title || 'Untitled')}</span>
-        <select class="wr-note-status-select" data-wr-note-status data-wr-note-id="${escapeHtml(n.id)}" data-wr-note-prev="${escapeHtml((n.statusName || '').toUpperCase())}">${opts}</select>
-        <span class="wr-note-age">${wrNoteAgeLabel(n)}</span>
+      <div class="wr-note-date">${escapeHtml(wrNoteAgeLabel(n))}</div>
+      <div class="wr-note-content">
+        <div class="wr-note-title-line">
+          <span class="wr-note-title" data-pf-nav="note/${escapeHtml(n.id)}">${escapeHtml(n.title || 'Untitled')}</span>
+          <span class="wr-note-handle">${n.handle ? escapeHtml(n.handle) : '—'}</span>
+        </div>
+        ${snippetHtml}
+        ${domainChip || typeChips ? `<div class="wr-note-pills">${domainChip}${typeChips}</div>` : ''}
       </div>
-      ${domainChip || typeChips ? `<div class="wr-note-pills">${domainChip}${typeChips}</div>` : ''}
+      <div class="wr-note-status">
+        <select class="wr-note-status-select" data-wr-note-status data-wr-note-id="${escapeHtml(n.id)}" data-wr-note-prev="${escapeHtml((n.statusName || '').toUpperCase())}">${opts}</select>
+      </div>
     </div>`;
   }
   function wrRenderTrackToggle(current, dataAttr) {
