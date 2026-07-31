@@ -312,7 +312,8 @@ On the **Notes tab** of any tabbed profile, group rows by Type (reusing the Inbo
 The screen and route formerly "Triage" are now **Inbox** (`#/inbox`; `#/triage` aliases to it). Everywhere this doc says "Triage" as a screen name, read "Inbox." (The `INBOX` all-caps heading and `Sort` pill casing are unchanged.)
 
 - **Rail nav item:** `Inbox (N)` — the count in **parentheses on the rail only**; the screen's "N waiting · One bin at a time." subtitle keeps the count as plain prose.
-- **Bins layout is breakpoint-split:** desktop (≥768px) shows bins as a **horizontal chip row** across the top, under the Notes/Tasks toggle, with the selected bin's cards full-width below. Mobile keeps the **vertical stack** (one bin per row). The Notes/Tasks toggle sits **above** the bins (it determines which bins exist).
+- **Bins layout is breakpoint-split:** desktop (≥768px) shows bins as a chip row across the top, under the Notes/Tasks toggle, with the selected bin's cards full-width below. Mobile keeps the **vertical stack** (one bin per row). The Notes/Tasks toggle sits **above** the bins (it determines which bins exist).
+- **Bins wrap freely (Inbox/Weekly Review Retrofit, July 31 2026)** — on desktop the bin row wraps to **as many rows as needed**, bin open or not; a bin-open state used to collapse it to a single non-wrapping horizontally-scrolling row to leave more room for the opened bin's card list, which hid most bins off-screen (confirmed with the real ~17-Type Notes schema). Retired: **wrap freely, all bins visible beats a hidden few — not a hard two-row cap.**
 
 ## Rail treatment (lightened)
 
@@ -409,7 +410,7 @@ The cream panel **grows to fit its content on every screen**: min-height = viewp
 - **Tight gap** between the bin header and the first card.
 - **Bulk-select actions** (Tag / Status / Delete) sit **near the Select/Done button at the top**, sized like it but a different color — not in a bottom bar.
 - The redundant top-right **"N to Sort" is removed**; the **"N waiting"** subtitle is the single count.
-- **Row layout** — Inbox's own dense rows are a rail-less screen and are governed by Addendum 6's shared grid; retrofitting them (content zone + right-aligned metadata column + body snippet) is tracked as its own Roadmap item, not yet built.
+- **Row layout — shipped (Inbox/Weekly Review Retrofit, July 31 2026)**, Addendum 6's **action** row pattern: a fixed-width date-left spine, then the content cluster (title + mono handle inline, a one-line muted/ellipsized body snippet, then pills), then a wider right-aligned status column (Tasks only — Notes have no per-card status control, Refresh is how a note leaves Inbox, so their row's status column stays empty rather than showing a redundant "Inbox" everywhere). See Addendum 6 for the full spec and the per-surface palette split.
 
 ## Typography — enforced app-wide
 
@@ -498,7 +499,7 @@ A single search bar, pinned in the sticky header, ~180ms debounced, reads the ca
 
 ## The seven tabs — each a Search → Insights → Library dashboard
 
-**Library** (every tab): a flat, dense-bordered row list built on **Addendum 6's rail-less "navigation" row pattern** — a fixed-width **date spine on the left** (`created_time`, compact "Jul 12", year appended only when it isn't the current year), then the content cluster (title + handle, then a pills row carrying the domain chip alongside **entity-specific pills**, olive-on-sage; a Task's Priority renders as the shared `renderPriorityValue` stars, never a colored pill), with the **right side left open** rather than stretched to the panel edge. No body snippet on these rows — Find is navigated by title/handle, not a body preview, and that treatment stays Inbox's own "action" row pattern (Addendum 6, still unbuilt). The domain chip is the only colored element on the row — and resolves to **no chip, never a literal "undefined"**, when a record has none. **Sorted by `created_time`, newest first, on every tab** — this replaced the earlier per-type Notes grouping; the Type breakdown now lives in Notes' own Insight instead. Zero-count tabs stay clickable to a quiet empty state.
+**Library** (every tab): a flat, dense-bordered row list built on **Addendum 6's rail-less "navigation" row pattern** — a fixed-width **date spine on the left** (`created_time`, compact "Jul 12", year appended only when it isn't the current year), then the content cluster (title + handle, then a pills row carrying the domain chip alongside **entity-specific pills**, olive-on-sage; a Task's Priority renders as the shared `renderPriorityValue` stars, never a colored pill), with the **right side left open** rather than stretched to the panel edge. No body snippet on these rows — Find is navigated by title/handle, not a body preview, and that treatment stays Inbox's own "action" row pattern (Addendum 6, shipped in the Inbox/Weekly Review Retrofit). The domain chip is the only colored element on the row — and resolves to **no chip, never a literal "undefined"**, when a record has none. **Sorted by `created_time`, newest first, on every tab** — this replaced the earlier per-type Notes grouping; the Type breakdown now lives in Notes' own Insight instead. Zero-count tabs stay clickable to a quiet empty state.
 
 **Insights** (per tab): a compact band above the Library, either the **chart primitive** (below) or a plain serif-title/muted-sans-metric list (no pill background) — either way quiet enough that it never outshouts the Library or competes with the domain chips for color. **"Recently Added" was removed from every tab** — redundant once the Library itself is already sorted by date added; the tabs that lost it were refilled with a chart instead. Per tab:
 
@@ -551,7 +552,7 @@ Find's Insights answer *what is in here*: composition (breakdown by Type), promi
 
 # Addendum 6 — Rail-less layout (system-wide rule)
 
-*Introduced while building Find, but the rule is not Find-specific — it governs every screen that renders **no right rail** (Find now; Inbox and Home once retrofitted/built — see the Roadmap). Where a screen's own addendum (e.g. Addendum 5) describes a row shape, this addendum is what that row shape is built on.*
+*Introduced while building Find, but the rule is not Find-specific — it governs every screen that renders **no right rail** (Find, Inbox, and Weekly Review's mini-inbox now; Home once built — see the Roadmap). Where a screen's own addendum (e.g. Addendum 5) describes a row shape, this addendum is what that row shape is built on.*
 
 ## The problem it fixes
 
@@ -564,14 +565,24 @@ On a screen with no right rail, a single content column expands to fill the whol
 **Two row patterns**, chosen by whether the row has an *action* — both put the date on a fixed-width **left spine** rather than pinned to the panel's far edge, which is what actually fixes the barbell (metadata stranded at the edge, a dead valley in the middle):
 
 - **Navigation rows (Find's Library)** — date spine, then the content cluster (title + handle → a pills row: domain chip + type/status pills). **Right side stays open** — a clean, deliberate margin, capped to a reading measure rather than stretched to the panel edge. **No status control, no body snippet** — the record is reached by title/handle, not triaged from the row, so there's nothing to put on the right and no body preview worth the pull.
-- **Action rows (Inbox + Weekly Review's note station — the retrofit, not yet built)** — same left date spine + content cluster, but the content cluster adds a **one-line body snippet** (muted sans, ellipsized) in the middle, and the row gains **one right-aligned status column** — sized wider (~150px, tunable) than a stray pill so it reads as a deliberate column, caret at its right edge. The snippet fills the middle (recognition/triage context); the status column is where the row's actual action lives.
+- **Action rows (Inbox screen + Weekly Review's mini-inbox — shipped, Inbox/Weekly Review Retrofit, July 31 2026)** — same left date spine + content cluster, but the content cluster adds title + **mono handle** inline, then a **one-line body snippet** (muted sans, ellipsized) beneath it, then pills; the row gains **one right-aligned status column** (`--action-status-col`, 150px) — sized wider than a stray pill so it reads as a deliberate column, caret at its right edge. The snippet/pills fill the middle (recognition/triage context); the status column is where the row's actual action lives. **Notes carry no status column content** — a note's Status is always "Inbox" for the whole row list it appears in on the Inbox screen (Refresh, not a per-card control, is how it leaves), so that column is simply reserved-but-empty there rather than showing a redundant repeated value; Tasks and the Weekly Review mini-inbox's own Status dropdown both populate it for real.
 
 **General principle:** any *sparse* element — a lone bar, a single stat line — column-aligns or sits within the measure, rather than spanning the full panel width. Apply this same read wherever a screen has a thin, mostly-empty full-width row (Weekly Review's Domain-load bar is the next candidate — see the Roadmap).
+
+## Action-row container: sage cards vs. borderless rows (per-surface, deliberate)
+
+The action row's *internal* layout (date spine + content cluster + status column) is identical on both surfaces it ships on — only the **container** differs, by design, per the Inbox/Weekly Review Retrofit brief:
+
+- **Inbox screen** (`#/inbox`, active triage — each item a discrete thing you act on) — the action row renders **inside a filled sage card**: fill `#E7ECD6` (the canonical sage-card fill, matching Weekly Review's tiles — this is what "the bins/cards are the only sage masses" above actually means for this screen; it had drifted to a near-white cream that washed out against the cream panel behind it on desktop, now corrected), dark olive left edge unchanged. Every inner pill/ghost lightens to `#F1F0E4` so it still separates now that the card itself is sage, not cream — sage-on-sage would otherwise vanish. Domain chips are unaffected (already carry their own inline color). The Tasks-only status control gets a lighter fill plus a visible border (`.tg-status-chip`) so it reads as a tappable control, not just another value pill.
+- **Weekly Review mini-inbox** (the `INBOX N` / Notes·Tasks note-filing section embedded in the dashboard — a section inside a dashboard, lighter) — the action row renders on **existing borderless rows**: no card fill, no green/olive edge. Un-barbelling here is pure repositioning (date left, status right), not recoloring.
+- **Find's Library** — the sibling **navigation** row pattern (no status column, no snippet), also borderless on cream. Never gets the sage-card treatment.
+
+Three inbox-family surfaces, three deliberately different containers — not drift to fix silently. Nita's framing: *Inbox screen = filled sage cards (active triage); WR mini-inbox = borderless rows (a dashboard section); Find = borderless rows on cream (navigation).*
 
 ## Adoption status
 
 - **Find** — shipped (Conventions Addendum 5), the **navigation** pattern: date-left spine, content cluster, open right margin, no snippet ever (a permanent decision — see Addendum 5's Phase boundary).
-- **Inbox + Weekly Review note rows** — not yet retrofitted (Roadmap item), the **action** pattern: date-left spine + snippet + a wide right-aligned status column. Inbox already loads note bodies, so its snippet needs no Phase-2-style wait once the grid lands.
+- **Inbox screen + Weekly Review mini-inbox note rows** — shipped (Inbox/Weekly Review Retrofit, July 31 2026), the **action** pattern: date-left spine + title/handle + snippet + a wide right-aligned status column, sage cards on the Inbox screen, borderless on Weekly Review (see the container section above). Weekly Review's mini-inbox snippet required a bounded body fetch (Status=Inbox notes only, same size class as the Inbox screen's own backlog) added alongside this retrofit — Weekly Review previously loaded no note bodies at all.
 - **Home** — inherits whichever pattern fits when built; no retrofit needed, just build to it from the start.
 - Profile/detail views keep the `.shell` three-zone grid (Addendum 2) and are unaffected — this rule is about rail-less screens only.
 
