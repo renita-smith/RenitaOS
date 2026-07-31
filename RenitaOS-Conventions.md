@@ -498,29 +498,33 @@ A single search bar, pinned in the sticky header, ~180ms debounced, reads the ca
 
 ## The seven tabs — each a Search → Insights → Library dashboard
 
-**Library** (every tab): a flat, dense-bordered row list built on **Addendum 6's rail-less row grid** — a content zone (title + handle, an optional Phase-2 body snippet, then a pills row carrying the domain chip alongside **entity-specific pills**, olive-on-sage; a Task's Priority renders as the shared `renderPriorityValue` stars, never a colored pill) beside a fixed-width, right-aligned **date-added** column (`created_time`, compact "Jul 12", year appended only when it isn't the current year), so dates stack into one column across every row. The domain chip is the only colored element on the row — and resolves to **no chip, never a literal "undefined"**, when a record has none. **Sorted by `created_time`, newest first, on every tab** — this replaced the earlier per-type Notes grouping; the Type breakdown now lives in Notes' own Insight instead. Zero-count tabs stay clickable to a quiet empty state.
+**Library** (every tab): a flat, dense-bordered row list built on **Addendum 6's rail-less "navigation" row pattern** — a fixed-width **date spine on the left** (`created_time`, compact "Jul 12", year appended only when it isn't the current year), then the content cluster (title + handle, then a pills row carrying the domain chip alongside **entity-specific pills**, olive-on-sage; a Task's Priority renders as the shared `renderPriorityValue` stars, never a colored pill), with the **right side left open** rather than stretched to the panel edge. No body snippet on these rows — Find is navigated by title/handle, not a body preview, and that treatment stays Inbox's own "action" row pattern (Addendum 6, still unbuilt). The domain chip is the only colored element on the row — and resolves to **no chip, never a literal "undefined"**, when a record has none. **Sorted by `created_time`, newest first, on every tab** — this replaced the earlier per-type Notes grouping; the Type breakdown now lives in Notes' own Insight instead. Zero-count tabs stay clickable to a quiet empty state.
 
-**Insights** (per tab): a compact band above the Library, either a **chart primitive** (below) or a plain serif-title/muted-sans-metric list (no pill background) — either way quiet enough that it never outshouts the Library or competes with the domain chips for color. **"Recently Added" was removed from every tab** (Revision changeset) — redundant once the Library itself is already sorted by date added; the tabs that lost it were refilled with a chart instead. Per tab:
+**Insights** (per tab): a compact band above the Library, either the **chart primitive** (below) or a plain serif-title/muted-sans-metric list (no pill background) — either way quiet enough that it never outshouts the Library or competes with the domain chips for color. **"Recently Added" was removed from every tab** — redundant once the Library itself is already sorted by date added; the tabs that lost it were refilled with a chart instead. Per tab:
 
 | Tab | Insights | Library pills |
 |---|---|---|
-| Notes *(default)* | **Notes by Type** (load bar, zero-count Types excluded, schema order) · Top 5 Tags (list, by Note count) | Type(s) + Tags |
-| Tasks | **Tasks by Domain** (load bar, domain-colored, via project rollup) | Status + Priority (stars) + Project |
-| Projects | **Projects by Domain** (load bar, domain-colored) | Status + "N of M done" |
-| Tags | **Top 10 Tags** (bar chart, one bar per tag, ranked desc) · Recent Activity | up to 5 most-recent distinct Note-Types |
+| Notes *(default)* | **Notes by Type** (sorted bar chart, two-column, zero-count Types excluded) · Top 5 Tags (list, by Note count) | Type(s) + Tags |
+| Tasks | **Tasks by Domain** (sorted bar chart, single column, domain-colored, via project rollup) | Status + Priority (stars) + Project |
+| Projects | **Projects by Domain** (sorted bar chart, single column, domain-colored) | Status + "N of M done" |
+| Tags | **Top 10 Tags** (sorted bar chart, two-column) · Recent Activity | up to 5 most-recent distinct Note-Types |
 | Collections | **Top 5 Collections** (list, by member count) + Recent Activity, side by side in a **two-column panel** — the one tab where both Insights fit comfortably that way | — (base row only) |
-| Resources | **Resources by Type** (load bar; falls back to Recent Activity only if the Type field can't be resolved) · Recent Activity | — (base row only) |
+| Resources | **Resources by Type** (sorted bar chart, two-column; falls back to Recent Activity only if the Type field can't be resolved) · Recent Activity | — (base row only) |
 | People | Recent Activity only | Note-Types + Project |
 
 **Recent Activity** (Tags/Collections/Resources/People — a shared definition, not four separate ones): the records that *carry this entity's relation* (a Tag's related Notes/Projects, a Resource's referencing Notes, a Person's related Notes/Tasks — whichever source databases actually carry that relation), ranked by whichever of `created_time`/`last_edited_time` is more recent, ~5 compact links (title + date, navigates). Always the full **global** set — never domain-filtered, same as every other cross-cutting Insight (§7 below).
 
-### The two chart primitives — distinct, not interchangeable
+### The chart primitive — one sorted bar chart, not two shapes
 
-- **Load bar** — reuses **Weekly Review's own Domain-load bar wholesale** (`wrRenderDomainBar`'s exact markup/classes): a **single stacked, segmented bar** — one segment per category, sized to its share of the total — with a dot-legend below (label · count · %), not a row-per-category track. Zero-count categories are dropped entirely (a zero-width segment has nothing to show), same as the Weekly Review original; a Tasks/Projects record with no resolvable domain buckets into its own **"No domain"** segment rather than being silently uncounted. Used by Notes by Type, Tasks/Projects by Domain, Resources by Type.
-- **Bar chart** (Tags Top-10 only) — a true ranked bar chart, one bar per tag, length scaled to the largest count, count labeled; visually distinct from the load bar because the label rides *inside* the bar's own fill rather than a separate label column.
-- **Color discipline:** **by-*domain* bars are domain-colored** (Tasks/Projects by Domain — this is wayfinding, the app's one saturated system; the "No domain" segment uses the canonical no-domain hex). **By-*type* bars and the Tags bar chart stay olive-on-sage** — Type and Tag color is ambient, never wayfinding; never domain-color or rainbow them.
-- Under a single-domain filter, a by-domain bar simply **collapses to that one domain's segment** — no special-casing, since the records feeding it are already domain-filtered before the chart ever sees them.
-- **The Phase 1.5 donut phase is deleted** — both chart primitives above are bars, full stop; there is no chart-library or SVG-donut work planned for Find.
+Every breakdown Insight is **the same primitive**: a sorted horizontal bar chart, one labeled bar per category, length scaled to the largest count, ranked descending, count labeled. *(An earlier draft tried a single-color stacked "load bar" — modeled on Weekly Review's own Domain-load component — for Notes/Tasks/Projects/Resources; it was retired: a single-color stacked bar can't separate its own segments. One labeled row per category fixes that — the label distinguishes categories, the length carries magnitude, no color is needed to tell them apart.)*
+
+- **Sort by count descending** — a deliberate exception to the schema-order house rule, which governs *navigational* groupings (Inbox bins, note-Type groups) for stable placement; a magnitude chart's whole job is rank, so it sorts.
+- **Two-column, column-major** for the large sets (Notes by Type ~17, Tags Top-10, Resources by Type): rank reads top-to-bottom down column 1, then top-to-bottom down column 2 — not left-to-right. Bars share one scale across both columns. One column on mobile, same rank order, stacked.
+- **Single column** for the short sets (Tasks/Projects by Domain, 6–7 rows).
+- **Notes by Type / Resources by Type** exclude zero-count categories. **Tasks/Projects by Domain** show all six domains regardless of count (a stable shape, not a bar that reflows as counts change) plus a **"No domain"** bar when applicable — a resolution miss buckets there, never silently uncounted, never a stray `"undefined"`.
+- **Color discipline:** **by-*domain* bars are domain-colored** (Tasks/Projects by Domain — this is wayfinding, the app's one saturated system; the "No domain" bar uses the canonical no-domain hex). **By-*type*/by-*tag* bars (Notes by Type, Resources by Type, Tags Top-10) stay single-color olive-on-sage** — Type and Tag color is ambient, never wayfinding; never rainbow these, since the labeled rows — not color — do the separating.
+- Under a single-domain filter, a by-domain bar simply **collapses to that one domain's bar** — no special-casing, since the records feeding it are already domain-filtered before the chart ever sees them.
+- **There is no donut phase.** An earlier draft planned SVG donuts as a Phase 1.5; that plan was deleted before any donut code was ever written — every chart on this screen is a bar, full stop.
 
 ("Status breakdown" is deliberately omitted from Tasks/Projects Insights — that lives on Today/Domain profiles; repeating it here would blur into evaluative territory, see the Home boundary below.)
 
@@ -538,10 +542,10 @@ Find's Insights answer *what is in here*: composition (breakdown by Type), promi
 
 ## Phase boundary
 
-**Phase 1 (shipped):** Insights as chart primitives (load bars + the Tags bar chart) and lists, per the table above; no body-text search — the index's `body` slot exists on every record but stays empty; matching is title + `metaBlob` only. The row's body-snippet slot (Addendum 6) is structurally present but stays empty until Phase 2.
-**Phase 2 (not built):** body-text search — Notes first, progressive background hydration, `last_edited_time`-keyed incremental cache, snippet on match, which is also what fills the row snippet.
+**Phase 1 (shipped):** Insights as the one sorted bar-chart primitive and lists, per the table above; no body-text search — the index's `body` slot exists on every record but stays empty; matching is title + `metaBlob` only. **No Find row ever shows a body snippet** — a permanent decision, not a Phase-1 gap (that treatment is Inbox's own "action" row pattern, Addendum 6).
+**Phase 2 (not built):** body-text search only — Notes first, hydrated on demand or as an idle background build (not eagerly on entry, since no Find row snippet couples hydration to first paint), `last_edited_time`-keyed incremental cache, a results-only match excerpt on a body hit.
 
-*(The donut phase originally planned between these two was deleted by the Revision changeset — both chart primitives are bars.)*
+*(There is no donut phase — an earlier plan was deleted before any donut code was ever written.)*
 
 ---
 
@@ -553,21 +557,22 @@ Find's Insights answer *what is in here*: composition (breakdown by Type), promi
 
 On a screen with no right rail, a single content column expands to fill the whole panel, and row metadata (a date, a status) gets pinned to the **panel's own far edge** — splitting each row into a barbell: a left cluster, a dead valley, and a stranded edge cluster. The rail was never what made a screen read as finished; **filled, column-aligned content** was. Content stretched full-bleed reads as unfinished; the same content in aligned columns with a used middle reads as polished. (This is the same root cause behind Weekly Review's sparse lower sections, e.g. its Domain-load bar — see the Roadmap.)
 
-## The rule — three moves, applied together
+## The rule — a shared content measure, plus a choice of two row shapes
 
-1. **Content measure + right gutter.** A rail-less screen's content column takes the full panel width **minus `--railless-gutter`** (a modest reclaim — smaller than Today's ~230px rail, so the width stays *used* rather than handed away as void). Content stays **flush-left**, on the same left edge as Today and the nav rail. The gutter is a right margin on the content column itself, never a centered/narrowed panel — narrowing the panel would shift the left edge and break that alignment. `--railless-gutter` and the derived `--content-measure` (`calc(100% - var(--railless-gutter))`) are defined once, in `:root`, alongside the framed panel's own `--dmn-max-width` (Addendum 2/3's max-width rule) — one shared pair of tokens, not hand-tuned per screen.
-2. **Two-zone row grid.** Each row is a grid: a flexible **content zone** (`minmax(0,1fr)`) beside **right-aligned metadata column(s)** of a fixed width, so status/date/etc. stack into **tidy vertical columns across every row** instead of floating at the panel edge, chasing however long each row's title happens to run.
-   - **Content zone:** title (serif) → an optional **one-line body snippet** (muted sans, single line, ellipsized, never wraps) → a pills row (domain chip + type/status/other pills).
-   - **Metadata column(s):** the screen's own right-side data — Find is just a date-added; a screen with more (Inbox: a Status select + a relative date) gets more columns, still fixed-width and right-aligned.
-3. **The snippet fills the valley.** A one-line preview of the record's body turns the dead middle into the thing you're actually reading — triage context on Inbox, recognition on Find — and rescues the rows that would otherwise look emptiest (an untyped, undomained note with no pills).
+**Content measure + right gutter** (every rail-less screen): the content column takes the full panel width **minus `--railless-gutter`** (a modest reclaim — smaller than Today's ~230px rail, so the width stays *used* rather than handed away as void). Content stays **flush-left**, on the same left edge as Today and the nav rail. The gutter is a right margin on the content column itself, never a centered/narrowed panel — narrowing the panel would shift the left edge and break that alignment. `--railless-gutter`, the derived `--content-measure` (`calc(100% - var(--railless-gutter))`), and `--railless-date-col` (the fixed-width date spine both row patterns below share, sized for the longest date form a row will show) are defined once, in `:root`, alongside the framed panel's own `--dmn-max-width` (Addendum 2/3's max-width rule) — shared tokens, not hand-tuned per screen.
+
+**Two row patterns**, chosen by whether the row has an *action* — both put the date on a fixed-width **left spine** rather than pinned to the panel's far edge, which is what actually fixes the barbell (metadata stranded at the edge, a dead valley in the middle):
+
+- **Navigation rows (Find's Library)** — date spine, then the content cluster (title + handle → a pills row: domain chip + type/status pills). **Right side stays open** — a clean, deliberate margin, capped to a reading measure rather than stretched to the panel edge. **No status control, no body snippet** — the record is reached by title/handle, not triaged from the row, so there's nothing to put on the right and no body preview worth the pull.
+- **Action rows (Inbox + Weekly Review's note station — the retrofit, not yet built)** — same left date spine + content cluster, but the content cluster adds a **one-line body snippet** (muted sans, ellipsized) in the middle, and the row gains **one right-aligned status column** — sized wider (~150px, tunable) than a stray pill so it reads as a deliberate column, caret at its right edge. The snippet fills the middle (recognition/triage context); the status column is where the row's actual action lives.
 
 **General principle:** any *sparse* element — a lone bar, a single stat line — column-aligns or sits within the measure, rather than spanning the full panel width. Apply this same read wherever a screen has a thin, mostly-empty full-width row (Weekly Review's Domain-load bar is the next candidate — see the Roadmap).
 
 ## Adoption status
 
-- **Find** — shipped (Conventions Addendum 5): the gutter + two-zone grid land in Phase 1; the body snippet is structurally present but stays empty until Phase 2's body hydration (Find doesn't cache bodies before then).
-- **Inbox** — not yet retrofitted (Roadmap item). Its rows already have body text loaded (no Phase-2-style wait), so its snippet can ship as soon as the grid does.
-- **Home** — inherits this rule when built; no retrofit needed, just build to it from the start.
+- **Find** — shipped (Conventions Addendum 5), the **navigation** pattern: date-left spine, content cluster, open right margin, no snippet ever (a permanent decision — see Addendum 5's Phase boundary).
+- **Inbox + Weekly Review note rows** — not yet retrofitted (Roadmap item), the **action** pattern: date-left spine + snippet + a wide right-aligned status column. Inbox already loads note bodies, so its snippet needs no Phase-2-style wait once the grid lands.
+- **Home** — inherits whichever pattern fits when built; no retrofit needed, just build to it from the start.
 - Profile/detail views keep the `.shell` three-zone grid (Addendum 2) and are unaffected — this rule is about rail-less screens only.
 
 ## Bug fixed in passing
