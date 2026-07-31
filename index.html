@@ -47,9 +47,14 @@
        centering/narrowing the whole panel, which would break left-edge
        alignment with Today and the nav. --content-measure is the
        resulting usable width, exposed as its own token for anything
-       that wants to cap to it directly rather than pad into it. */
+       that wants to cap to it directly rather than pad into it.
+       --railless-date-col is the "navigation" row pattern's fixed-width
+       date spine (§2A revised) — sized for the longest date form a row
+       will show ("Dec 8, 2024"), set once so every title starts flush at
+       the same left edge regardless of how long each date renders. */
     --railless-gutter: 72px;
     --content-measure: calc(100% - var(--railless-gutter));
+    --railless-date-col: 92px;
 
     color-scheme: light only;
   }
@@ -1846,50 +1851,47 @@
   }
   .find-library-head .dmn-n { font-size: 13px; font-weight: 600; text-transform: none; letter-spacing: normal; }
 
-  /* Library row (§2A/§3) — the two-zone rail-less row grid: a flexible
-     content zone (title+handle → optional Phase-2 snippet → a pills row
-     that now carries the domain chip alongside the entity pills) beside
-     a fixed-width, right-aligned metadata column (date added) so dates
-     stack into one tidy column across every row instead of floating at
-     the panel's edge, chasing however long each title happens to be.
-     Extends .pf-row (the shipped dense-bordered-row look) rather than
-     replacing it — only the internal layout changed, not the treatment. */
+  /* Library row (§2A revised — "navigation" row pattern) — a fixed-width
+     DATE-LEFT spine (not a right-aligned metadata column) followed by the
+     content cluster (title+handle → a pills row carrying the domain chip
+     alongside the entity pills); the right side is deliberately left open
+     rather than stretched to the panel edge — capped to a comfortable
+     reading measure rather than filling every available pixel. No body
+     snippet on this pattern (Find is navigated by title/handle, not a
+     body preview) — that stays the sibling "action" row pattern's own
+     treatment (Inbox/Weekly Review, not this file). Extends .pf-row (the
+     shipped dense-bordered-row look) rather than replacing it — only the
+     internal layout changed, not the treatment. */
   .find-row {
-    display: grid; grid-template-columns: minmax(0,1fr) 92px;
+    display: grid; grid-template-columns: var(--railless-date-col) minmax(0,1fr);
     align-items: start; column-gap: 16px;
   }
-  .find-row-content { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
-  .find-row-title-line { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
-  /* Phase 2 only (§5) — empty/absent in Phase 1, since Find doesn't cache
-     bodies yet; the row grid is already shaped to take it without a
-     re-layout once body hydration ships. */
-  .find-row-snippet {
-    font-family: 'IBM Plex Sans', sans-serif; font-size: 13px; color: oklch(0.55 0.012 75);
-    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  .find-row-date {
+    font-family: 'IBM Plex Sans', sans-serif; font-size: 12px; color: oklch(0.55 0.012 75);
+    white-space: nowrap; padding-top: 2px;
   }
+  .find-row-content { display: flex; flex-direction: column; gap: 6px; min-width: 0; max-width: 620px; }
+  .find-row-title-line { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
   .find-row-pills { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
-  .find-row-meta { text-align: right; padding-top: 1px; }
-  .find-row-date { font-family: 'IBM Plex Sans', sans-serif; font-size: 12px; color: oklch(0.55 0.012 75); white-space: nowrap; }
   .find-pill {
     font-family: 'IBM Plex Sans', sans-serif; font-size: 11px; padding: 3px 9px; border-radius: var(--radius-sm);
     background: var(--tg-sage-deep, #DBE2C1); color: #2A3408;
   }
   .find-pill--priority { background: transparent; padding: 3px 0; letter-spacing: 1px; }
 
-  /* Chart primitives — deliberately distinct shapes.
-     A. Load bar reuses Weekly Review's own .wr-dist-bar-wrap/.wr-dist-seg/
-     .wr-dist-legend/.wr-dist-item/.wr-dist-dot wholesale (defined near
-     Weekly Review's own styles below) — a single stacked segmented bar +
-     dot-legend, not a row-per-category track. By-domain rows pass each
-     domain's real hex (wayfinding, the app's one saturated system);
-     by-type rows (Notes/Resources) omit it and fall through to
-     findRenderLoadBar's own uniform sage fallback — ambient, not
-     wayfinding, never domain-colored or rainbowed.
-
-     B. Bar chart (Tags Top-10 only) — the label rides inside the fill
-     itself rather than a separate left column, which is what keeps this
-     from reading as just another load bar. Olive-on-sage only — Tag color
-     is ambient, never wayfinding, so this never domain-colors either. */
+  /* Chart primitive — ONE sorted horizontal bar chart, used by every
+     breakdown Insight (the stacked single-track "load bar" tried earlier
+     is retired — a single-color stacked bar can't separate its own
+     segments; a labeled row per category can, no color needed). The label
+     rides inside the fill itself rather than a separate left column.
+     By-domain rows (Tasks/Projects by Domain) pass each domain's real hex
+     — wayfinding, the app's one saturated system; by-type/by-tag rows
+     (Notes/Resources/Tags) omit it and stay this uniform sage fill —
+     ambient, never wayfinding, never rainbowed. .find-barchart-cols wraps
+     two .find-barchart columns side by side for the large sets (Notes by
+     Type, Resources by Type, Tags Top-10) — column-major rank order (down
+     column 1, then column 2), one shared scale across both. */
+  .find-barchart-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 24px; }
   .find-barchart { display: flex; flex-direction: column; gap: 6px; }
   .find-bar-row { display: flex; align-items: center; gap: 10px; cursor: pointer; }
   .find-bar-track { flex: 1; position: relative; height: 24px; background: #00000008; border-radius: 4px; overflow: hidden; min-width: 0; }
@@ -1902,13 +1904,17 @@
   .find-bar-row:hover .find-bar-label { text-decoration: underline; }
   .find-bar-n { font-family: 'IBM Plex Sans', sans-serif; font-size: 12px; color: oklch(0.55 0.012 75); width: 26px; text-align: right; flex-shrink: 0; }
   @media (max-width: 820px) {
+    .find-barchart-cols { grid-template-columns: 1fr; }
+  }
+  @media (max-width: 820px) {
     .find-head { position: static; }
     .find-head-row .dmn-capture { width: auto; }
     .find-search-input { flex-basis: 100%; min-width: 0; }
     /* The gutter is a desktop reclaim against unused rail width — mobile
        has none to spare, so the content column goes back to full width. */
     body[data-route="find"] .dmn-col { padding-right: 0; }
-    .find-row { grid-template-columns: minmax(0,1fr) 72px; column-gap: 10px; }
+    .find-row { grid-template-columns: 72px minmax(0,1fr); column-gap: 10px; }
+    .find-row-content { max-width: none; }
   }
 
   /* Title + week-nav + Capture stick to the top of the main column on
@@ -2095,7 +2101,7 @@
   // Bumped by hand on every deployed change (Cycle-2 preflight) — logged on
   // load and shown in-app (topbar + framed rail) so it's a glance which
   // build is actually running, instead of inferring it from git history.
-  const BUILD_STAMP = '2026-07-30-find5';
+  const BUILD_STAMP = '2026-07-30-find6';
   console.log(`RenitaOS build ${BUILD_STAMP}`);
 
   // --- Shared bootstrap: defined once, in one place. -----------------------
@@ -11292,7 +11298,6 @@
       notesDomainPropInfo, notesTagsProp, notesPeopleProp, notesCollectionsProp,
       projectsDomainProp, tasksProjectsProp, tasksPeopleProp,
       notesStatusSchema, tasksStatusSchema, projectsStatusSchema,
-      notesTypeOrder,
       tasksPriorityProp,
       projectsDoneProp, projectsTasksRollupProp, projectsProgressProp,
       projectsTagsProp, projectsPeopleProp, projectsCollectionsProp,
@@ -11316,7 +11321,6 @@
       getStatusSchema(CONFIG.DB.NOTES).catch(() => null),
       getStatusSchema(CONFIG.DB.TASKS).catch(() => null),
       getStatusSchema(CONFIG.DB.PROJECTS).catch(() => null),
-      getNotesTypeOrder(),
       getTasksPriorityProp(CONFIG.DB.TASKS),
       getRollupPropByKeyword(CONFIG.DB.PROJECTS, 'done'),
       getRollupPropByKeyword(CONFIG.DB.PROJECTS, 'tasks'),
@@ -11515,7 +11519,7 @@
 
     const records = FIND_TAB_ORDER.flatMap((k) => byEntity.get(k));
     return {
-      records, byEntity, notesTypeOrder, tagById, resourcesTypeProp,
+      records, byEntity, tagById, resourcesTypeProp,
       notesByTagId, notesByPersonId, projectsByPersonId,
       tagMemberCount, collectionMemberCount,
     };
@@ -11675,14 +11679,14 @@
     return pills;
   }
 
-  // §2A two-zone row: a flexible content zone (title/handle, an optional
-  // Phase-2 snippet, and a pills row carrying the domain chip alongside
-  // the entity pills) beside a fixed-width right-aligned metadata column
-  // (date added) — so dates line up in one column across every row
-  // instead of trailing however long each title happens to run.
-  // `r.domain && r.domain.code` (not just `r.domain`) is the guard against
-  // a truthy-but-empty domain object ever rendering a literal "undefined"
-  // chip — belt-and-suspenders alongside domainChip()'s own null coalescing.
+  // §2A "navigation" row pattern: a fixed-width date spine on the LEFT,
+  // then the content cluster (title/handle, a pills row carrying the
+  // domain chip alongside the entity pills) — right side left open. No
+  // snippet, no right-hand metadata column (that's the sibling "action"
+  // row pattern's own shape — Inbox, not this file). `r.domain &&
+  // r.domain.code` (not just `r.domain`) is the guard against a truthy-
+  // but-empty domain object ever rendering a literal "undefined" chip —
+  // belt-and-suspenders alongside domainChip()'s own null coalescing.
   function renderFindLibraryRow(r, index) {
     const navAttr = r.route ? ` data-pf-nav="${escapeHtml(r.route)}"` : '';
     const domainHtml = (r.domain && r.domain.code)
@@ -11693,21 +11697,18 @@
     const pillsHtml = findPillsFor(r, index).map((t) => `<span class="find-pill">${escapeHtml(t)}</span>`).join('');
     const pillsRowHtml = (domainHtml || priorityHtml || pillsHtml)
       ? `<div class="find-row-pills">${domainHtml}${priorityHtml}${pillsHtml}</div>` : '';
-    // Phase 1 never populates r.body (§5) — this stays empty/absent until
-    // Phase 2's hydration lands, at which point it folds straight into
-    // this same slot with no row re-layout.
-    const snippetHtml = r.body ? `<div class="find-row-snippet">${escapeHtml(r.body)}</div>` : '';
+    // No body snippet on this row (§2A "navigation" row pattern) — Find is
+    // navigated by title/handle, not a body preview; pulling bodies for
+    // every browse row wasn't worth it. That treatment stays Inbox's own
+    // "action" row pattern (a sibling, unbuilt retrofit — not this file).
     return `<div class="pf-row find-row${r.route ? ' pf-row--nav' : ''}"${navAttr}>
+      <span class="find-row-date">${escapeHtml(findFormatDateAdded(r.createdTime))}</span>
       <div class="find-row-content">
         <div class="find-row-title-line">
           <span class="pf-row-title">${escapeHtml(r.title || 'Untitled')}</span>
           <span class="pf-row-id">${r.handle ? escapeHtml(r.handle) : '—'}</span>
         </div>
-        ${snippetHtml}
         ${pillsRowHtml}
-      </div>
-      <div class="find-row-meta">
-        <span class="find-row-date">${escapeHtml(findFormatDateAdded(r.createdTime))}</span>
       </div>
     </div>`;
   }
@@ -11733,56 +11734,55 @@
     </div>`;
   }
 
-  // --- Chart primitives — two distinct shapes, never conflated.
-  // A. Load bar: reuses Weekly Review's own Domain-load bar wholesale
-  // (wrRenderDomainBar's exact markup/classes — a single stacked segmented
-  // bar, one segment per category sized to its share of the total, plus a
-  // dot-legend below with label/count/%) rather than a row-per-category
-  // track. Zero-count categories are dropped (a zero-width segment has
-  // nothing to show), same as the Weekly Review original. By-domain rows
-  // carry each domain's real hex (wayfinding); by-type rows (Notes/
-  // Resources) omit `fill` and fall through to one uniform sage tone —
-  // ambient, never rainbowed, per Conventions' Type-color usage rule.
-  // B. Bar chart (Tags Top-10 only): the label rides *inside* the fill
-  // itself rather than a separate column, which is what keeps it from
-  // reading as just another load bar.
-  function findRenderLoadBar(rows) {
-    const live = rows.filter((r) => r.count > 0);
-    const total = live.reduce((sum, r) => sum + r.count, 0);
-    if (!total) return `<div class="dmn-empty">No data yet.</div>`;
-    const barHtml = live.map((r) => {
-      const pct = Math.round((r.count / total) * 100);
-      return `<div class="wr-dist-seg" style="width:${pct}%;background:${r.fill || 'var(--tg-sage-deep, #DBE2C1)'};"></div>`;
-    }).join('');
-    const legendHtml = live.map((r) => {
-      const pct = Math.round((r.count / total) * 100);
-      const navAttr = r.route ? ` data-pf-nav="${escapeHtml(r.route)}"` : '';
-      return `<div class="wr-dist-item"${navAttr}><span class="wr-dist-dot" style="background:${r.fill || 'var(--tg-sage-deep, #DBE2C1)'};"></span>${escapeHtml(r.label)} ${r.count} · ${pct}%</div>`;
-    }).join('');
-    return `<div class="wr-dist-bar-wrap">${barHtml}</div><div class="wr-dist-legend">${legendHtml}</div>`;
-  }
-  function findRenderBarChart(rows) {
-    const max = Math.max(1, ...rows.map((r) => r.count));
-    return `<div class="find-barchart">${rows.map((r) => {
+  // --- Chart primitive — ONE sorted horizontal bar chart, used by every
+  // breakdown Insight (Notes by Type, Tasks/Projects by Domain, Resources
+  // by Type, Tags Top-10). The earlier stacked single-track "load bar" is
+  // retired for these — a single-color stacked bar doesn't separate its
+  // own segments; a labeled row per category does, no color needed. Sorts
+  // by count descending internally (a deliberate exception to the schema-
+  // order house rule, which governs *navigational* groupings like Inbox's
+  // bins — a magnitude chart's whole job is rank). `opts.twoCol` renders
+  // column-major (rank reads top-to-bottom down column 1, then column 2 —
+  // not left-to-right) for large sets, sharing one scale across both
+  // columns; small sets (opts.twoCol unset — Tasks/Projects by Domain)
+  // stay a single column. By-domain rows carry each domain's real hex
+  // (wayfinding); by-type/by-tag rows omit `fill` and stay single-color
+  // olive-on-sage — ambient, never rainbowed, per Conventions' Type-color
+  // usage rule.
+  function findRenderBarChart(rows, opts) {
+    opts = opts || {};
+    const sorted = rows.slice().sort((a, b) => b.count - a.count);
+    const max = Math.max(1, ...sorted.map((r) => r.count));
+    const renderRow = (r) => {
       const pct = Math.round((r.count / max) * 100);
       const navAttr = r.route ? ` data-pf-nav="${escapeHtml(r.route)}"` : '';
+      const fillStyle = r.fill ? `width:${pct}%;background:${r.fill};` : `width:${pct}%;`;
       return `<div class="find-bar-row"${navAttr}>
         <div class="find-bar-track">
-          <div class="find-bar-fill" style="width:${pct}%"></div>
+          <div class="find-bar-fill" style="${fillStyle}"></div>
           <span class="find-bar-label">${escapeHtml(r.label)}</span>
         </div>
         <span class="find-bar-n">${r.count}</span>
       </div>`;
-    }).join('')}</div>`;
+    };
+    if (opts.twoCol && sorted.length > 6) {
+      const half = Math.ceil(sorted.length / 2);
+      return `<div class="find-barchart-cols">
+        <div class="find-barchart">${sorted.slice(0, half).map(renderRow).join('')}</div>
+        <div class="find-barchart">${sorted.slice(half).map(renderRow).join('')}</div>
+      </div>`;
+    }
+    return `<div class="find-barchart">${sorted.map(renderRow).join('')}</div>`;
   }
 
-  // By-domain counts, same "drop the zeros, bucket the rest as No domain"
-  // shape wrRenderDomainBar's own Task distribution uses — zero-count
-  // domains just don't get a segment (findRenderLoadBar drops them too,
-  // belt-and-suspenders). Under a single-domain filter this collapses to
-  // that one domain's segment with no special-casing, since `records` is
-  // already domain-filtered by the caller (findTabRecords) before it ever
-  // reaches here.
+  // By-domain counts always show all six domains, zero or not (a stable
+  // shape beats a bar that reflows every time a domain empties out), plus
+  // a "No domain" row when any record has none — a resolution miss buckets
+  // there, never left uncounted or rendered as a stray "undefined". Under
+  // a single-domain filter this collapses to that one domain's bar with no
+  // special-casing, since `records` is already domain-filtered by the
+  // caller (findTabRecords) before it ever reaches here. findRenderBarChart
+  // handles the actual rank sort — this just builds the category set.
   function findByDomainCounts(records) {
     const counts = new Map();
     let noDomain = 0;
@@ -11790,50 +11790,38 @@
       if (r.domain && r.domain.code) counts.set(r.domain.code, (counts.get(r.domain.code) || 0) + 1);
       else noDomain += 1;
     });
-    const rows = DOMAIN_META.filter((dm) => counts.get(dm.code)).map((dm) => ({ label: dm.code, count: counts.get(dm.code), fill: dm.fill }));
+    const rows = DOMAIN_META.map((dm) => ({ label: dm.code, count: counts.get(dm.code) || 0, fill: dm.fill }));
     if (noDomain > 0) rows.push({ label: 'No domain', count: noDomain, fill: NO_DOMAIN_META.fill });
     return rows;
   }
 
   // Note-count per Type, multi-Type notes counted under each Type (same
-  // double-count convention Inbox's own by-type bins use), ordered by the
-  // Notes DB's live Type-option schema order. Zero-count Types are never
-  // included in the first place (only Types actually seen on a note ever
-  // enter `byType`), so no separate "drop the zeros" pass is needed.
-  function findNotesTypeBreakdown(filteredNotes, typeOrder) {
+  // double-count convention Inbox's own by-type bins use). Unordered here
+  // on purpose — findRenderBarChart does the count-descending rank sort,
+  // so schema order (a navigational-grouping concern, not a magnitude-
+  // chart one) never enters this derivation at all.
+  function findNotesTypeBreakdown(filteredNotes) {
     const byType = new Map();
     filteredNotes.forEach((n) => {
       const types = n.types && n.types.length ? n.types : [NO_GROUP];
       types.forEach((t) => byType.set(t, (byType.get(t) || 0) + 1));
     });
-    let orderedKeys;
-    if (typeOrder && typeOrder.length) {
-      orderedKeys = typeOrder.filter((t) => byType.has(t));
-      if (byType.has(NO_GROUP)) orderedKeys.push(NO_GROUP);
-    } else {
-      orderedKeys = [...byType.keys()].sort((a, b) => byType.get(b) - byType.get(a));
-    }
-    return orderedKeys.map((key) => {
+    return [...byType.entries()].map(([key, count]) => {
       const { name, icon } = key === NO_GROUP ? { name: 'No Type', icon: '' } : splitTrailingEmoji(key);
-      return { name, icon, count: byType.get(key) };
+      return { name, icon, count };
     });
   }
-  // Same shape as findNotesTypeBreakdown but without the "No Type" tail —
-  // Resources has no equivalent untyped-bucket convention to preserve, so
-  // an untyped resource just doesn't appear (already-zero-count categories
-  // never enter `byType` either way).
-  function findResourcesTypeBreakdown(resources, typeOrder) {
+  // Same shape as findNotesTypeBreakdown, no "No Type" bucket — Resources
+  // has no equivalent untyped-bucket convention to preserve.
+  function findResourcesTypeBreakdown(resources) {
     const byType = new Map();
     resources.forEach((r) => (r.types || []).forEach((t) => byType.set(t, (byType.get(t) || 0) + 1)));
-    const orderedKeys = (typeOrder && typeOrder.length)
-      ? typeOrder.filter((t) => byType.has(t))
-      : [...byType.keys()].sort((a, b) => byType.get(b) - byType.get(a));
-    return orderedKeys.map((key) => {
+    return [...byType.entries()].map(([key, count]) => {
       const { name, icon } = splitTrailingEmoji(key);
-      return { name, icon, count: byType.get(key) };
+      return { name, icon, count };
     });
   }
-  function findLoadBarRowsFromBreakdown(breakdown) {
+  function findBarChartRowsFromBreakdown(breakdown) {
     return breakdown.map((b) => ({ label: b.icon ? `${b.icon} ${b.name}` : b.name, count: b.count }));
   }
 
@@ -11860,8 +11848,8 @@
 
   function findRenderNotesInsights(s) {
     const filteredNotes = findTabRecords(s, 'notes');
-    const breakdown = findNotesTypeBreakdown(filteredNotes, s.index.notesTypeOrder);
-    const loadBarHtml = findRenderLoadBar(findLoadBarRowsFromBreakdown(breakdown));
+    const breakdown = findNotesTypeBreakdown(filteredNotes);
+    const barHtml = findRenderBarChart(findBarChartRowsFromBreakdown(breakdown), { twoCol: true });
     const tagCounts = new Map();
     filteredNotes.forEach((n) => (n.tagIds || []).forEach((tid) => tagCounts.set(tid, (tagCounts.get(tid) || 0) + 1)));
     const topTagsHtml = [...tagCounts.entries()].sort((a, b) => b[1] - a[1]).slice(0, 5)
@@ -11869,14 +11857,14 @@
         const t = s.index.tagById.get(tagId);
         return t ? findInsightCountRow(t.title, count, t.route) : '';
       }).join('');
-    return `${findInsightSection('Notes by type', loadBarHtml)}${findInsightSection('Top 5 tags', topTagsHtml)}`;
+    return `${findInsightSection('Notes by type', barHtml)}${findInsightSection('Top 5 tags', topTagsHtml)}`;
   }
 
   function findRenderTasksInsights(s) {
-    return findInsightSection('Tasks by domain', findRenderLoadBar(findByDomainCounts(findTabRecords(s, 'tasks'))));
+    return findInsightSection('Tasks by domain', findRenderBarChart(findByDomainCounts(findTabRecords(s, 'tasks'))));
   }
   function findRenderProjectsInsights(s) {
-    return findInsightSection('Projects by domain', findRenderLoadBar(findByDomainCounts(findTabRecords(s, 'projects'))));
+    return findInsightSection('Projects by domain', findRenderBarChart(findByDomainCounts(findTabRecords(s, 'projects'))));
   }
 
   // Tags/Collections/Resources/People Insights are never domain-filtered
@@ -11888,7 +11876,7 @@
       .slice(0, 10)
       .map((t) => ({ label: t.title, count: s.index.tagMemberCount.get(t.id) || 0, route: t.route }));
     const activity = findRecentActivityFor([s.index.byEntity.get('notes'), s.index.byEntity.get('projects')], 'tagNames');
-    return `${findInsightSection('Top 10 tags', findRenderBarChart(top10Rows))}${findRenderActivity(activity)}`;
+    return `${findInsightSection('Top 10 tags', findRenderBarChart(top10Rows, { twoCol: true }))}${findRenderActivity(activity)}`;
   }
 
   // Two-column panel — Top 5 left, Recent Activity right — rather than the
@@ -11910,8 +11898,8 @@
   function findRenderResourcesInsights(s) {
     let breakdownHtml = '';
     if (s.index.resourcesTypeProp) {
-      const breakdown = findResourcesTypeBreakdown(s.index.byEntity.get('resources'), s.index.resourcesTypeProp.order);
-      breakdownHtml = findInsightSection('Resources by type', findRenderLoadBar(findLoadBarRowsFromBreakdown(breakdown)));
+      const breakdown = findResourcesTypeBreakdown(s.index.byEntity.get('resources'));
+      breakdownHtml = findInsightSection('Resources by type', findRenderBarChart(findBarChartRowsFromBreakdown(breakdown), { twoCol: true }));
     }
     const activity = findRecentActivityFor([s.index.byEntity.get('notes')], 'resourceNames');
     return `${breakdownHtml}${findRenderActivity(activity)}`;

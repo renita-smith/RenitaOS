@@ -61,9 +61,10 @@ Both faces — and every Insight — read from **one in-memory index**, built on
 
 ### Canonical Library row (all tabs)
 
-Built on **Conventions Addendum 6's rail-less row grid** — a two-zone row, not a single flex line:
-- **Content zone** (flexible): title (serif) + handle (muted mono, ASCII hyphen) → an optional one-line **body snippet** (muted sans, ellipsized — **Phase 2 only**, the slot is structurally present but empty until body hydration ships) → a **pills row** carrying the **domain chip** (the only colored element on the row) alongside **entity-specific pills** (olive-on-sage; a Task's Priority renders as the shared star glyph, never a colored pill).
-- **Metadata column** (fixed width, right-aligned): **date added** (`createdTime`, compact "Jul 12", year appended only when it isn't the current year) — stacks into one column across every row instead of trailing wherever each title ends.
+Built on **Conventions Addendum 6's rail-less "navigation" row pattern** — a fixed-width **date spine on the left**, not a right-aligned metadata column:
+- **Date spine** (fixed width, `--railless-date-col`, left edge): **date added** (`createdTime`, compact "Jul 12", year appended only when it isn't the current year) — every title starts flush at the same left edge regardless of how long the date renders.
+- **Content cluster** (immediately right of the date): title (serif) + handle (muted mono, ASCII hyphen) → a **pills row** carrying the **domain chip** (the only colored element on the row) alongside **entity-specific pills** (olive-on-sage; a Task's Priority renders as the shared star glyph, never a colored pill).
+- **Right side stays open** — capped to a comfortable reading measure rather than stretched to the panel edge. **No body snippet, no right-hand status column** — Find is navigated by title/handle, not a body preview, and pulling bodies for every browse row isn't worth it. This is deliberately **not** the same row shape Inbox uses (see Addendum 6's second, "action" row pattern — date-left + a snippet + a wide right-aligned status column, still unbuilt).
 
 **Library sort: `createdTime`, newest first, on every tab** (flat — no more per-Type Notes grouping; that breakdown now lives in Notes' own Insight). Respects the active domain filter on domain-bearing tabs (§7). Zero-count tabs stay clickable to a quiet empty state.
 
@@ -75,27 +76,31 @@ A compact band above the Library — a **chart primitive** (below) or a plain li
 
 | Tab | Insights (in order) | Library pills |
 |---|---|---|
-| **Notes** *(default)* | **Notes by Type** (load bar, zero-count Types excluded, schema order) · Top 5 Tags (list, by Note count, navigates to the Tag profile) | Type(s) + Tags |
-| **Tasks** | **Tasks by Domain** (load bar, domain-colored, via project rollup) | Status + Priority (stars) + Project |
-| **Projects** | **Projects by Domain** (load bar, domain-colored) | Status + "N of M done" |
-| **Tags** | **Top 10 Tags** (bar chart, one bar per tag, ranked desc) · Recent Activity | up to 5 most-recent distinct Note-Types |
+| **Notes** *(default)* | **Notes by Type** (sorted bar chart, two-column, zero-count Types excluded) · Top 5 Tags (list, by Note count, navigates to the Tag profile) | Type(s) + Tags |
+| **Tasks** | **Tasks by Domain** (sorted bar chart, single column, domain-colored, via project rollup) | Status + Priority (stars) + Project |
+| **Projects** | **Projects by Domain** (sorted bar chart, single column, domain-colored) | Status + "N of M done" |
+| **Tags** | **Top 10 Tags** (sorted bar chart, two-column) · Recent Activity | up to 5 most-recent distinct Note-Types |
 | **Collections** | **Top 5 Collections** + Recent Activity, side by side in a **two-column panel** (list, by member count) | — (base row only) |
-| **Resources** | **Resources by Type** (load bar; if the Type field can't be resolved, this chart is omitted and the tab shows Recent Activity only) · Recent Activity | — (base row only) |
+| **Resources** | **Resources by Type** (sorted bar chart, two-column; if the Type field can't be resolved, this chart is omitted and the tab shows Recent Activity only) · Recent Activity | — (base row only) |
 | **People** | Recent Activity only | Note-Types + Project |
 
 **"Recently Added" does not exist anywhere on this screen** — it was removed as redundant once the Library is already date-sorted; the slots it used to fill on Tasks/Projects/Resources were refilled with the charts above, and Notes/People/Tags/Collections were refilled per the table.
 
 **Recent Activity** (Tags, Collections, Resources, People — one shared definition): the records that **carry this entity's relation** — for Tags/Collections, whichever of Notes/Projects actually relate to it; for Resources, Notes that reference it; for People, Notes/Tasks that relate to it — ranked by whichever of `createdTime`/`lastEditedTime` is more recent (recently created *or* updated), ~5 items, rendered as compact links (title + date, navigates). Always the **full global set**, never domain-filtered (§7).
 
-### The two chart primitives
+### The chart primitive — one sorted bar chart
 
-**A. Load bar** — reuses Weekly Review's own Domain-load bar wholesale (`wrRenderDomainBar`'s exact markup/classes: a single stacked segmented bar sized by each category's share of the total, plus a dot-legend below with label/count/%), not a row-per-category track. Zero-count categories are dropped; a Task/Project with no resolvable domain gets its own "No domain" segment rather than going uncounted. Used by Notes by Type, Tasks/Projects by Domain, Resources by Type.
+**Every breakdown Insight is the same primitive: a sorted horizontal bar chart** — one labeled bar per category, length scaled to the largest count, ranked descending, count labeled. *(An earlier draft tried a single-color stacked "load bar" — retired: a single-color stacked bar can't separate its own segments. One labeled row per category fixes it: the label distinguishes categories, the length carries magnitude, no color needed.)*
 
-**B. Bar chart** (Tags Top-10 only) — a true ranked bar chart, one bar per tag, bar length scaled to the largest count, count labeled, ranked descending. **Distinct from the load bar**: the label rides *inside* the bar's own fill rather than a separate left-hand label column, so it doesn't just read as another load bar.
+- **Sort by count descending** — a deliberate exception to the schema-order house rule, which governs *navigational* groupings (Inbox bins, note-Type groups) for stable placement; a magnitude chart's whole job is rank, so it sorts.
+- **Two-column, column-major** for the large sets (Notes by Type ~17, Tags Top-10, Resources by Type): rank reads top-to-bottom down column 1, then top-to-bottom down column 2 — not left-to-right. Bars share one scale across both columns. One column on mobile (same rank order, stacked).
+- **Single column** for the short sets (Tasks/Projects by Domain, 6–7 rows including "No domain").
+- **Notes by Type / Resources by Type:** exclude zero-count categories.
+- **Tasks/Projects by Domain:** one bar per domain (all six shown, zero or not, for a stable shape) plus a **"No domain"** bar when applicable — a resolution miss buckets there, never left uncounted, never a stray `"undefined"`.
 
-**Color discipline:** **by-*domain* bars are domain-colored** (Tasks by Domain, Projects by Domain — wayfinding, the app's one saturated system). **By-*type* bars (Notes by Type, Resources by Type) and the Tags bar chart stay olive-on-sage** — Type/Tag color is ambient, never wayfinding; never domain-color or rainbow these.
+**Color discipline:** **by-*domain* bars are domain-colored** (Tasks by Domain, Projects by Domain — wayfinding, the app's one saturated system). **By-*type*/by-*tag* bars (Notes by Type, Resources by Type, Tags Top-10) stay single-color olive-on-sage** — Type/Tag color is ambient, never wayfinding; never rainbow these, since the labeled rows (not color) do the separating.
 
-*(There is no donut phase. An earlier draft of this brief planned SVG donuts as a Phase 1.5; that plan was deleted in the Revision changeset before any donut code was ever written — both chart primitives above are bars, full stop.)*
+*(There is no donut phase. An earlier draft of this brief planned SVG donuts as a Phase 1.5; that plan was deleted before any donut code was ever written — every chart on this screen is a bar, full stop.)*
 
 ---
 
@@ -124,14 +129,16 @@ Non-empty query → unified results grouped by entity type, replacing the Insigh
 
 ## 5. Body search — phase boundary
 
-**Phase 1 ships without body text.** The `body` slot exists but is empty; search matches title + `metaBlob` only; the row's snippet slot is present but empty. This is a complete, shippable screen.
+**Phase 1 ships without body text.** The `body` slot exists but is empty; search matches title + `metaBlob` only. This is a complete, shippable screen.
+
+**No Find row ever shows a body snippet** — that's a permanent decision (§3), not a Phase-1 gap: the date-left cluster already un-barbells the row without one, and Find is navigated by title/handle. So Phase 2 is **search-only**, and simpler for it: with nothing in Find's browse view ever reading a body, hydration doesn't need to run eagerly on every screen entry — it can trigger **on demand** (the first time a search actually runs) or as an idle background build, rather than up front.
 
 **Phase 2 adds body-text search** (not yet built):
 - Scope Notes bodies first (the corpus with real body content).
-- Progressive, non-blocking hydration: render immediately, hydrate bodies in throttled background batches after first paint.
+- Hydrate **on demand or idle-background** (not eagerly on entry, since there's no row snippet coupling it to first paint).
 - Fetch = block children per note (paginated), concatenating `plain_text` across text-bearing blocks, lowercased into `body`.
 - Incremental cache keyed on `lastEditedTime` — rebuild re-fetches only notes whose `lastEditedTime` changed.
-- Body matches carry a windowed, highlighted snippet, ranked below title/`metaBlob`; the same snippet fills the row's Addendum-6 snippet slot.
+- Body matches carry a windowed, highlighted **results-only** match excerpt, ranked below title/`metaBlob` — this excerpt lives in the search results list, not in any Library row.
 
 ---
 
@@ -145,7 +152,7 @@ Find's Insights are **descriptive**: *what is in here* — composition (breakdow
 
 Global filter — All + the six — same control/placement as Today/Weekly Review, keyed to the **resolved** domain (Tasks via project rollup, never a task field).
 
-- **Domain-bearing tabs (Notes, Tasks, Projects):** scopes **both** the Library and the Insights — a by-Domain load bar under a single-domain filter simply **collapses to that one domain's count**, no special-casing (the records feeding the chart are already filtered before the chart sees them).
+- **Domain-bearing tabs (Notes, Tasks, Projects):** scopes **both** the Library and the Insights — a by-Domain bar chart under a single-domain filter simply **collapses to that one domain's bar**, no special-casing (the records feeding the chart are already filtered before the chart sees them).
 - **Cross-cutting tabs (Tags, People, Collections, Resources):** no domain — full list + **global** Insights, with a quiet "not domain-scoped" caption, never empty/hidden. Resources by Type is domain-agnostic regardless (a Type breakdown, unaffected by the filter).
 - In unified search: Notes/Tasks/Projects results are domain-filtered; cross-cutting matches still appear, captioned.
 
@@ -175,7 +182,7 @@ Global filter — All + the six — same control/placement as Today/Weekly Revie
 
 **Locked (Nita):** one screen + one rail item; unified search; seven tabs, each a Search → Insights → Library dashboard; Library sort = `created_time`; rows show date added; Top-N by member count; Notes breakdown by Type; body search phased (P1 title+meta → P2 body).
 
-**Revision changeset (this pass):** "Recently Added" removed from every tab (redundant against the date-sorted Library); Tasks/Projects/Resources' emptied Insight slots refilled with charts; the donut phase is deleted — both chart primitives are bars; Recent Activity generalized into one shared cross-tab definition (Tags/Collections/Resources/People); the "undefined" domain-chip bug fixed at both the resolve and render sites.
+**Revision changesets (accumulated):** "Recently Added" removed from every tab (redundant against the date-sorted Library); Tasks/Projects/Resources' emptied Insight slots refilled with charts; the donut phase is deleted — every chart is a bar; Recent Activity generalized into one shared cross-tab definition (Tags/Collections/Resources/People); the "undefined" domain-chip bug fixed at both the resolve and render sites; the stacked single-track "load bar" tried for Notes/Tasks/Projects/Resources was itself retired in favor of one consistent sorted bar-chart primitive (two-column column-major for large sets); Library rows moved the date from a right-aligned column to a **left spine**, and dropped the body-snippet slot entirely (permanent, not deferred) — Find never shows a row snippet.
 
 **My calls (override any):**
 - Name = "Find."
@@ -183,7 +190,8 @@ Global filter — All + the six — same control/placement as Today/Weekly Revie
 - `metaBlob` search in Phase 1 (relation-name matches, not just title) — free, relations are already resolved.
 - ID-handle fast path and URL-reflected state.
 - Home boundary = descriptive vs evaluative.
-- Load bar vs bar chart are two distinct primitives, never conflated in code or CSS.
+- One sorted bar-chart primitive for every breakdown Insight — no second "load bar" shape, no color unless it's wayfinding (by-domain).
+- Collections stays a two-column Top-5 + Recent Activity panel (an explicit, direct call, not the "Top 3 (list)" a stale draft of this table briefly implied).
 
 ---
 
@@ -191,27 +199,27 @@ Global filter — All + the six — same control/placement as Today/Weekly Revie
 
 - [ ] Index builds on entry; every browse DB paginates fully.
 - [ ] Rows: correct handle, title, date added; row navigates; back returns to Find.
-- [ ] Rail-less layout (Addendum 6): content flush-left within the measure; date-added in a right-aligned column that aligns across rows; short rows still align.
+- [ ] **Library rows: date on the LEFT** (fixed-width spine, `--railless-date-col`, titles start at one edge), content clustered left of an open right margin — no right-hand date column, no snippet.
 - [ ] No `"undefined"` chip anywhere — a record with no resolvable domain renders no chip.
 - [ ] Seven tabs, correct counts; zero-count tab clickable to a quiet empty state.
 - [ ] Library sort = `createdTime` desc on every tab.
 - [ ] No "Recently Added" block remains on any tab.
-- [ ] Notes by Type / Tasks by Domain / Projects by Domain / Resources by Type render as **load bars**; Resources falls back to Recent Activity only if unresolved.
-- [ ] Tags Top-10 renders as a **bar chart** (one bar per tag, ranked desc, counts labeled) — visibly distinct from a load bar, not a relabel.
-- [ ] By-domain bars are domain-colored; by-type bars and the Tags bar chart are olive-on-sage, never domain-colored or rainbowed.
+- [ ] Notes by Type / Tags Top-10 / Resources by Type render as a **sorted bar chart, two-column column-major** (rank down column 1, then column 2), single-color olive-on-sage; Resources falls back to Recent Activity only if its Type field is unresolved.
+- [ ] Tasks by Domain / Projects by Domain render as a **sorted bar chart, single column**, domain-colored, all six domains shown (zero or not) plus a "No domain" bar when applicable.
+- [ ] Bars share one scale within a chart; only by-domain bars are colored — by-type/by-tag bars never are.
 - [ ] Recent Activity present on Tags/Collections/Resources/People, ranked by most-recent of created/updated, ~5 compact links.
 - [ ] Entity pills correct per tab; pills olive-on-sage; only the domain chip is colored; Priority as stars.
-- [ ] Domain filter scopes Library + Insights on Notes/Tasks/Projects (a by-domain bar collapses to one domain under a single-domain filter); cross-cutting tabs show the "not domain-scoped" caption.
+- [ ] Domain filter scopes Library + Insights on Notes/Tasks/Projects (a by-domain bar collapses to one domain's bar under a single-domain filter); cross-cutting tabs show the "not domain-scoped" caption.
 - [ ] Search: ranking correct; `NOTE-###` jumps to the record; unified groups + "Show all N" open the right scoped tab; empty query restores Insights+Library; no-match state renders.
-- [ ] Mobile: search bar spans full content width; tabs wrap; body stacks.
+- [ ] Mobile: search bar spans full content width; tabs wrap; date spine narrows, content fills the rest; bar charts collapse to one column.
 - [ ] Rail shows Find (no count); `#/find`, `#/explore`, `#/search` all resolve.
 - [ ] Version stamp bumped on `main`; verified live in the browser.
-- [ ] *(Phase 2, later)* the row snippet renders once bodies hydrate.
+- [ ] *(Phase 2, later — body search only)* results carry a match excerpt; no Find row ever grows a snippet, by design.
 
 ---
 
 ## 12. Doc reconciliation
 
-- `RenitaOS-Conventions.md` — Addendum 5 (Find as-built) carries the current Insight table + the two chart primitives + the descriptive/evaluative Home boundary; Addendum 6 documents the rail-less row layout as a system-wide rule.
-- `RenitaOS-Roadmap.md` — Find Phase 1 (including this revision) is Done; Phase 2 (body search + snippet) is the open item; the donut phase has been removed from the record entirely, not just marked skipped.
+- `RenitaOS-Conventions.md` — Addendum 5 (Find as-built) carries the current Insight table + the one sorted-bar-chart primitive + the descriptive/evaluative Home boundary; Addendum 6 documents the rail-less **navigation** row pattern (date-left, open right, no snippet) alongside the still-unbuilt **action** row pattern (Inbox/Weekly Review — date-left + snippet + a wide right-aligned status column).
+- `RenitaOS-Roadmap.md` — Find Phase 1 (including every revision to date) is Done; Phase 2 is body search only, on-demand/idle hydration, no Find snippet; the Inbox/Weekly Review action-row retrofit stays a distinct Roadmap polish item; the donut phase has been removed from the record entirely, not just marked skipped.
 - `RenitaOS-Backend-Notes-Template.md` — no schema change; notes that Find reads title/type fields structurally rather than by hardcoded name.
