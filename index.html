@@ -460,9 +460,14 @@
     position: relative; background: #E7ECD6; border-radius: var(--radius-lg);
     box-shadow: 0 1px 2px rgba(0,0,0,.04), inset 0 0 0 1px var(--hairline);
     border-left: 3px solid var(--text);
-    /* Extra bottom padding reserves room for .tg-open-record, which now
-       sits in this corner instead of overlapping the chip row above it. */
-    padding: 18px 18px 44px;
+    /* Post-ship density pass (follow-up #1) — the old bottom-heavy padding
+       (44px) existed solely to reserve floor space for .tg-open-record,
+       which used to pin to the bottom-right corner; that left a dead band
+       under the pills on every card. .tg-open-record is vertically
+       centered on the right edge now instead (see below), so padding goes
+       back to a normal, symmetric size — the extra right padding just
+       clears its own lane rather than reserving a whole footer strip. */
+    padding: 12px 36px 12px 18px;
   }
   .tg-card-inner { display: flex; gap: 12px; align-items: flex-start; }
   .tg-card-main { flex: 1; min-width: 0; }
@@ -504,7 +509,9 @@
   }
   .tg-card.qualified .tg-check { display: flex; }
 
-  .tg-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 14px; align-items: center; }
+  /* Follow-up #1 — tightened from 14px (snippet/title-line -> pills gap;
+     part of the same density pass as .tg-card's own padding above). */
+  .tg-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; align-items: center; }
   /* §1 — lightened off the card's own new sage fill (was --surface-soft,
      the same #E7ECD6 as the card itself — sage-on-sage, invisible) so
      every pill still separates from the card behind it. Domain chips are
@@ -608,17 +615,24 @@
      chance to treat it as a swipe. */
   .tg-chip-icon--img { width: 14px; height: 14px; border-radius: 3px; object-fit: cover; -webkit-user-drag: none; user-drag: none; }
 
-  /* Opens the record's full Notion page in a new tab for now; the target
-     is resolved per-card at click time (data-open-record holds the card
-     id, not a raw URL) so this can swap to an in-app profile route later
-     without touching the markup. Anchored to the card's own bottom-right
-     corner (within the padding reserved on .tg-card), well clear of the
-     chip row above it and of the undo snackbar / other bottom bars, which
-     float over the view rather than living inside the card. */
+  /* Navigates to the record's own in-app profile (#/note/{id} or
+     #/task/{id} — see the data-open-record click handler); a static
+     caret is correct here (not a rotating disclosure) since it never
+     expands the card in place. Follow-up #1/#2 (post-ship density pass)
+     — vertically centered on the card's right edge instead of pinned to
+     the bottom-right corner, which is what let .tg-card's own padding
+     shrink back to normal (no more reserved footer strip beneath the
+     pills). Reglyphed from the filled ▶ triangle to "›", the same
+     right-pointing caret the app's breadcrumbs already use (.dmn-crumb-sep)
+     — the filled triangle was the one place in the app not using this
+     vocabulary. Sized/weighted to read as the same family as
+     .tg-chevleft, the Inbox screen's own "‹ Bins" back caret, just
+     forward-facing. */
   .tg-open-record {
-    position: absolute; bottom: 14px; right: 14px; width: 20px; height: 20px; border-radius: 50%;
+    position: absolute; top: 50%; right: 10px; transform: translateY(-50%);
+    width: 20px; height: 20px; border-radius: 50%;
     display: flex; align-items: center; justify-content: center;
-    color: var(--muted-text); font-size: 11px; cursor: pointer;
+    color: var(--muted-text); font-size: 15px; line-height: 1; cursor: pointer;
   }
   .tg-open-record:hover { background: oklch(0.95 0.006 75); color: var(--text); }
 
@@ -3274,7 +3288,7 @@
           <span>Delete</span>
         </div>
         <div class="tg-card tg-card-swipeable${qualified ? ' qualified' : ''}${isSwipedOpen ? ' swiped' : ''}" style="border-left-color:${edge};">
-          <div class="tg-open-record" data-open-record="${card.id}" title="Open full record">▶</div>
+          <div class="tg-open-record" data-open-record="${card.id}" title="Open full record">›</div>
           <div class="tg-check">✓</div>
           <div class="tg-card-inner">
             ${renderCheckbox(card)}
@@ -3350,7 +3364,7 @@
 
     return `
       <div class="tg-card${qualified ? ' qualified' : ''}" style="border-left-color:${edge};">
-        <div class="tg-open-record" data-open-record="${card.id}" title="Open full record">▶</div>
+        <div class="tg-open-record" data-open-record="${card.id}" title="Open full record">›</div>
         <div class="tg-check">✓</div>
         <div class="tg-card-inner">
           ${renderCheckbox(card)}
