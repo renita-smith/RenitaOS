@@ -175,6 +175,7 @@ Each Domain has one **catch-all project** that holds loose tasks — a `%`-tagge
 - `%`domain with no `!`project → route the item to that Domain's Inbox project.
 - Creating a brand-new Tag or Project is allowed but **confirmed** first (no silent duplicates).
 - Keep `@person` names in the body; keep the full text (incl. any date phrase) in a Task's title.
+- **Exception — a Note created in Compose (`RenitaOS-Compose-Build-Brief.md`) → Status = Active, not Inbox.** An authored long-form Note (sermon/study/teaching) isn't an unprocessed capture, so it skips the Inbox triage queue entirely and lands directly at Active on its first save.
 
 ---
 
