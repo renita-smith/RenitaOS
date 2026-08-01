@@ -589,3 +589,33 @@ Three inbox-family surfaces, three deliberately different containers — not dri
 ## Bug fixed in passing
 
 A record's domain must resolve to **`null`, never the literal string `"undefined"`** — per §1/§7 of the Find brief (task domain via project rollup, else null), a resolution miss renders **no chip**, not a stray "undefined" one. Guarded both where the domain is resolved (coalesce to `null`, not an object with an undefined `.code`) and where the chip renders (check for a real `.code`, not just a truthy object).
+
+---
+
+# Addendum 7 — Compose (as-built, Phase 1)
+
+*The long-form authoring surface (`RenitaOS-Compose-Build-Brief.md`). Pairs with Addendum 2 (framed shell) and the Edit Slice build brief (the shared write layer + Step F block ops Compose extends).*
+
+## The Note-profile-vs-Compose division
+
+The Note profile *displays* a body and does light block ops (edit text, append a line, toggle a to-do, delete a block — Step F, unchanged). **Compose *authors* one** — block-type creation/conversion, slash-commands, markdown shortcuts, mid-document insertion, and (Phase 2) reorder all live here instead, exactly as the Edit Slice brief deferred them. A Note profile's "Open in Compose" link is the durable bridge between the two: display-and-light-edit vs. full authoring, never both on one screen.
+
+## Chrome, not `.shell`
+
+Compose renders into the same framed shell (`ensureFramedShell()`) every profile and dashboard uses — nav rail, wordmark/version, Capture affordance — but leaves the properties rail (`dmnProps`) empty, exactly like Home/Find's own single-column trade (Addendum 6). Its writing column (`.cmp-wrap`, capped ~620px, centered within `dmnMain`) is Compose's own addition on top of that shared shell, not a different chrome. No rail item is ever active while composing, same as any profile.
+
+## The core inversion
+
+In Capture, a blank line **delimits separate notes**; in Compose, a blank line is a **paragraph break within one Note** — Compose always writes exactly one Note with real Notion blocks, never a split. Enter commits the current block and starts a new paragraph block below it; Shift+Enter is a soft line break within the current block.
+
+## Details strip reuses the edit-slice pickers verbatim
+
+Type/Domain/Tags/People/Date render via the exact same picker-rendering functions the Note/Task/Project profiles already use (`renderPfeTypePopover`, `renderPfeRelationPopover`, `renderPfeDatePopover`/`renderPfeDateRow`, `renderPropRow`/`renderRelPill`/`renderGhostPill`/`renderValuePill`) under `entity: 'compose'` — the popover open/close state (`pfeState.popover`/`pfeOpenFor`/`pfeTogglePopover`) is fully shared. Only the field *writes* are Compose's own (a separate `withComposeBusy` mutex, not `pfeState.busy`, and their own click-delegation branch) — a Details-field edit on a still-unsaved note has nothing to `PATCH` yet, so it stages the value locally and that edit becomes the note's creation write; once the Note exists, every field writes immediately through the same shared primitives (`resolveRelationNames`, `addRelationMember`/`removeRelationMember`/`setRelationSingle`, the property-patch builders) every other profile uses.
+
+## Autosave
+
+Debounced (~1.5s idle) + save-on-blur + save-on-route-away, diffed against a `lastSaved` snapshot: a block with no id appends (`after` the previous block's real id, for position); a changed block `PATCH`es; a block missing from `lastSaved` archives (`PATCH archived:true`); **a block whose *type* changed archives + recreates** (Notion has no block-type-change endpoint — same archive+recreate primitive Phase 2's reorder will use). First save creates the Note at **Status = Active** (skips the Inbox triage queue — an authored note isn't an unprocessed capture) with whatever title/Details/blocks are already staged, in one call.
+
+## Status
+
+**Phase 1 shipped** (§11 of the build brief) — title, Details strip, all eight v1 block types via slash menu + markdown shortcuts, insert, autosave, load-existing + new. **Phase 2 (drag reorder) not yet built** — still deferred, isolated, Phase 1 stands without it. The Capture → Compose escalation ("expand to Compose") is a separate, later, sealed-Capture slice — not part of this pass.

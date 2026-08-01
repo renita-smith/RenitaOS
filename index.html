@@ -1072,6 +1072,96 @@
   }
   .pfe-rt-toolbar button:hover { background: rgba(255,255,255,.15); }
 
+  /* ---- Compose (Compose Build Brief) — writing-first centered column,
+     Details strip, block canvas + slash menu. Sits inside .dmn-col exactly
+     like Home/Find's single-column trade (empty .dmn-props), so it inherits
+     the framed shell's rail/panel for free; only the column width below is
+     Compose's own. ---- */
+  .cmp-wrap { max-width: 620px; margin: 0 auto; }
+  .cmp-topbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 18px; }
+  .cmp-savestate { font-size: 12px; color: oklch(0.55 0.012 75); }
+  .cmp-title-input {
+    display: block; width: 100%; border: none; background: none; outline: none;
+    font-family: 'Newsreader', serif; font-size: 32px; font-weight: 500; line-height: 1.2;
+    color: #2A3408; padding: 0; margin: 0 0 10px;
+  }
+  .cmp-title-input::placeholder { color: oklch(0.65 0.012 75); opacity: 1; }
+
+  .cmp-details { margin-bottom: 18px; }
+  .cmp-details-toggle {
+    border: none; background: none; padding: 0; font-family: 'IBM Plex Sans', sans-serif;
+    font-size: 12px; letter-spacing: .04em; color: oklch(0.55 0.012 75); cursor: pointer;
+  }
+  .cmp-details-toggle:hover { color: #46552A; }
+  .cmp-details-fields { margin-top: 10px; display: flex; flex-direction: column; gap: 2px; }
+
+  .cmp-canvas { display: flex; flex-direction: column; gap: 2px; }
+  .cmp-block { position: relative; display: flex; align-items: flex-start; gap: 8px; padding: 3px 0 3px 26px; border-radius: 6px; }
+  .cmp-block:hover { background: oklch(0.97 0.01 100 / .5); }
+  .cmp-gutter-add {
+    position: absolute; left: 0; top: 2px; width: 20px; height: 20px; border-radius: 5px;
+    border: none; background: none; color: var(--muted-text); font-size: 15px; line-height: 1;
+    cursor: pointer; opacity: 0; display: flex; align-items: center; justify-content: center;
+  }
+  .cmp-block:hover .cmp-gutter-add, .cmp-block:focus-within .cmp-gutter-add { opacity: .55; }
+  .cmp-gutter-add:hover { opacity: 1 !important; background: var(--tg-sage-deep, #DBE2C1); }
+  .cmp-block-text {
+    flex: 1; font-family: 'Newsreader', serif; font-size: 17px; line-height: 1.65;
+    color: oklch(0.24 0.014 75); outline: none; min-height: 1.65em; word-break: break-word;
+  }
+  .cmp-block-text:focus { background: oklch(0.98 0.015 100); border-radius: 4px; }
+  .cmp-block-text code { font-family: ui-monospace, monospace; font-size: 15px; background: oklch(0.94 0.015 100); padding: 1px 4px; border-radius: 4px; }
+  .cmp-block-text a { color: #46552A; text-decoration: underline; text-underline-offset: 2px; }
+  .cmp-block--heading_1 .cmp-block-text { font-size: 28px; font-weight: 600; }
+  .cmp-block--heading_2 .cmp-block-text { font-size: 23px; font-weight: 600; }
+  .cmp-block--heading_3 .cmp-block-text { font-size: 19px; font-weight: 600; }
+  .cmp-block--quote { border-left: 3px solid var(--muted-text); }
+  .cmp-block--quote .cmp-block-text { font-style: italic; }
+  .cmp-block--callout { background: #E7ECD6; border-radius: 8px; padding: 8px 10px 8px 34px; }
+  .cmp-block--callout .cmp-gutter-add { left: 8px; }
+  .cmp-block--callout .cmp-block-text::before { content: '💡'; margin-right: 8px; font-style: normal; }
+  .cmp-block--bulleted_list_item .cmp-block-text { display: flex; }
+  .cmp-block--bulleted_list_item .cmp-block-text::before { content: '•'; margin-right: 8px; }
+  /* Numbered-list runs restart wherever a non-numbered block breaks the
+     sequence (§3 "flat; Notion renumbers") — a pure sibling counter reset,
+     no JS bookkeeping needed. */
+  .cmp-canvas { counter-reset: cmpnum; }
+  .cmp-block:not(.cmp-block--numbered_list_item) { counter-reset: cmpnum; }
+  .cmp-block--numbered_list_item { counter-increment: cmpnum; }
+  .cmp-block--numbered_list_item .cmp-block-text { display: flex; }
+  .cmp-block--numbered_list_item .cmp-block-text::before { content: counter(cmpnum) '.'; margin-right: 8px; min-width: 14px; }
+  .cmp-block--divider { padding: 10px 0 10px 26px; }
+  .cmp-divider-rule { flex: 1; border: none; border-top: 1px solid #DED8CA; margin: 0; }
+  .cmp-todo {
+    flex-shrink: 0; width: 18px; height: 18px; margin-top: 3px; border-radius: 5px;
+    border: 1.5px solid var(--muted-text); display: flex; align-items: center; justify-content: center;
+    font-size: 12px; cursor: pointer; color: #fff;
+  }
+  .cmp-todo.checked { background: #46552A; border-color: #46552A; }
+  .cmp-block-del {
+    flex-shrink: 0; opacity: 0; border: none; background: none; color: var(--muted-text);
+    font-size: 16px; line-height: 1; cursor: pointer; padding: 2px 4px; margin-top: 2px;
+  }
+  .cmp-block:hover .cmp-block-del { opacity: .6; }
+  .cmp-block-del:hover { opacity: 1 !important; color: #7C4A2E; }
+
+  .cmp-slash-menu {
+    position: fixed; z-index: 500; background: #F6F2E9; border-radius: 8px; padding: 6px;
+    box-shadow: 0 4px 14px rgba(0,0,0,.18); min-width: 180px; max-height: 320px; overflow-y: auto;
+  }
+  .cmp-slash-opt {
+    font-family: 'IBM Plex Sans', sans-serif; font-size: 14px; color: #2A3408;
+    padding: 7px 10px; border-radius: 6px; cursor: pointer;
+  }
+  .cmp-slash-opt:hover { background: #E7ECD6; }
+
+  /* Home/Find headers now carry two pill actions (Compose's "New" +
+     Capture) where there was one — stacked in their own column so each
+     keeps its existing 230px .dmn-capture width (home-head-row/
+     find-head-row's own descendant rule) instead of both being squeezed
+     into a single flex slot. */
+  .dmn-head-actions { display: flex; flex-direction: column; gap: 8px; }
+
   /* Fix 13 (Appendix B) — link Edit/Remove/Open popover, same floating
      shared-element pattern as .pfe-rt-toolbar above. */
   .pfe-link-popover {
@@ -2231,7 +2321,7 @@
   // Bumped by hand on every deployed change (Cycle-2 preflight) — logged on
   // load and shown in-app (topbar + framed rail) so it's a glance which
   // build is actually running, instead of inferring it from git history.
-  const BUILD_STAMP = '2026-07-31-home1';
+  const BUILD_STAMP = '2026-08-01-compose1';
   console.log(`RenitaOS build ${BUILD_STAMP}`);
 
   // --- Shared bootstrap: defined once, in one place. -----------------------
@@ -4834,7 +4924,13 @@
   // three-zone grid no, exactly like Today/Weekly Review, and rail-less
   // §2A single-column like Weekly Review/Find. Inbox is the one screen
   // left outside the frame.
-  const FRAMED_ROUTES = new Set([...ENTITY_ROUTES, 'today', 'weekly-review', 'find', 'home']);
+  // Compose (Compose Build Brief §1) joins the same way — shared chrome,
+  // properties rail empty (its Details strip lives inline in the writing
+  // column, not the rail), single centered column like Home/Find. Its
+  // route carries an optional id segment (#/compose or #/compose/{id}),
+  // so it's parsed separately in parseRoute() rather than folded into
+  // ENTITY_ROUTES (which requires an id).
+  const FRAMED_ROUTES = new Set([...ENTITY_ROUTES, 'today', 'weekly-review', 'find', 'home', 'compose']);
 
   function renderEntityStub(entityName) {
     const label = ENTITY_LABELS[entityName] || entityName;
@@ -4923,6 +5019,7 @@
     else if (name === 'today') paintTodayDashboard();
     else if (name === 'weekly-review') paintWeeklyReview();
     else if (name === 'find') paintFind();
+    else if (name === 'compose') paintCompose();
     adjustPfePopoverPosition();
   }
 
@@ -6158,7 +6255,11 @@
     const n = noteProfileState.data;
     const bodyHtml = renderBodyBlocks(n.blocks);
     dmnMain.innerHTML = `${renderNoteHeader(n)}${renderValuePillRow(renderNoteValuePills(n) + `<span class="dmn-datepills-inline">${renderNoteDateRows(n)}</span>`)}<section class="dmn-sec">${bodyHtml}</section>${renderPfeToast()}`;
-    dmnProps.innerHTML = `${renderCaptureAffordance()}${renderNoteDates(n)}${renderNoteProperties(n)}${renderNoteLog(n)}`;
+    // "Open in Compose" (Compose Build Brief §1) — the durable path into
+    // full authoring (block types, slash menu, markdown shortcuts) that
+    // this profile's own light block-editing (Step F) deliberately leaves
+    // out.
+    dmnProps.innerHTML = `${renderCaptureAffordance()}${renderComposeLink(n.id, 'Open in Compose')}${renderNoteDates(n)}${renderNoteProperties(n)}${renderNoteLog(n)}`;
   }
 
   async function mountNoteProfile(id) {
@@ -6225,6 +6326,901 @@
       }
     }
   }
+
+  // ==========================================================================
+  // Compose (RenitaOS Compose Build Brief) — the long-form authoring surface.
+  // Writes exactly one Note; a blank line is a paragraph break, never a note
+  // split (the core inversion from Capture). Reuses inline rich text
+  // verbatim (richTextToEditableHtml/domToRichText) and the shared write
+  // layer (relation r-m-w, property-patch builders, block PATCH/append) —
+  // it adds block-level structure on top, nothing new at the write-primitive
+  // level.
+  //
+  // The Details strip (§5) reuses the edit slice's picker RENDERING
+  // functions verbatim (renderPfeTypePopover/renderPfeRelationPopover/
+  // renderPfeDatePopover/renderPropRow/renderRelPill/renderGhostPill/
+  // renderValuePill) with entity 'compose' — pfeOpenFor/pfeTogglePopover's
+  // generic open-state tracking and the generic data-pfe-action trigger
+  // handler need no changes at all. What's deliberately NOT threaded through
+  // the generic applyPfeOptionSelect/applyPfeClear/applyPfeRelationPick&co.
+  // WRITE dispatchers: those assume an already-existing page id, but a
+  // Details-field edit on a still-unsaved note has nothing to PATCH yet —
+  // per §7, that first edit IS the note's creation. Compose's own write
+  // handlers below are called directly from Compose's own event listeners
+  // (registered separately, further down) rather than threaded through the
+  // shared dispatchers, so that not-created-yet branch never has to be
+  // threaded through five other profiles' shared code. Both sets of
+  // listeners sit on the same framedRoot element without conflict — the
+  // shared pfe listener's data-pfe-* handlers just no-op for an
+  // unrecognized 'compose' popover entity.
+  // ==========================================================================
+
+  let cmpLidCounter = 0;
+  function composeNewBlock(type) {
+    const b = { lid: `cmp${++cmpLidCounter}`, id: null, type, richText: [] };
+    if (type === 'to_do') b.checked = false;
+    return b;
+  }
+
+  const CMP_BLOCK_TYPES = [
+    { type: 'paragraph', label: 'Text' },
+    { type: 'heading_1', label: 'Heading 1' },
+    { type: 'heading_2', label: 'Heading 2' },
+    { type: 'heading_3', label: 'Heading 3' },
+    { type: 'bulleted_list_item', label: 'Bulleted list' },
+    { type: 'numbered_list_item', label: 'Numbered list' },
+    { type: 'quote', label: 'Quote' },
+    { type: 'callout', label: 'Callout' },
+    { type: 'to_do', label: 'To-do' },
+    { type: 'divider', label: 'Divider' },
+  ];
+
+  // §2 markdown shortcuts — tested against a block's FULL current text (the
+  // shortcut is the only thing typed so far, at line start), never a
+  // substring match, so e.g. "1. " mid-sentence never converts a block
+  // later in editing.
+  const CMP_MARKDOWN_SHORTCUTS = [
+    { re: /^### $/, type: 'heading_3' },
+    { re: /^## $/, type: 'heading_2' },
+    { re: /^# $/, type: 'heading_1' },
+    { re: /^[-*] $/, type: 'bulleted_list_item' },
+    { re: /^1\. $/, type: 'numbered_list_item' },
+    { re: /^> $/, type: 'quote' },
+    { re: /^\[ ?\] $/, type: 'to_do' },
+    { re: /^--- $/, type: 'divider' },
+  ];
+
+  const COMPOSE_TYPES_BY_NOTION = {
+    paragraph: 'paragraph', heading_1: 'heading_1', heading_2: 'heading_2', heading_3: 'heading_3',
+    bulleted_list_item: 'bulleted_list_item', numbered_list_item: 'numbered_list_item',
+    to_do: 'to_do', quote: 'quote', callout: 'callout', divider: 'divider',
+  };
+
+  // Blocks outside the v1 set (§3 — code/toggle/columns/nested lists/
+  // embeds/tables/synced) are never loaded into Compose's in-memory model —
+  // they stay exactly as they are in Notion, invisible to (and so immune
+  // from) the diff-reconciliation below, rather than round-tripped as an
+  // inert stub the way the Note profile's own body editor shows them. A
+  // note mixing v1 and out-of-scope blocks can still be opened in Compose;
+  // its out-of-scope content just isn't visible/editable there this slice.
+  function mapNotionBlockToComposeBlock(b) {
+    const type = COMPOSE_TYPES_BY_NOTION[b.type];
+    if (!type) return null;
+    if (type === 'divider') return { lid: `cmp${++cmpLidCounter}`, id: b.id, type: 'divider', richText: [] };
+    const rich = (b[b.type] && b[b.type].rich_text) || [];
+    const block = { lid: `cmp${++cmpLidCounter}`, id: b.id, type, richText: rich };
+    if (type === 'to_do') block.checked = !!(b.to_do && b.to_do.checked);
+    return block;
+  }
+
+  function composeBlockToNotionPayload(b) {
+    if (b.type === 'divider') return { type: 'divider', divider: {} };
+    if (b.type === 'to_do') return { type: 'to_do', to_do: { rich_text: b.richText, checked: !!b.checked } };
+    return { type: b.type, [b.type]: { rich_text: b.richText } };
+  }
+  function composeBlockPatchBody(b) {
+    if (b.type === 'divider') return { divider: {} };
+    if (b.type === 'to_do') return { to_do: { rich_text: b.richText, checked: !!b.checked } };
+    return { [b.type]: { rich_text: b.richText } };
+  }
+  function composeBlockChanged(prev, b) {
+    if (!prev) return true;
+    if (prev.type !== b.type) return true;
+    if (JSON.stringify(prev.richText) !== JSON.stringify(b.richText)) return true;
+    if (b.type === 'to_do' && !!prev.checked !== !!b.checked) return true;
+    return false;
+  }
+  function composeBlockSnapshot() {
+    return {
+      title: composeState.title,
+      blocks: composeState.blocks.map((b) => ({ id: b.id, type: b.type, richText: b.richText, checked: b.checked })),
+    };
+  }
+
+  // --- Schema resolution — same live-schema-never-hardcoded discipline as
+  // loadNoteProfile (Compose writes to the same Notes database), memoized
+  // once per page session like getSchema/getStatusSchema elsewhere. --------
+  let composeSchemaPromise = null;
+  function resolveComposeSchema() {
+    if (!composeSchemaPromise) {
+      composeSchemaPromise = (async () => {
+        const [
+          titleProp, statusSchema, domainProp, uniqueIdProp, tagsProp, peopleProp, typeProp, dateProp,
+          activeStatus, tagsIcon, peopleIcon, domainsIcon,
+        ] = await Promise.all([
+          titlePropertyName(CONFIG.DB.NOTES),
+          getStatusSchema(CONFIG.DB.NOTES),
+          getNotesDomainProp(CONFIG.DB.NOTES),
+          uniqueIdPropertyName(CONFIG.DB.NOTES),
+          relationPropertyName(CONFIG.DB.NOTES, CONFIG.DB.TAGS),
+          relationPropertyName(CONFIG.DB.NOTES, CONFIG.DB.PEOPLE),
+          getMultiSelectPropByKeyword(CONFIG.DB.NOTES, 'type'),
+          getDatePropByKeyword(CONFIG.DB.NOTES, 'date'),
+          getStatusTarget(CONFIG.DB.NOTES, CONFIG.NOTE_STATUS_PROCESSED),
+          getDatabaseIcon(CONFIG.DB.TAGS),
+          getDatabaseIcon(CONFIG.DB.PEOPLE),
+          getDatabaseIcon(CONFIG.DB.DOMAINS),
+        ]);
+        const typeOptions = typeProp ? await getMultiSelectOptions(CONFIG.DB.NOTES, typeProp) : [];
+        return {
+          titleProp, statusPropName: statusSchema.name, activeStatusValue: activeStatus.value,
+          domainProp, uniqueIdProp, tagsProp, peopleProp, typeProp, typeOptions, dateProp,
+          icons: { tags: tagsIcon, people: peopleIcon, domains: domainsIcon },
+        };
+      })();
+    }
+    return composeSchemaPromise;
+  }
+
+  async function loadComposeNote(pageId, schema) {
+    const page = await notionRequest(`/v1/pages/${pageId}`);
+    const title = plainTitle(page, schema.titleProp);
+    const types = schema.typeProp ? ((page.properties[schema.typeProp] || {}).multi_select || []).map((o) => o.name) : [];
+    const date = schema.dateProp ? ((page.properties[schema.dateProp] || {}).date || null) : null;
+    let domainId = null;
+    let domainName = null;
+    if (schema.domainProp) {
+      const propVal = page.properties[schema.domainProp.name];
+      if (schema.domainProp.type === 'relation') {
+        const relIds = (propVal && propVal.relation) || [];
+        domainId = relIds[0] ? relIds[0].id : null;
+      } else {
+        const sel = propVal && propVal.select;
+        domainName = sel ? sel.name : null;
+      }
+    }
+    const tagIds = ((page.properties[schema.tagsProp] || {}).relation || []).map((r) => r.id);
+    const peopleIds = ((page.properties[schema.peopleProp] || {}).relation || []).map((r) => r.id);
+    const uniqueIdVal = schema.uniqueIdProp ? (page.properties[schema.uniqueIdProp] || {}).unique_id : null;
+    const uniqueId = uniqueIdVal ? formatUniqueId(uniqueIdVal.prefix, uniqueIdVal.number) : null;
+    const [tags, people, domainRel, rawBlocks] = await Promise.all([
+      resolveRelationNames(CONFIG.DB.TAGS, tagIds),
+      resolveRelationNames(CONFIG.DB.PEOPLE, peopleIds),
+      domainId ? resolveRelationNames(CONFIG.DB.DOMAINS, [domainId]) : Promise.resolve([]),
+      fetchPageBlocks(pageId),
+    ]);
+    if (domainRel.length) domainName = domainRel[0].name;
+    const blocks = rawBlocks.map(mapNotionBlockToComposeBlock).filter(Boolean);
+    return {
+      id: page.id, title, uniqueId, types, domainId, domainName, tags, people, date,
+      blocks: blocks.length ? blocks : [composeNewBlock('paragraph')],
+      createdTime: page.created_time, lastEditedTime: page.last_edited_time,
+    };
+  }
+
+  const composeState = {
+    routeId: null, id: null, loading: false, error: null, schema: null,
+    title: '', uniqueId: null, types: [], domainId: null, domainName: null,
+    tags: [], people: [], date: null, createdTime: null, lastEditedTime: null,
+    blocks: [], lastSaved: null, detailsOpen: false,
+    saveState: 'saved', saveTimer: null, saving: false, pendingResave: false,
+    busy: false, slashFor: null,
+  };
+
+  // Its own busy mutex, deliberately separate from pfeState.busy — the
+  // shared pfe click listener's data-pfe-* handlers also run (harmlessly,
+  // as a no-op) on the same click when a Compose popover is open, and they
+  // flip pfeState.busy true/false around their own no-op await; sharing
+  // that flag would let a same-tick no-op transiently block Compose's own
+  // handler from ever running.
+  function withComposeBusy(fn) {
+    return async (...args) => {
+      if (composeState.busy) return;
+      composeState.busy = true;
+      try { await fn(...args); } finally { composeState.busy = false; }
+    };
+  }
+
+  function composeActiveRelationField() {
+    const pop = pfeState.popover;
+    if (!pop || pop.entity !== 'compose') return null;
+    const s = composeState;
+    if (pop.field === 'tags') return { dbId: CONFIG.DB.TAGS, allowCreate: true, propName: s.schema.tagsProp, currentIds: s.tags.map((t) => t.id), setMembers: (m) => { s.tags = m; } };
+    if (pop.field === 'people') return { dbId: CONFIG.DB.PEOPLE, allowCreate: true, propName: s.schema.peopleProp, currentIds: s.people.map((p) => p.id), setMembers: (m) => { s.people = m; } };
+    return null;
+  }
+
+  // A dedup guard around composeCreate() (below) — Details-field writes and
+  // the debounced title/block autosave can both notice "not created yet"
+  // in the same tick (e.g. picking a Domain right as the 1.5s idle timer
+  // fires); without this, both would independently POST a new page.
+  let composeCreatePromise = null;
+  function composeEnsureCreated() {
+    if (composeState.id) return Promise.resolve();
+    if (!composeCreatePromise) {
+      composeCreatePromise = composeCreate().finally(() => { composeCreatePromise = null; });
+    }
+    return composeCreatePromise;
+  }
+
+  // --- Details strip writes (§5 — "writes immediately"; for a not-yet-
+  // created note nothing exists to PATCH, so the field is staged locally
+  // and composeEnsureCreated() below becomes the write). --------------------
+  const applyComposeOptionSelect = withComposeBusy(async (typeName) => {
+    const s = composeState;
+    if (!s.schema.typeProp) { showPfeToast('Could not find the Type property on the Notion schema — try again.'); return; }
+    const newTypes = s.types.includes(typeName) ? s.types.filter((t) => t !== typeName) : [...s.types, typeName];
+    s.types = newTypes;
+    try {
+      if (!s.id) await composeEnsureCreated();
+      else await patchProperties(s.id, multiSelectPropertyPatch(s.schema.typeProp, newTypes));
+      paintCompose();
+    } catch (err) {
+      console.error('Failed to update Type', err);
+      showPfeToast(err.message || 'Could not update Type — try again.');
+    }
+  });
+
+  const applyComposeDateInput = withComposeBusy(async (iso) => {
+    const s = composeState;
+    if (!s.schema.dateProp) { showPfeToast('Could not find the Date property on the Notion schema — try again.'); return; }
+    s.date = iso ? { start: iso } : null;
+    try {
+      if (!s.id) await composeEnsureCreated();
+      else await patchProperties(s.id, datePropertyPatch(s.schema.dateProp, iso));
+      pfeState.popover = null;
+      paintCompose();
+    } catch (err) {
+      console.error('Failed to update Date', err);
+      showPfeToast(err.message || 'Could not update the date — try again.');
+    }
+  });
+
+  const applyComposeDomainPick = withComposeBusy(async (domainPageId) => {
+    const s = composeState;
+    if (!s.schema.domainProp) return;
+    try {
+      const members = await resolveRelationNames(CONFIG.DB.DOMAINS, [domainPageId]);
+      s.domainName = members[0] ? members[0].name : null;
+      s.domainId = s.schema.domainProp.type === 'relation' ? domainPageId : null;
+      if (!s.id) {
+        await composeEnsureCreated();
+      } else if (s.schema.domainProp.type === 'relation') {
+        await setRelationSingle(s.id, s.schema.domainProp.name, domainPageId);
+      } else {
+        await patchProperties(s.id, selectPropertyPatch(s.schema.domainProp.name, s.domainName));
+      }
+      pfeState.popover = null; pfeState.query = '';
+      paintCompose();
+    } catch (err) {
+      console.error('Failed to link Domain', err);
+      showPfeToast(err.message || 'Could not link Domain — try again.');
+    }
+  });
+
+  const applyComposeRelationPick = withComposeBusy(async (memberId) => {
+    const desc = composeActiveRelationField();
+    if (!desc) return;
+    const s = composeState;
+    try {
+      let members;
+      if (!s.id) {
+        members = await resolveRelationNames(desc.dbId, [...desc.currentIds, memberId]);
+        desc.setMembers(members);
+        await composeEnsureCreated();
+      } else {
+        const newIds = await addRelationMember(s.id, CONFIG.DB.NOTES, desc.propName, memberId);
+        members = await resolveRelationNames(desc.dbId, newIds);
+        desc.setMembers(members);
+      }
+      pfeState.popover = null; pfeState.query = '';
+      paintCompose();
+    } catch (err) {
+      console.error('Failed to link', err);
+      showPfeToast(err.message || 'Could not link — try again.');
+    }
+  });
+
+  const applyComposeRelationRemove = withComposeBusy(async (memberId) => {
+    const desc = composeActiveRelationField();
+    if (!desc) return;
+    const s = composeState;
+    try {
+      let members;
+      if (!s.id) {
+        members = await resolveRelationNames(desc.dbId, desc.currentIds.filter((id) => id !== memberId));
+      } else {
+        const newIds = await removeRelationMember(s.id, CONFIG.DB.NOTES, desc.propName, memberId);
+        members = await resolveRelationNames(desc.dbId, newIds);
+      }
+      desc.setMembers(members);
+      paintCompose();
+    } catch (err) {
+      console.error('Failed to remove', err);
+      showPfeToast(err.message || 'Could not remove — try again.');
+    }
+  });
+
+  const applyComposeRelationCreate = withComposeBusy(async (name) => {
+    const desc = composeActiveRelationField();
+    if (!desc || !desc.allowCreate) return;
+    const s = composeState;
+    try {
+      const entry = await pfeCreateAndLink(desc.dbId, name);
+      let members;
+      if (!s.id) {
+        members = await resolveRelationNames(desc.dbId, [...desc.currentIds, entry.id]);
+        desc.setMembers(members);
+        await composeEnsureCreated();
+      } else {
+        const newIds = await addRelationMember(s.id, CONFIG.DB.NOTES, desc.propName, entry.id);
+        members = await resolveRelationNames(desc.dbId, newIds);
+        desc.setMembers(members);
+      }
+      pfeState.popover = null; pfeState.query = '';
+      paintCompose();
+    } catch (err) {
+      console.error('Failed to create', err);
+      showPfeToast(err.message || 'Could not create — try again.');
+    }
+  });
+
+  const applyComposeClear = withComposeBusy(async () => {
+    const pop = pfeState.popover;
+    if (!pop || pop.entity !== 'compose') return;
+    const s = composeState;
+    try {
+      if (pop.field === 'date') {
+        s.date = null;
+        if (s.id && s.schema.dateProp) await patchProperties(s.id, datePropertyPatch(s.schema.dateProp, null));
+        pfeState.popover = null;
+        paintCompose();
+        return;
+      }
+      if (pop.field === 'domain') {
+        s.domainId = null; s.domainName = null;
+        if (s.id && s.schema.domainProp) {
+          if (s.schema.domainProp.type === 'relation') await setRelationSingle(s.id, s.schema.domainProp.name, null);
+          else await patchProperties(s.id, selectPropertyPatch(s.schema.domainProp.name, null));
+        }
+        pfeState.popover = null;
+        paintCompose();
+        return;
+      }
+      const desc = composeActiveRelationField();
+      if (!desc) return;
+      if (s.id) await writeRelationIds(s.id, desc.propName, []);
+      desc.setMembers([]);
+      pfeState.popover = null;
+      paintCompose();
+    } catch (err) {
+      console.error('Failed to clear', err);
+      showPfeToast(err.message || 'Could not clear — try again.');
+    }
+  });
+
+  // --- Create + diff-reconcile (§7, §9) ------------------------------------
+  async function composeCreate() {
+    const s = composeState;
+    const schema = s.schema;
+    const props = {};
+    Object.assign(props, titlePropertyPatch(schema.titleProp, s.title || ''));
+    Object.assign(props, statusPropertyPatch(schema.statusPropName, schema.activeStatusValue));
+    if (schema.typeProp && s.types.length) Object.assign(props, multiSelectPropertyPatch(schema.typeProp, s.types));
+    if (schema.domainProp && (s.domainId || s.domainName)) {
+      if (schema.domainProp.type === 'relation') props[schema.domainProp.name] = { relation: s.domainId ? [{ id: s.domainId }] : [] };
+      else props[schema.domainProp.name] = { select: s.domainName ? { name: s.domainName } : null };
+    }
+    if (schema.tagsProp && s.tags.length) props[schema.tagsProp] = { relation: s.tags.map((t) => ({ id: t.id })) };
+    if (schema.peopleProp && s.people.length) props[schema.peopleProp] = { relation: s.people.map((p) => ({ id: p.id })) };
+    if (schema.dateProp && s.date) Object.assign(props, datePropertyPatch(schema.dateProp, s.date.start));
+    const children = s.blocks.map(composeBlockToNotionPayload);
+    const page = await createEntityPage(CONFIG.DB.NOTES, props, children);
+    s.id = page.id;
+    // The pages.create response doesn't reliably echo back created children
+    // with their ids, so re-fetch them; order is preserved from `children`
+    // above, so a positional zip is safe.
+    const createdBlocks = await fetchPageBlocks(page.id);
+    s.blocks.forEach((b, i) => { if (createdBlocks[i]) b.id = createdBlocks[i].id; });
+    const uniqueIdVal = schema.uniqueIdProp ? (page.properties[schema.uniqueIdProp] || {}).unique_id : null;
+    s.uniqueId = uniqueIdVal ? formatUniqueId(uniqueIdVal.prefix, uniqueIdVal.number) : null;
+    s.createdTime = page.created_time;
+    s.lastEditedTime = page.last_edited_time;
+    s.lastSaved = composeBlockSnapshot();
+    const newHash = `#/compose/${page.id}`;
+    if (location.hash !== newHash) history.replaceState(null, '', newHash);
+  }
+
+  async function composeReconcile() {
+    const s = composeState;
+    if (s.title !== s.lastSaved.title) {
+      await patchProperties(s.id, titlePropertyPatch(s.schema.titleProp, s.title || ''));
+    }
+    const currentIds = new Set(s.blocks.filter((b) => b.id).map((b) => b.id));
+    const removed = s.lastSaved.blocks.filter((b) => b.id && !currentIds.has(b.id));
+    for (const b of removed) {
+      // eslint-disable-next-line no-await-in-loop
+      await notionRequest(`/v1/blocks/${b.id}`, { method: 'PATCH', body: { archived: true } });
+    }
+    const prevById = new Map(s.lastSaved.blocks.filter((b) => b.id).map((b) => [b.id, b]));
+    let afterId = null;
+    for (const b of s.blocks) {
+      const prev = b.id ? prevById.get(b.id) : null;
+      // Notion has no block-type-change op (§9) — a conversion on an
+      // already-saved block (slash-menu/markdown-shortcut on a persisted
+      // block) archives the old block and falls through to the "new
+      // block" branch below to recreate it at the same position, the same
+      // archive+recreate primitive Phase 2's reorder will use.
+      if (b.id && prev && prev.type !== b.type) {
+        // eslint-disable-next-line no-await-in-loop
+        await notionRequest(`/v1/blocks/${b.id}`, { method: 'PATCH', body: { archived: true } });
+        b.id = null;
+      }
+      if (!b.id) {
+        const body = { children: [composeBlockToNotionPayload(b)] };
+        if (afterId) body.after = afterId;
+        // eslint-disable-next-line no-await-in-loop
+        const res = await notionRequest(`/v1/blocks/${s.id}/children`, { method: 'PATCH', body });
+        const created = res.results && res.results[0];
+        if (created) b.id = created.id;
+      } else if (composeBlockChanged(prev, b)) {
+        // eslint-disable-next-line no-await-in-loop
+        await notionRequest(`/v1/blocks/${b.id}`, { method: 'PATCH', body: composeBlockPatchBody(b) });
+      }
+      afterId = b.id;
+    }
+    s.lastSaved = composeBlockSnapshot();
+  }
+
+  function composeHasUnsavedChanges() {
+    const s = composeState;
+    if (!s.id) return true;
+    return JSON.stringify(composeBlockSnapshot()) !== JSON.stringify(s.lastSaved);
+  }
+
+  async function composeSave() {
+    const s = composeState;
+    clearTimeout(s.saveTimer);
+    if (s.saving) { s.pendingResave = true; return; }
+    if (!composeHasUnsavedChanges()) { s.saveState = 'saved'; paintComposeSaveState(); return; }
+    s.saving = true;
+    s.saveState = 'saving';
+    paintComposeSaveState();
+    try {
+      if (!s.id) await composeEnsureCreated();
+      else await composeReconcile();
+      s.saveState = 'saved';
+    } catch (err) {
+      console.error('Compose save failed', err);
+      s.saveState = 'unsaved';
+      showPfeToast(err.message || 'Could not save — will retry.');
+    } finally {
+      s.saving = false;
+      paintComposeSaveState();
+      if (s.pendingResave) { s.pendingResave = false; composeSave(); }
+    }
+  }
+
+  function composeMarkDirty() {
+    const s = composeState;
+    s.saveState = 'unsaved';
+    paintComposeSaveState();
+    clearTimeout(s.saveTimer);
+    s.saveTimer = setTimeout(() => composeSave(), 1500);
+  }
+
+  function composeFlushSave() {
+    if (composeState.saveState === 'unsaved') { clearTimeout(composeState.saveTimer); composeSave(); }
+  }
+
+  // --- Rendering ------------------------------------------------------------
+  function renderComposeSaveIndicator() {
+    const label = { saved: 'Saved', saving: 'Saving…', unsaved: 'Unsaved changes' }[composeState.saveState] || 'Saved';
+    return `<div class="cmp-savestate" id="cmpSaveState">${escapeHtml(label)}</div>`;
+  }
+  function paintComposeSaveState() {
+    const el = document.getElementById('cmpSaveState');
+    if (el) el.textContent = { saved: 'Saved', saving: 'Saving…', unsaved: 'Unsaved changes' }[composeState.saveState] || 'Saved';
+  }
+
+  function renderComposeTitle() {
+    return `<input type="text" class="cmp-title-input" data-cmp-title-input placeholder="Untitled" value="${escapeHtml(composeState.title || '')}">`;
+  }
+
+  function renderComposeDetailsToggle() {
+    return `<button type="button" class="cmp-details-toggle" data-cmp-details-toggle>Details ${composeState.detailsOpen ? '▴' : '▾'}</button>`;
+  }
+
+  // Reuses renderPfeTypePopover/renderPfeRelationPopover/renderPfeDateRow/
+  // renderPropRow/renderRelPill/renderGhostPill/renderValuePill verbatim
+  // (see the module comment above) — only the field data (composeState)
+  // and the entity string ('compose') are Compose's own.
+  function renderComposeDetailsStrip() {
+    const s = composeState;
+    const schema = s.schema;
+
+    const typePop = pfeOpenFor('compose', 'type') ? renderPfeTypePopover({ types: s.types, typeOptions: schema.typeOptions }) : '';
+    const typeHtml = s.types.length
+      ? s.types.map((t) => { const { icon, name } = splitTrailingEmoji(t); return renderValuePill(`${icon ? `<span class="pf-pill-icon">${escapeHtml(icon)}</span>` : ''}${escapeHtml(name)}`, 'compose:type'); }).join('')
+      : renderValuePill('No type', 'compose:type');
+
+    const domainMeta = s.domainId
+      ? (DOMAIN_META.find((d) => normalizeDbId(d.pageId) === normalizeDbId(s.domainId)) || NO_DOMAIN_META)
+      : (s.domainName ? (DOMAIN_META.find((d) => d.code === s.domainName) || NO_DOMAIN_META) : null);
+    const domainHtml = s.domainName
+      ? renderRelPill({
+          label: s.domainName, icon: renderChipIcon(schema.icons.domains),
+          navId: s.domainId, navRoute: 'domain',
+          styleAttr: domainMeta ? `background:${domainMeta.fill};color:${domainMeta.text};` : '',
+          editKey: schema.domainProp ? 'compose:domain' : undefined,
+        })
+      : renderGhostPill('Domain', schema.domainProp ? 'compose:domain' : undefined);
+    const domainPop = schema.domainProp && pfeOpenFor('compose', 'domain') ? renderPfeRelationPopover({
+      entity: 'compose', field: 'domain', label: 'Domain',
+      members: s.domainId ? [{ id: s.domainId, name: s.domainName }] : (s.domainName ? [{ id: s.domainName, name: s.domainName }] : []),
+      targetDbId: CONFIG.DB.DOMAINS, single: true, allowCreate: false,
+    }) : '';
+
+    const tagsPop = pfeOpenFor('compose', 'tags') ? renderPfeRelationPopover({
+      entity: 'compose', field: 'tags', label: 'Tag', members: s.tags, targetDbId: CONFIG.DB.TAGS, single: false, allowCreate: true,
+    }) : '';
+    const tagsHtml = s.tags.length
+      ? s.tags.map((t) => renderRelPill({ label: t.name, icon: renderChipIcon(schema.icons.tags), navId: t.id, navRoute: 'tag', editKey: 'compose:tags' })).join('')
+      : renderGhostPill('Tag', 'compose:tags');
+
+    const peoplePop = pfeOpenFor('compose', 'people') ? renderPfeRelationPopover({
+      entity: 'compose', field: 'people', label: 'Person', members: s.people, targetDbId: CONFIG.DB.PEOPLE, single: false, allowCreate: true,
+    }) : '';
+    const peopleHtml = s.people.length
+      ? s.people.map((p) => renderRelPill({ label: p.name, icon: renderChipIcon(schema.icons.people), navId: p.id, navRoute: 'person', editKey: 'compose:people' })).join('')
+      : renderGhostPill('Person', 'compose:people');
+
+    return `<div class="cmp-details-fields">
+      ${renderPropRow('Type', typeHtml, typePop)}
+      ${renderPropRow('Domain', domainHtml, domainPop)}
+      ${renderPfeDateRow('Date', s.date, 'compose', 'date')}
+      ${renderPropRow('Tags', tagsHtml, tagsPop)}
+      ${renderPropRow('People', peopleHtml, peoplePop)}
+    </div>`;
+  }
+
+  function renderComposeBlock(b) {
+    const gutter = `<button type="button" class="cmp-gutter-add" data-cmp-insert="${escapeHtml(b.lid)}" title="Insert below" aria-label="Insert block below">+</button>`;
+    if (b.type === 'divider') {
+      return `<div class="cmp-block cmp-block--divider" data-cmp-block="${escapeHtml(b.lid)}">${gutter}<hr class="cmp-divider-rule"><button type="button" class="cmp-block-del" data-cmp-delete="${escapeHtml(b.lid)}" aria-label="Delete divider">×</button></div>`;
+    }
+    const html = richTextToEditableHtml(b.richText);
+    const todoHtml = b.type === 'to_do'
+      ? `<span class="cmp-todo${b.checked ? ' checked' : ''}" data-cmp-todo="${escapeHtml(b.lid)}" role="checkbox" aria-checked="${!!b.checked}">${b.checked ? '✓' : ''}</span>`
+      : '';
+    return `<div class="cmp-block cmp-block--${b.type}" data-cmp-block="${escapeHtml(b.lid)}">${gutter}${todoHtml}
+      <div class="cmp-block-text" contenteditable="true" data-cmp-block-edit="${escapeHtml(b.lid)}" data-cmp-block-type="${b.type}">${html}</div>
+      <button type="button" class="cmp-block-del" data-cmp-delete="${escapeHtml(b.lid)}" aria-label="Delete block">×</button>
+    </div>`;
+  }
+  function renderComposeCanvas() {
+    return `<div class="cmp-canvas" id="cmpCanvas">${composeState.blocks.map(renderComposeBlock).join('')}</div>`;
+  }
+  function repaintComposeCanvas() {
+    const el = document.getElementById('cmpCanvas');
+    if (el) el.innerHTML = composeState.blocks.map(renderComposeBlock).join('');
+  }
+
+  function renderComposeBody() {
+    const s = composeState;
+    return `<div class="cmp-wrap">
+      <div class="cmp-topbar">${renderComposeSaveIndicator()}${renderCaptureAffordance()}</div>
+      ${renderComposeTitle()}
+      <div class="cmp-details">
+        ${renderComposeDetailsToggle()}
+        ${s.detailsOpen ? renderComposeDetailsStrip() : ''}
+      </div>
+      ${renderComposeCanvas()}
+      <div class="cmp-slash-menu" id="cmpSlashMenu" hidden></div>
+      ${renderPfeToast()}
+    </div>`;
+  }
+
+  function paintCompose() {
+    const s = composeState;
+    if (s.loading) { dmnMain.innerHTML = `<div class="dmn-status">Loading…</div>`; return; }
+    if (s.error) { dmnMain.innerHTML = `<div class="dmn-status dmn-status--error">${escapeHtml(s.error)}</div>`; return; }
+    dmnMain.innerHTML = renderComposeBody();
+  }
+
+  // --- Block canvas interaction (§2, §4) ------------------------------------
+  function composeCloseSlashMenu() {
+    composeState.slashFor = null;
+    const menu = document.getElementById('cmpSlashMenu');
+    if (menu) menu.hidden = true;
+  }
+  function composeOpenSlashMenu(lid, el) {
+    composeState.slashFor = lid;
+    const menu = document.getElementById('cmpSlashMenu');
+    if (!menu) return;
+    menu.innerHTML = CMP_BLOCK_TYPES.map((t) => `<div class="cmp-slash-opt" data-cmp-slash-pick="${t.type}">${escapeHtml(t.label)}</div>`).join('');
+    menu.hidden = false;
+    const rect = el.getBoundingClientRect();
+    menu.style.left = `${rect.left}px`;
+    menu.style.top = `${rect.bottom + 6}px`;
+  }
+
+  function cmpPlaceCaretAtEnd(el) {
+    el.focus();
+    const range = document.createRange();
+    range.selectNodeContents(el);
+    range.collapse(false);
+    const sel = window.getSelection();
+    sel.removeAllRanges();
+    sel.addRange(range);
+  }
+
+  function composeConvertBlockType(block, newType, opts = {}) {
+    block.type = newType;
+    if (opts.clearText || newType === 'divider') block.richText = [];
+    if (newType === 'to_do') { if (block.checked === undefined) block.checked = false; } else { delete block.checked; }
+    let focusLid = block.lid;
+    if (newType === 'divider') {
+      // Mirrors Notion/Craft's own "--- " behavior — a divider has nothing
+      // to keep typing into, so a fresh paragraph opens right after it and
+      // takes focus, rather than leaving the cursor stranded on a rule.
+      const fresh = composeNewBlock('paragraph');
+      const idx = composeState.blocks.findIndex((x) => x.lid === block.lid);
+      composeState.blocks.splice(idx + 1, 0, fresh);
+      focusLid = fresh.lid;
+    }
+    composeCloseSlashMenu();
+    composeMarkDirty();
+    repaintComposeCanvas();
+    requestAnimationFrame(() => {
+      const el = document.querySelector(`[data-cmp-block-edit="${focusLid}"]`);
+      if (el) cmpPlaceCaretAtEnd(el);
+    });
+  }
+
+  function composeInsertParagraphAfter(lid) {
+    const idx = composeState.blocks.findIndex((b) => b.lid === lid);
+    const fresh = composeNewBlock('paragraph');
+    composeState.blocks.splice(idx + 1, 0, fresh);
+    composeMarkDirty();
+    repaintComposeCanvas();
+    requestAnimationFrame(() => {
+      const el = document.querySelector(`[data-cmp-block-edit="${fresh.lid}"]`);
+      if (el) el.focus();
+    });
+  }
+
+  function handleComposeBlockInput(el) {
+    const lid = el.dataset.cmpBlockEdit;
+    const block = composeState.blocks.find((b) => b.lid === lid);
+    if (!block) return;
+    const text = el.textContent;
+    if (text === '/') {
+      composeOpenSlashMenu(lid, el);
+    } else if (composeState.slashFor === lid) {
+      composeCloseSlashMenu();
+    }
+    if (block.type === 'paragraph') {
+      const hit = CMP_MARKDOWN_SHORTCUTS.find((sc) => sc.re.test(text));
+      if (hit) { composeConvertBlockType(block, hit.type, { clearText: true }); return; }
+    }
+    block.richText = domToRichText(el);
+    composeMarkDirty();
+  }
+
+  function composeReset() {
+    const s = composeState;
+    clearTimeout(s.saveTimer);
+    Object.assign(s, {
+      id: null, loading: false, error: null, title: '', uniqueId: null, types: [],
+      domainId: null, domainName: null, tags: [], people: [], date: null,
+      createdTime: null, lastEditedTime: null, blocks: [], lastSaved: null,
+      detailsOpen: false, saveState: 'saved', saveTimer: null, saving: false,
+      pendingResave: false, slashFor: null,
+    });
+  }
+
+  async function mountCompose(routeId) {
+    ensureFramedShell();
+    // No right-rail content (same single-column trade Home/Find make) —
+    // Compose's own classification fields live inline in the Details
+    // strip instead, per §1/§5.
+    dmnProps.innerHTML = '';
+    const s = composeState;
+    composeReset();
+    s.routeId = routeId;
+    s.loading = true;
+    paintCompose();
+    try {
+      s.schema = await resolveComposeSchema();
+      if (s.routeId !== routeId) return; // route moved on while this was in flight
+      if (routeId) {
+        const data = await loadComposeNote(routeId, s.schema);
+        if (s.routeId !== routeId) return;
+        Object.assign(s, data);
+        s.lastSaved = composeBlockSnapshot();
+      } else {
+        s.blocks = [composeNewBlock('paragraph')];
+        s.lastSaved = null;
+      }
+    } catch (err) {
+      console.error('Failed to load Compose', err);
+      if (s.routeId !== routeId) return;
+      s.error = err.message || 'Could not load Compose — check the Worker.';
+    } finally {
+      if (s.routeId === routeId) {
+        s.loading = false;
+        paintCompose();
+      }
+    }
+  }
+
+  // --- Compose's own event delegation — kept as separate listeners on the
+  // same framedRoot element (rather than folded into the pfe listeners
+  // above) so nothing about the five other profiles' shared click/input/
+  // keydown/focusout handling has to change; see the module comment. -------
+  framedRoot.addEventListener('click', (e) => {
+    if (currentRoute() !== 'compose') return;
+
+    const detailsToggle = e.target.closest('[data-cmp-details-toggle]');
+    if (detailsToggle) { e.stopPropagation(); composeState.detailsOpen = !composeState.detailsOpen; paintCompose(); return; }
+
+    const insertBtn = e.target.closest('[data-cmp-insert]');
+    if (insertBtn) {
+      e.stopPropagation();
+      const lid = insertBtn.dataset.cmpInsert;
+      const liveEl = framedRoot.querySelector(`[data-cmp-block-edit="${lid}"]`);
+      const block = composeState.blocks.find((b) => b.lid === lid);
+      if (liveEl && block && block.type !== 'divider') block.richText = domToRichText(liveEl);
+      composeInsertParagraphAfter(lid);
+      return;
+    }
+    const deleteBtn = e.target.closest('[data-cmp-delete]');
+    if (deleteBtn) {
+      e.stopPropagation();
+      const lid = deleteBtn.dataset.cmpDelete;
+      composeState.blocks = composeState.blocks.filter((b) => b.lid !== lid);
+      if (!composeState.blocks.length) composeState.blocks.push(composeNewBlock('paragraph'));
+      composeMarkDirty();
+      repaintComposeCanvas();
+      return;
+    }
+    const todoBtn = e.target.closest('[data-cmp-todo]');
+    if (todoBtn) {
+      e.stopPropagation();
+      const block = composeState.blocks.find((b) => b.lid === todoBtn.dataset.cmpTodo);
+      if (block) { block.checked = !block.checked; composeMarkDirty(); repaintComposeCanvas(); }
+      return;
+    }
+    const slashPick = e.target.closest('[data-cmp-slash-pick]');
+    if (slashPick) {
+      e.stopPropagation();
+      const lid = composeState.slashFor;
+      const block = lid && composeState.blocks.find((b) => b.lid === lid);
+      if (block) composeConvertBlockType(block, slashPick.dataset.cmpSlashPick, { clearText: true });
+      return;
+    }
+
+    // Details-strip field writes — the trigger (data-pfe-action) that OPENS
+    // these popovers is already fully generic (pfeTogglePopover); only the
+    // SELECT/PICK/CLEAR/REMOVE/CREATE actions inside them are Compose's own
+    // (see the module comment for why).
+    const pop = pfeState.popover;
+    if (pop && pop.entity === 'compose' && !composeState.busy) {
+      const opt = e.target.closest('[data-pfe-opt]');
+      if (opt) { e.stopPropagation(); applyComposeOptionSelect(opt.dataset.pfeOpt); return; }
+      const clear = e.target.closest('[data-pfe-clear]');
+      if (clear) { e.stopPropagation(); applyComposeClear(); return; }
+      const pick = e.target.closest('[data-pfe-pick]');
+      if (pick) {
+        e.stopPropagation();
+        if (pop.field === 'domain') applyComposeDomainPick(pick.dataset.pfePick);
+        else applyComposeRelationPick(pick.dataset.pfePick);
+        return;
+      }
+      const create = e.target.closest('[data-pfe-create]');
+      if (create) { e.stopPropagation(); applyComposeRelationCreate(create.dataset.pfeCreate); return; }
+      const remove = e.target.closest('[data-pfe-remove]');
+      if (remove) { e.stopPropagation(); applyComposeRelationRemove(remove.dataset.pfeRemove); return; }
+    }
+
+    // Outside click dismisses the slash menu — pfeState.popover's own
+    // dismissal (Details-strip pickers) is already handled by the shared
+    // pfe listener's own outside-click fallback.
+    if (composeState.slashFor && !e.target.closest('#cmpSlashMenu') && !e.target.closest('[data-cmp-block-edit]')) {
+      composeCloseSlashMenu();
+    }
+  });
+
+  framedRoot.addEventListener('input', (e) => {
+    if (e.target.matches('[data-cmp-title-input]')) {
+      composeState.title = e.target.value;
+      composeMarkDirty();
+      return;
+    }
+    if (e.target.matches('[data-cmp-block-edit]')) {
+      handleComposeBlockInput(e.target);
+    }
+  });
+
+  framedRoot.addEventListener('change', (e) => {
+    if (e.target.matches('[data-pfe-date-input]') && e.target.value && pfeState.popover && pfeState.popover.entity === 'compose') {
+      applyComposeDateInput(e.target.value);
+    }
+  });
+
+  framedRoot.addEventListener('keydown', (e) => {
+    if (!e.target.matches('[data-cmp-block-edit]')) return;
+    const lid = e.target.dataset.cmpBlockEdit;
+    const block = composeState.blocks.find((b) => b.lid === lid);
+    if (!block) return;
+    if (e.key === 'Escape' && composeState.slashFor) { e.preventDefault(); composeCloseSlashMenu(); return; }
+    // Shift+Enter — a soft line break within the block (§2, §9).
+    if (e.key === 'Enter' && e.shiftKey) { e.preventDefault(); document.execCommand('insertLineBreak'); return; }
+    // Enter — commit this block and start a new paragraph below it (§2).
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      block.richText = domToRichText(e.target);
+      composeInsertParagraphAfter(lid);
+      return;
+    }
+    // Backspace at the start of an empty styled block reverts it to a
+    // paragraph (§2) — shortcuts stay undo-able without reaching for a menu.
+    if (e.key === 'Backspace' && e.target.textContent === '' && block.type !== 'paragraph') {
+      e.preventDefault();
+      composeConvertBlockType(block, 'paragraph', {});
+    }
+  });
+
+  framedRoot.addEventListener('focusout', (e) => {
+    if (e.target.matches('[data-cmp-title-input]')) { composeFlushSave(); return; }
+    if (e.target.matches('[data-cmp-block-edit]')) {
+      const block = composeState.blocks.find((b) => b.lid === e.target.dataset.cmpBlockEdit);
+      if (block) {
+        const newRich = domToRichText(e.target);
+        // Catches a color/link/code-wrap applied via the rich-text toolbar
+        // (DOM-only, no 'input' event) that hasn't otherwise dirtied the
+        // model yet — without this, blurring right after would flush
+        // nothing (composeFlushSave only acts once saveState is 'unsaved').
+        if (JSON.stringify(newRich) !== JSON.stringify(block.richText)) { block.richText = newRich; composeMarkDirty(); }
+      }
+      composeFlushSave();
+    }
+  });
+
+  // The shared rich-text toolbar (§0 — bold/italic/strikethrough/code/link/
+  // color, reused verbatim) keys its visibility off [data-pfe-block-edit];
+  // Compose's blocks use their own [data-cmp-block-edit] instead (its Enter/
+  // Shift+Enter semantics differ from the Note/Task profile's block editor,
+  // which always treats Enter as a soft break — see the existing keydown
+  // listener above pfe-block-edit — so the two can't share an attribute).
+  // This is a second, Compose-scoped selectionchange listener rather than
+  // an edit to the existing one; both write the same shared toolbar
+  // element, and this one no-ops immediately off-route.
+  document.addEventListener('selectionchange', () => {
+    if (currentRoute() !== 'compose') return;
+    const toolbar = document.getElementById('pfeRtToolbar');
+    if (!toolbar) return;
+    const sel = window.getSelection();
+    const anchorEl = sel && sel.anchorNode && (sel.anchorNode.nodeType === Node.ELEMENT_NODE ? sel.anchorNode : sel.anchorNode.parentElement);
+    const blockEl = anchorEl && anchorEl.closest && anchorEl.closest('[data-cmp-block-edit]');
+    if (!blockEl || !sel || sel.isCollapsed || sel.rangeCount === 0) { toolbar.hidden = true; return; }
+    const rect = sel.getRangeAt(0).getBoundingClientRect();
+    if (!rect || (rect.width === 0 && rect.height === 0)) { toolbar.hidden = true; return; }
+    toolbar.hidden = false;
+    toolbar.style.left = `${rect.left + rect.width / 2}px`;
+    toolbar.style.top = `${rect.top - 8}px`;
+  });
 
   // --- Relation-list profiles (Tag, Collection, Person) — read/navigate
   // only, no writes to Notion. Conventions.md's "Tabbed relation-lists"
@@ -7364,6 +8360,10 @@
     'note:collections': CONFIG.DB.COLLECTIONS, 'note:projects': CONFIG.DB.PROJECTS, 'note:resources': CONFIG.DB.RESOURCES,
     'task:project': CONFIG.DB.PROJECTS, 'task:people': CONFIG.DB.PEOPLE,
     'project:domain': CONFIG.DB.DOMAINS, 'project:people': CONFIG.DB.PEOPLE, 'project:collections': CONFIG.DB.COLLECTIONS,
+    // Compose's Details strip (§5) — same three relation fields the Note
+    // profile carries, reusing this preload-on-open lookup so the picker's
+    // search list is warm by the time its popover paints.
+    'compose:domain': CONFIG.DB.DOMAINS, 'compose:tags': CONFIG.DB.TAGS, 'compose:people': CONFIG.DB.PEOPLE,
   };
 
   function pfeTogglePopover(entity, field) {
@@ -8742,6 +9742,19 @@
     return `<a href="./capture.html" class="dmn-capture">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
       Capture
+    </a>`;
+  }
+
+  // Compose's two entry points (Compose Build Brief §1): "Open in Compose"
+  // on a Note profile (noteId given) and the "New" long-form action on
+  // Home/Find (noteId omitted -> a blank #/compose). Same shared pill
+  // styling as Capture (.dmn-capture) — the "start writing" affordance's
+  // established visual language, not a new one.
+  function renderComposeLink(noteId, label) {
+    const href = noteId ? `#/compose/${encodeURIComponent(noteId)}` : '#/compose';
+    return `<a href="${href}" class="dmn-capture cmp-entry-link">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+      ${escapeHtml(label)}
     </a>`;
   }
 
@@ -12231,7 +13244,7 @@
           </div>
           ${renderFindDomainFilter(s)}
         </div>
-        ${renderCaptureAffordance()}
+        <div class="dmn-head-actions">${renderComposeLink(null, 'New')}${renderCaptureAffordance()}</div>
       </div>
     </div>
     <div id="findBody">${bodyHtml}</div>`;
@@ -12808,7 +13821,7 @@
           <div class="dmn-title-row"><h1 class="dmn-title">HOME</h1></div>
           ${pulseHtml}
         </div>
-        ${renderCaptureAffordance()}
+        <div class="dmn-head-actions">${renderComposeLink(null, 'New')}${renderCaptureAffordance()}</div>
       </div>
     </div>`;
   }
@@ -12867,6 +13880,10 @@
     if (STATIC_ROUTES.includes(first)) {
       return first === 'find' ? { name: first, query: new URLSearchParams(queryString) } : { name: first };
     }
+    // Compose (§1) — the one route whose id segment is OPTIONAL: #/compose
+    // (new note) vs #/compose/{id} (continue an existing one). Parsed
+    // ahead of the ENTITY_ROUTES check below, which requires an id.
+    if (first === 'compose') return { name: 'compose', id: second ? decodeURIComponent(second) : null };
     if (ENTITY_ROUTES.includes(first) && second) return { name: first, id: decodeURIComponent(second) };
     return { name: 'home' };
   }
@@ -12879,6 +13896,14 @@
   }
 
   function render() {
+    // Compose (§7) — a debounced/diffed autosave, so leaving the route
+    // (any hashchange, including navigating to a different Compose note)
+    // needs to flush whatever's still pending rather than losing it. Read
+    // BEFORE the route dispatch below reassigns body.dataset.route, so
+    // this sees the OUTGOING route, not the one being entered.
+    if (document.body.dataset.route === 'compose' && composeState.saveState === 'unsaved') {
+      composeSave();
+    }
     // "#/triage" was the route's name before the Inbox rename — alias any
     // old link to the new one rather than 404-ing it into Home. Rewriting
     // the hash (rather than just resolving 'inbox' internally) fires
@@ -12951,6 +13976,8 @@
       mountFind(route.query);
     } else if (route.name === 'home') {
       mountHomeDashboard();
+    } else if (route.name === 'compose') {
+      mountCompose(route.id);
     } else if (ENTITY_ROUTES.includes(route.name)) {
       content.innerHTML = renderEntityStub(route.name);
     }
