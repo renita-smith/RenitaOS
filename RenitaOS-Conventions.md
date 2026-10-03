@@ -80,7 +80,7 @@ Serif vs. sans split:
 
 - **Triage** — built to this palette from the start.
 - **Capture** — ⚠️ **pending a color pass.** Capture predates this palette and currently uses off-family Type-edge colors (e.g. an indigo Reflection edge) and possibly older Domain tints. It needs to be re-tinted to match this doc. Because Capture is **live and accumulating real data daily**, treat this as a careful, non-urgent pass — bundle it with the other pending Capture polish (the dream-divider fix), and verify the live page after, don't destabilize it. Colors only; no behavior change.
-- **Home** — inherits this palette when built.
+- **Home** — built to this palette (Addendum 8).
 - **Weekly Review** — ✅ **shipped to this palette** (Addendum 4). The standalone's `#f5f4f0`/Montserrat/purple-bar/act-tint/jewel-tone palette is fully retired; the screen is olive-on-cream with Domain tiles as the only saturated color, same as every other screen.
 
 ---
@@ -583,7 +583,7 @@ Three inbox-family surfaces, three deliberately different containers — not dri
 
 - **Find** — shipped (Conventions Addendum 5), the **navigation** pattern: date-left spine, content cluster, open right margin, no snippet ever (a permanent decision — see Addendum 5's Phase boundary).
 - **Inbox screen + Weekly Review mini-inbox note rows** — shipped (Inbox/Weekly Review Retrofit, July 31 2026), the **action** pattern: date-left spine + title/handle + snippet + a wide right-aligned status column, sage cards on the Inbox screen, borderless on Weekly Review (see the container section above). Weekly Review's mini-inbox snippet required a bounded body fetch (Status=Inbox notes only, same size class as the Inbox screen's own backlog) added alongside this retrofit — Weekly Review previously loaded no note bodies at all.
-- **Home** — inherits whichever pattern fits when built; no retrofit needed, just build to it from the start.
+- **Home** — built to it from the start: the shipped dense "navigation" row, with a right-zone reason/evidence line (Addendum 8).
 - Profile/detail views keep the `.shell` three-zone grid (Addendum 2) and are unaffected — this rule is about rail-less screens only.
 
 ## Bug fixed in passing
@@ -619,3 +619,34 @@ Debounced (~1.5s idle) + save-on-blur + save-on-route-away, diffed against a `la
 ## Status
 
 **Phase 1 shipped** (§11 of the build brief) — title, Details strip, all eight v1 block types via slash menu + markdown shortcuts, insert, autosave, load-existing + new. **Phase 2 (drag reorder) not yet built** — still deferred, isolated, Phase 1 stands without it. The Capture → Compose escalation ("expand to Compose") is a separate, later, sealed-Capture slice — not part of this pass.
+
+---
+
+# Addendum 8 — Home (as-built, July 31 2026)
+
+*Written from the code on `main` during the Oct 3 2026 reconciliation — Home shipped without its own addendum. **Not yet live-verified** (see Roadmap → Critical path, step 0); thresholds below are as-coded and may be tuned by feel.*
+
+## Role — noticing, not seeking
+Home is the **evaluative** surface: *what needs attention, what shifted*. It is the counterpart to Find's descriptive Insights (Addendum 5, "The Home boundary") and to Today's seeking/planning board. **Read-only** — Home writes nothing.
+
+## Frame
+Shared chrome (rail + wordmark + Capture), **no `.shell` grid**, rail-less single column per Addendum 6 — same trade as Find and Weekly Review. Header: long date (ID-line position) · serif **HOME** title · Pulse line; header actions = **New** (Compose) + **Capture**. Every row reuses the shipped dense row (`.pf-row`); the only Home-specific piece is the right-zone reason/evidence text.
+
+## The window — rolling, not weekly
+Every comparison is **Window A = last 14 days (through today)** vs. **Window B = the 14 days before that**, anchored to refresh time, local dates. Deliberately **not** Sunday-anchored: Home asks "what shifted lately," not "how's this calendar week" (that's Today/Weekly Review).
+
+## Running order (each band hides entirely when empty)
+1. **Pulse** — a digest of the bands below, not its own computation: `Inbox N · N drifting · N shifts`, each segment omitted at zero.
+2. **Needs attention**
+   - **Projects drifting** — In Progress, zero task completions in A, not created within A, not fully done.
+   - **Domains drifting** — has ≥1 In Progress project, but **no** completions **and no** new notes in A (one new note clears it).
+   - **Worth closing** — In Progress project with every task completed and nothing completed in A. Never double-flags with "drifting."
+   - **Dormant** — domain with zero In Progress projects. Not window-scoped; rendered **muted, lowest priority** (often dormant by choice).
+3. **Trends** — candidates: rising tag / **emerging theme** (prior ≤1), rising domain, mode shift by Type, tag co-occurrence pairs. One strength formula co-ranks them: `r = (c+1)/(p+1)`, `strength = c × r`. Floors: count ≥4 and r ≥1.5 (co-occurrence: ≥3 notes, r ≥1.5). Cap: **top 5**, co-occurrence at most 2 of them. Rows read `… · c · was p`.
+4. **On this day** — notes whose **Date field** (never `created_time`) matches today's month+day in a prior year, grouped by years ago.
+
+**All quiet:** if Pulse and every band are empty, one serif line replaces the body — "All quiet — nothing needs noticing today."
+
+## Data rules
+Domain attribution is always the **project rollup** (task → project → Domain), never a task-level field; an unresolvable domain renders **no chip**. "Fully done" prefers the Projects completed-count + total-task rollups, falling back to counting loaded tasks. Multi-Type notes count under each Type (by-type house rule).
+
