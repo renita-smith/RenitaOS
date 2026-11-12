@@ -1078,8 +1078,18 @@
      the framed shell's rail/panel for free; only the column width below is
      Compose's own. ---- */
   .cmp-wrap { max-width: 620px; margin: 0 auto; }
-  .cmp-topbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 18px; }
-  .cmp-savestate { font-size: 12px; color: oklch(0.55 0.012 75); }
+  .cmp-topbar { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 18px; }
+  /* Nov 2026 polish — the Capture pill's base width:100% was filling the
+     whole topbar and crushing the save state against it. Pinned to the
+     same 230px it renders at everywhere else (cf. .shell-topbar-actions /
+     .home-head-row), so the save state reads as its own deliberate status
+     at the column's left edge. */
+  .cmp-topbar .dmn-capture { width: 230px; flex: none; }
+  .cmp-savestate { display: inline-flex; align-items: center; gap: 7px; font-size: 12px; color: oklch(0.55 0.012 75); }
+  .cmp-savestate::before { content: ''; width: 7px; height: 7px; border-radius: 50%; background: #9AAB6E; }
+  .cmp-savestate[data-state="saving"]::before { background: oklch(0.75 0.01 75); }
+  .cmp-savestate[data-state="unsaved"]::before { background: #C9A24A; }
+  @media (max-width: 820px) { .cmp-topbar .dmn-capture { width: auto; } }
   .cmp-title-input {
     display: block; width: 100%; border: none; background: none; outline: none;
     font-family: 'Newsreader', serif; font-size: 32px; font-weight: 500; line-height: 1.2;
@@ -1089,9 +1099,14 @@
 
   .cmp-details { margin-bottom: 18px; }
   .cmp-details-toggle {
-    border: none; background: none; padding: 0; font-family: 'IBM Plex Sans', sans-serif;
-    font-size: 12px; letter-spacing: .04em; color: oklch(0.55 0.012 75); cursor: pointer;
+    display: inline-flex; align-items: center; gap: 6px;
+    border: none; background: none; padding: 2px 0; font-family: 'IBM Plex Sans', sans-serif;
+    font-size: 13px; letter-spacing: .04em; color: oklch(0.55 0.012 75); cursor: pointer;
   }
+  /* A real chevron (was a ▴/▾ text glyph at 12px — too small to read as a
+     control). Points down when collapsed, flips up when open. */
+  .cmp-details-caret { width: 14px; height: 14px; transition: transform .15s ease; }
+  .cmp-details-toggle[aria-expanded="true"] .cmp-details-caret { transform: rotate(180deg); }
   .cmp-details-toggle:hover { color: #46552A; }
   .cmp-details-fields { margin-top: 10px; display: flex; flex-direction: column; gap: 2px; }
 
@@ -2321,7 +2336,7 @@
   // Bumped by hand on every deployed change (Cycle-2 preflight) — logged on
   // load and shown in-app (topbar + framed rail) so it's a glance which
   // build is actually running, instead of inferring it from git history.
-  const BUILD_STAMP = '2026-08-01-compose1';
+  const BUILD_STAMP = '2026-11-12-compose-polish';
   console.log(`RenitaOS build ${BUILD_STAMP}`);
 
   // --- Shared bootstrap: defined once, in one place. -----------------------
@@ -6834,11 +6849,13 @@
   // --- Rendering ------------------------------------------------------------
   function renderComposeSaveIndicator() {
     const label = { saved: 'Saved', saving: 'Saving…', unsaved: 'Unsaved changes' }[composeState.saveState] || 'Saved';
-    return `<div class="cmp-savestate" id="cmpSaveState">${escapeHtml(label)}</div>`;
+    return `<div class="cmp-savestate" id="cmpSaveState" data-state="${escapeHtml(composeState.saveState)}">${escapeHtml(label)}</div>`;
   }
   function paintComposeSaveState() {
     const el = document.getElementById('cmpSaveState');
-    if (el) el.textContent = { saved: 'Saved', saving: 'Saving…', unsaved: 'Unsaved changes' }[composeState.saveState] || 'Saved';
+    if (!el) return;
+    el.textContent = { saved: 'Saved', saving: 'Saving…', unsaved: 'Unsaved changes' }[composeState.saveState] || 'Saved';
+    el.dataset.state = composeState.saveState;
   }
 
   function renderComposeTitle() {
@@ -6846,7 +6863,7 @@
   }
 
   function renderComposeDetailsToggle() {
-    return `<button type="button" class="cmp-details-toggle" data-cmp-details-toggle>Details ${composeState.detailsOpen ? '▴' : '▾'}</button>`;
+    return `<button type="button" class="cmp-details-toggle" data-cmp-details-toggle aria-expanded="${composeState.detailsOpen ? 'true' : 'false'}">Details <svg class="cmp-details-caret" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></button>`;
   }
 
   // Reuses renderPfeTypePopover/renderPfeRelationPopover/renderPfeDateRow/
