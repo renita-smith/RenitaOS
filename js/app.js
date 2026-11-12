@@ -69,6 +69,7 @@ const el = {
   recentList: document.getElementById('recentList'),
   toast: document.getElementById('toast'),
   closeBtn: document.getElementById('closeBtn'),
+  composeBtn: document.getElementById('composeBtn'),
 };
 
 let toastTimer = null;
@@ -218,6 +219,17 @@ function render() {
   el.thoughtsList.innerHTML = thoughts.map(renderThoughtCard).join('');
 
   el.titleInput.classList.toggle('hidden', !eligible);
+
+  // Capture → Compose: offered only for a capture that will become exactly
+  // one plain Note (the same shape the title field keys off — not a Task,
+  // a Dream day-merge, a bare relation, or a multi-entry braindump) with
+  // something actually written, and only in Type mode.
+  if (el.composeBtn) {
+    const canCompose = eligible && state.mode === 'type'
+      && (thoughts[0].bodyLines.length > 0 || !!state.titleText.trim());
+    el.composeBtn.classList.toggle('hidden', !canCompose);
+    el.composeBtn.disabled = state.saving;
+  }
 
   if (state.autocomplete) {
     const names = TRIGGER_SOURCE[state.autocomplete.trigger](caches);
@@ -532,6 +544,68 @@ async function handleSave() {
 }
 
 el.saveBtn.addEventListener('click', handleSave);
+
+// --- Capture → Compose escalation ------------------------------------------
+// Hands the in-progress single note to Compose WITHOUT saving it to the
+// Inbox: relations are resolved here (confirmed tokens only — the same
+// rule Save uses; a tapped-to-create new #tag/@person/!project is created
+// now, exactly as Save would), then everything rides to index.html via
+// sessionStorage (same origin) and Compose's own first autosave creates
+// the Note at Status = Active. Nothing is written to Notes from here.
+const COMPOSE_HANDOFF_KEY = 'renitaos.composeHandoff';
+
+async function resolveAllNamed(chips, list, dbId) {
+  const out = [];
+  for (const chip of chips) {
+    // eslint-disable-next-line no-await-in-loop
+    const id = await resolveRelation(chip, list, dbId);
+    if (id) out.push({ id, name: chip.canonical || chip.value });
+  }
+  return out;
+}
+
+async function handleCompose() {
+  const { thoughts, eligible } = computeVisibleThoughts();
+  if (!eligible || !thoughts.length || state.saving) return;
+  const thought = thoughts[0];
+  state.saving = true;
+  render();
+  try {
+    const [tags, people, projects] = [
+      await resolveAllNamed(thought.tags, caches.tags, DB.TAGS),
+      await resolveAllNamed(thought.people, caches.people, DB.PEOPLE),
+      await resolveAllNamed(thought.projects, caches.projects, DB.PROJECTS),
+    ];
+    const domainCfg = thought.domain && thought.domain.state === 'confirmed' ? DOMAINS[thought.domain.canonical] : null;
+    const payload = {
+      v: 1,
+      at: Date.now(),
+      title: thought.explicitTitle || '',
+      lines: thought.bodyLines,
+      typeName: thought.noteType || null,
+      domainPageId: domainCfg ? domainCfg.pageId : null,
+      tags,
+      people,
+      projectIds: projects.map((p) => p.id),
+    };
+    window.sessionStorage.setItem(COMPOSE_HANDOFF_KEY, JSON.stringify(payload));
+    // Clear before leaving, so Back (or a bfcache restore) can't bring the
+    // draft back and invite a duplicate "Save to Inbox".
+    state.text = '';
+    state.titleText = '';
+    state.confirmedNew.clear();
+    state.autocomplete = null;
+    state.saving = false;
+    render();
+    window.location.href = './index.html#/compose';
+  } catch (err) {
+    state.saving = false;
+    render();
+    showToast(err.message || 'Could not open Compose — try again.', 3500);
+  }
+}
+
+if (el.composeBtn) el.composeBtn.addEventListener('click', handleCompose);
 
 async function init() {
   render();

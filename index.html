@@ -6512,7 +6512,7 @@
     routeId: null, id: null, loading: false, error: null, schema: null,
     title: '', uniqueId: null, types: [], domainId: null, domainName: null,
     tags: [], people: [], date: null, createdTime: null, lastEditedTime: null,
-    blocks: [], lastSaved: null, detailsOpen: false,
+    blocks: [], lastSaved: null, detailsOpen: false, projectIds: [],
     saveState: 'saved', saveTimer: null, saving: false, pendingResave: false,
     busy: false, slashFor: null,
   };
@@ -6724,6 +6724,14 @@
     if (schema.tagsProp && s.tags.length) props[schema.tagsProp] = { relation: s.tags.map((t) => ({ id: t.id })) };
     if (schema.peopleProp && s.people.length) props[schema.peopleProp] = { relation: s.people.map((p) => ({ id: p.id })) };
     if (schema.dateProp && s.date) Object.assign(props, datePropertyPatch(schema.dateProp, s.date.start));
+    // Project links carried over from a Capture → Compose hand-off (a
+    // `!Project` token). Compose's Details strip has no Projects field, so
+    // these are written once at creation only — afterwards they're edited
+    // on the Note profile like any other note's Projects.
+    if (s.projectIds.length) {
+      const projectsProp = await relationPropertyName(CONFIG.DB.NOTES, CONFIG.DB.PROJECTS);
+      if (projectsProp) props[projectsProp] = { relation: s.projectIds.map((id) => ({ id })) };
+    }
     const children = s.blocks.map(composeBlockToNotionPayload);
     const page = await createEntityPage(CONFIG.DB.NOTES, props, children);
     s.id = page.id;
@@ -7025,7 +7033,7 @@
       id: null, loading: false, error: null, title: '', uniqueId: null, types: [],
       domainId: null, domainName: null, tags: [], people: [], date: null,
       createdTime: null, lastEditedTime: null, blocks: [], lastSaved: null,
-      detailsOpen: false, saveState: 'saved', saveTimer: null, saving: false,
+      detailsOpen: false, projectIds: [], saveState: 'saved', saveTimer: null, saving: false,
       pendingResave: false, slashFor: null,
     });
   }
@@ -7040,6 +7048,7 @@
     composeReset();
     s.routeId = routeId;
     s.loading = true;
+    let seededFromCapture = false;
     paintCompose();
     try {
       s.schema = await resolveComposeSchema();
@@ -7052,6 +7061,8 @@
       } else {
         s.blocks = [composeNewBlock('paragraph')];
         s.lastSaved = null;
+        seededFromCapture = await composeApplyCaptureHandoff(s);
+        if (s.routeId !== routeId) return;
       }
     } catch (err) {
       console.error('Failed to load Compose', err);
@@ -7061,8 +7072,77 @@
       if (s.routeId === routeId) {
         s.loading = false;
         paintCompose();
+        // A Capture hand-off is real content the user already wrote — mark
+        // it dirty so the normal debounced autosave creates the Note (at
+        // Status = Active, skipping the Inbox) without waiting for a keystroke.
+        if (seededFromCapture && !s.error) composeMarkDirty();
       }
     }
+  }
+
+  // --- Capture → Compose hand-off (the "Compose ↗" link in capture.html).
+  // capture.html stashes the in-progress single note in sessionStorage and
+  // navigates here; this seeds a NEW Compose note from it, read-once
+  // (removed on read) and ignored if stale. Each Capture line becomes its
+  // own paragraph. Type is resolved against the live option list (emoji-
+  // proof, resolveOptionValue); a miss just leaves Type blank rather than
+  // failing the hand-off. Returns true when it seeded anything.
+  const COMPOSE_HANDOFF_KEY = 'renitaos.composeHandoff';
+  function composeTextRichText(text) {
+    const out = [];
+    for (let i = 0; i < text.length; i += 2000) {
+      out.push({
+        type: 'text',
+        text: { content: text.slice(i, i + 2000), link: null },
+        annotations: { bold: false, italic: false, strikethrough: false, underline: false, code: false, color: 'default' },
+      });
+    }
+    return out;
+  }
+  async function composeApplyCaptureHandoff(s) {
+    let payload = null;
+    try {
+      const raw = window.sessionStorage.getItem(COMPOSE_HANDOFF_KEY);
+      window.sessionStorage.removeItem(COMPOSE_HANDOFF_KEY);
+      payload = raw ? JSON.parse(raw) : null;
+    } catch (err) {
+      return false;
+    }
+    if (!payload || payload.v !== 1 || Date.now() - (payload.at || 0) > 10 * 60 * 1000) return false;
+    const lines = Array.isArray(payload.lines) ? payload.lines.filter((l) => typeof l === 'string' && l.trim()) : [];
+    s.title = typeof payload.title === 'string' ? payload.title : '';
+    if (lines.length) {
+      s.blocks = lines.map((line) => {
+        const b = composeNewBlock('paragraph');
+        b.richText = composeTextRichText(line);
+        return b;
+      });
+    }
+    s.tags = Array.isArray(payload.tags) ? payload.tags.filter((t) => t && t.id) : [];
+    s.people = Array.isArray(payload.people) ? payload.people.filter((p) => p && p.id) : [];
+    s.projectIds = Array.isArray(payload.projectIds) ? payload.projectIds.filter(Boolean) : [];
+    // A Capture is dated the day it's written — keep that, same as Save would.
+    s.date = { start: todayIsoLocal() };
+    if (payload.typeName && s.schema.typeProp) {
+      try {
+        s.types = [await resolveOptionValue(CONFIG.DB.NOTES, s.schema.typeProp, payload.typeName)];
+      } catch (err) {
+        console.warn('Capture hand-off: Type not resolved', err);
+      }
+    }
+    if (payload.domainPageId && s.schema.domainProp) {
+      try {
+        const members = await resolveRelationNames(CONFIG.DB.DOMAINS, [payload.domainPageId]);
+        s.domainName = members[0] ? members[0].name : null;
+        s.domainId = s.schema.domainProp.type === 'relation' ? payload.domainPageId : null;
+      } catch (err) {
+        console.warn('Capture hand-off: Domain not resolved', err);
+      }
+    }
+    // Open the Details strip when anything was carried over, so the
+    // classification that came across from Capture is visible, not hidden.
+    s.detailsOpen = !!(s.types.length || s.domainId || s.domainName || s.tags.length || s.people.length);
+    return true;
   }
 
   // --- Compose's own event delegation — kept as separate listeners on the

@@ -41,6 +41,7 @@ export const TASK_STATUS_INBOX = 'Inbox';
 export const TYPE_SET = [
   'Dream', 'Thought', 'Idea', 'Convo', 'Sermon', 'Prophetic Word',
   'Virtual', 'Teaching', 'Prayer', 'Quote', 'Study', 'Reflection', 'Download',
+  'Reminder', 'One on One',
 ];
 
 // §12 — a Dream capture merges into the day's existing Dream page instead of
@@ -52,10 +53,9 @@ export const DAY_MERGE_TYPE = 'Dream';
 // Keyed to the plain type name, same convention TYPE_SET already uses here
 // (this grammar module never fetches live schema, so there's no resolver
 // to key emoji'd option strings through, unlike index.html's profiles).
-// Covers the full Type list per the Backend Worksheet, including three
-// (Reminder, Podcast, One on One) not yet in TYPE_SET above — harmless
-// here since an unmatched type just never applies a prefix, but worth
-// noting TYPE_SET itself may be stale against the live schema.
+// Covers the full Type list per the Backend Worksheet. Podcast is the one
+// entry NOT in TYPE_SET above (Nov 2026: podcasts are captured as Virtual —
+// the option still exists in Notion for older notes, so its prefix stays).
 export const TYPE_PREFIXES = {
   Dream: 'DRM', Sermon: 'SRM', Prayer: 'PRY', Download: 'DWL',
   Thought: 'THT', 'Prophetic Word': 'PRW', Quote: 'QOT', Reminder: 'RMD',

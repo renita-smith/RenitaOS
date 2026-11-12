@@ -650,3 +650,18 @@ Every comparison is **Window A = last 14 days (through today)** vs. **Window B =
 ## Data rules
 Domain attribution is always the **project rollup** (task → project → Domain), never a task-level field; an unresolvable domain renders **no chip**. "Fully done" prefers the Projects completed-count + total-task rollups, falling back to counting loaded tasks. Multi-Type notes count under each Type (by-type house rule).
 
+---
+
+# Addendum 9 — Capture → Compose escalation (Nov 2026)
+
+*Built as its own sealed-Capture slice, alongside the long-capture overflow fix. Pending live verify.*
+
+- **Entry point:** a quiet text link, `Compose ↗`, top-right of Capture's header (opposite `×`; the header is a three-column grid so the CAPTURE label stays centered). Text treatment, not a button — it's an escape hatch, not a second primary action beside Save.
+- **When it shows:** only when the capture will become **exactly one plain Note** — the same eligibility as the optional title field (not a `+task`, not a Dream day-merge, not a bare relation token, not a multi-entry braindump), in Type mode, with something written. Note: a **blank line splits a capture into separate entries**, so the link hides once one is typed — that's Capture's grammar, unchanged.
+- **What carries over:** explicit title (title field or `[bracket]`), Type (resolved emoji-proof against the live options), Domain, Tags, People, Projects, and today's Date. **Each Capture line becomes its own Compose paragraph** (tokens stripped). Relation tokens follow Save's rule: confirmed matches link; a tapped-to-create new one is created at hand-off; an unconfirmed suggestion is dropped.
+- **No Inbox write.** Nothing is written to Notes from Capture; the payload rides to `#/compose` via `sessionStorage` (read-once, ignored after 10 min), and Compose's normal debounced autosave creates the Note at **Status = Active**. Capture clears itself before navigating, so Back can't resurrect the draft into a duplicate save.
+- **Projects** have no field in Compose's Details strip — carried projects are written once at creation and edited afterwards on the Note profile.
+
+## Capture layout rule (overflow fix)
+The composer never shrinks below its own content (`flex: 1 0 auto`; textarea min-height `max(160px, 35dvh)`). When Recognized cards grow, the Capture scroll column scrolls — the textarea never overlaps the cards.
+

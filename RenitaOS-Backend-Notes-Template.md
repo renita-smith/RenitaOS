@@ -103,7 +103,7 @@ Each Domain has one **catch-all project** that holds loose tasks — a `%`-tagge
 
 | Set | Values |
 |---|---|
-| **Type set** (for `/`) | Dream, Thought, Idea, Convo, Sermon, Prophetic Word, Virtual, Teaching, Prayer, Quote, Study, Reflection, Download, Reminder, One on One, Podcast |
+| **Type set** (for `/`) | Dream, Thought, Idea, Convo, Sermon, Prophetic Word, Virtual, Teaching, Prayer, Quote, Study, Reflection, Download, Reminder, One on One. **Podcast** remains a Notion option (older notes) but isn't offered in Capture — online content (videos, reels, podcasts) is captured as **Virtual** (Nov 2026). |
 | Note Status | Inbox / Active / Closed |
 | Task Status | Inbox / Not Started / In Progress / Paused / Done — **default on capture: Inbox** |
 | Task Time Slot | Early Morning / Early Evening / Late Evening (**multi-select**; set on the Today dashboard, normalized to one value on drag) |
