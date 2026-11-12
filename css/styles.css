@@ -71,11 +71,15 @@ body {
   background: var(--surface);
 }
 
+/* Three equal-flex columns (was flex space-between) so the label stays
+   centered now that the right side holds the wider "Compose ↗" link
+   instead of a 32px spacer matching the close button. */
 .capture-header {
-  display: flex;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
   align-items: center;
-  justify-content: space-between;
 }
+.capture-header > :first-child { justify-self: start; }
 
 .icon-circle {
   width: 32px;
@@ -100,6 +104,25 @@ body {
 }
 
 .header-spacer { width: 32px; }
+
+/* Capture → Compose escalation link — top-right, opposite the close
+   button. Quiet text treatment (same weight as the header label) so it
+   reads as an escape hatch, not a second primary action beside Save.
+   Hidden unless the capture is a single plain Note. */
+.header-actions { min-width: 32px; display: flex; justify-content: flex-end; }
+.capture-compose-link {
+  border: none;
+  background: transparent;
+  padding: 6px 2px;
+  font-family: 'IBM Plex Sans', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+  cursor: pointer;
+  white-space: nowrap;
+}
+.capture-compose-link:hover { text-decoration: underline; text-underline-offset: 3px; }
+.capture-compose-link:disabled { opacity: .5; cursor: default; text-decoration: none; }
 
 .pill-row {
   display: flex;
@@ -137,7 +160,13 @@ body {
    recognized-cards below it), and .capture-textarea in turn flexes to
    fill .composer — #autocomplete stays position:absolute (out of flow)
    so this doesn't change its own sizing. */
-.composer { position: relative; flex: 1; min-height: 0; display: flex; flex-direction: column; }
+.composer { position: relative; flex: 1 0 auto; display: flex; flex-direction: column; }
+/* Nov 2026 overflow fix — was `flex: 1; min-height: 0`, which let a long
+   capture's Recognized cards squeeze .composer below its own content, so
+   the textarea painted over the cards beneath it. `flex: 1 0 auto` keeps
+   the fill-the-space behavior when there's room, but the composer never
+   shrinks below its content: .capture-scroll (overflow-y: auto) scrolls
+   the page instead. */
 
 /* B3 (Cycle 3) — optional title field: empty auto-titles (§9), typed is
    used verbatim. Kept visually quiet (small, bottom hairline only) so it
@@ -161,6 +190,7 @@ body {
   width: 100%;
   flex: 1;
   min-height: 160px;
+  min-height: max(160px, 35dvh);
   border: none;
   outline: none;
   background: transparent;

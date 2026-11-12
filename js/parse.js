@@ -271,6 +271,12 @@ export function parseEntry(raw, caches, confirmedNew, offset = 0, titleOverride 
     cursor = span.end;
   }
   body += raw.slice(cursor);
+  // Capture → Compose hand-off: the same token-stripped body, but with its
+  // line breaks kept (each line becomes its own Compose paragraph) — the
+  // collapsed `body` below is what Capture itself writes, unchanged.
+  const bodyLines = body.replace(/^\s*\+/, '').split('\n')
+    .map((l) => l.replace(/[ \t]+/g, ' ').replace(/\s+([.,;:!?])/g, '$1').trim())
+    .filter(Boolean);
   body = body.replace(/^\s*\+/, '').replace(/\s+/g, ' ').replace(/\s+([.,;:!?])/g, '$1').trim();
 
   // B1 (Cycle 3) — an entry whose ENTIRE content is a single relation token
@@ -307,6 +313,8 @@ export function parseEntry(raw, caches, confirmedNew, offset = 0, titleOverride 
     projects,
     title,
     body,
+    bodyLines,
+    explicitTitle,
     dueDateISO,
     isBareRelation,
   };
