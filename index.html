@@ -2104,9 +2104,6 @@
   }
   .home-head-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
   .home-head-main { flex: 1; min-width: 240px; }
-  /* Pulse (§5) — the Today-header metric treatment, reused verbatim
-     (.today-metric); .home-pulse only adds the header's own top spacing. */
-  .home-pulse { margin-top: 8px; }
   /* Needs attention / Trends / On this day rows (§6/§7/§8) all reuse the
      shipped §2A dense row (.pf-row/.pf-row-main — same component Find's
      Library and every relation tab already use) rather than forking a
@@ -2123,10 +2120,66 @@
      .dmn-chip's 22px header-scale swatch) since this repeats once per row
      in a dense list rather than once beside an h1. */
   .home-row-swatch { display: inline-block; width: 10px; height: 10px; border-radius: 50%; flex: none; }
+  /* ---- Home visual refresh (Nov 2026) — Weekly Review's language:
+     sage metric tiles (.wr-metric), domain-colored tiles (.wr-domain-tile),
+     numbered serif acts (.wr-act). Amber (#8a5a1f) is Home's one "look
+     here" accent, used only on a non-zero drift count. ---- */
+  .home-sub { font-family: 'Newsreader', serif; font-style: italic; font-size: 15px; color: oklch(0.55 0.012 75); margin-top: 2px; }
+  .home-body { padding-top: 2px; }
+  .home-tiles { display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: 10px; margin-bottom: 12px; }
+  .home-tile { background: #E7ECD6; border-radius: 12px; padding: 13px 16px; min-width: 0; }
+  .home-tile-label { font-family: 'IBM Plex Sans', sans-serif; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; color: oklch(0.55 0.012 75); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .home-tile-value { font-family: 'IBM Plex Sans', sans-serif; font-size: 26px; font-weight: 600; color: #2A3408; margin-top: 2px; }
+  .home-tile-value--warn { color: #8a5a1f; }
+  .home-tile-note { font-family: 'IBM Plex Sans', sans-serif; font-size: 11px; color: oklch(0.55 0.012 75); }
+  .home-doms { display: grid; grid-template-columns: repeat(6, minmax(0,1fr)); gap: 8px; margin-bottom: 34px; }
+  .home-dom { position: relative; border-radius: 10px; padding: 9px 12px; cursor: pointer; transition: transform .12s ease; }
+  .home-dom:hover { transform: translateY(-1px); }
+  .home-dom-code { font-family: 'IBM Plex Sans', sans-serif; font-size: 11px; font-weight: 700; letter-spacing: .04em; }
+  .home-dom-state { font-family: 'IBM Plex Sans', sans-serif; font-size: 11px; font-weight: 500; margin-top: 3px; opacity: .85; }
+  .home-dom--drifting { box-shadow: inset 0 0 0 1.5px currentColor; }
+  .home-dom--drifting::after { content: ''; position: absolute; top: 10px; right: 10px; width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+  .home-dom--dormant { opacity: .45; }
+  .home-sec { margin-bottom: 34px; }
+  .home-act { display: flex; align-items: baseline; gap: 10px; padding-bottom: 12px; border-bottom: 1px solid #DED8CA; margin-bottom: 16px; }
+  .home-act-num { width: 26px; height: 26px; border-radius: 50%; border: 1px solid #3A4410; color: #3A4410; display: inline-flex; align-items: center; justify-content: center; font-family: 'IBM Plex Sans', sans-serif; font-size: 13px; font-weight: 600; flex: none; align-self: center; }
+  .home-act-title { font-family: 'Newsreader', serif; font-size: 22px; color: #2A3408; }
+  .home-act-sub { font-family: 'Newsreader', serif; font-style: italic; font-size: 14px; color: oklch(0.55 0.012 75); }
+  .home-grp { font-family: 'IBM Plex Sans', sans-serif; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; color: oklch(0.55 0.012 75); margin: 4px 0 8px; }
+  .home-cards { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 10px; margin-bottom: 18px; }
+  .home-card { background: #E7ECD6; border-radius: 12px; padding: 12px 14px 12px 16px; border-left: 4px solid var(--home-edge, #9AAB6E); cursor: pointer; min-width: 0; transition: background .12s ease; }
+  .home-card:hover, .home-trend.pf-row--nav:hover { background: #DBE2C1; }
+  .home-card-title { font-family: 'Newsreader', serif; font-size: 17px; color: #2A3408; display: flex; align-items: baseline; gap: 8px; min-width: 0; }
+  .home-card-title .pf-row-id { flex: none; }
+  .home-card-meta { display: flex; align-items: center; gap: 8px; margin-top: 8px; font-family: 'IBM Plex Sans', sans-serif; font-size: 12px; color: #4A5230; min-width: 0; }
+  .home-spark { display: inline-flex; gap: 2px; align-items: flex-end; height: 16px; margin-left: auto; flex: none; }
+  .home-spark i { width: 6px; background: #9AAB6E; border-radius: 1px; }
+  .home-spark i.home-spark-zero { height: 2px; background: #C9C6B4; }
+  .home-trend { background: #E7ECD6; border-radius: 12px; padding: 12px 16px; min-width: 0; }
+  .home-trend.pf-row--nav { cursor: pointer; }
+  .home-trend-kind { font-family: 'IBM Plex Sans', sans-serif; font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; color: oklch(0.55 0.012 75); }
+  .home-trend-name { font-family: 'Newsreader', serif; font-size: 18px; color: #2A3408; margin: 3px 0 8px; }
+  .home-trend-bars { display: grid; grid-template-columns: 52px minmax(0,1fr) 24px; gap: 4px 8px; align-items: center; font-family: 'IBM Plex Sans', sans-serif; font-size: 11px; color: oklch(0.55 0.012 75); }
+  .home-trend-bar { height: 8px; border-radius: 4px; background: #9AAB6E; }
+  .home-trend-bar--prior { background: #C9C6B4; }
+  .home-trend-n { text-align: right; }
+  .home-otd { display: flex; gap: 10px; align-items: stretch; margin-bottom: 10px; }
+  .home-otd-badge { flex: none; width: 64px; text-align: center; background: #2A3408; color: #F6F2E9; border-radius: 10px; padding: 10px 0; font-family: 'IBM Plex Sans', sans-serif; font-size: 20px; font-weight: 600; display: flex; flex-direction: column; justify-content: center; }
+  .home-otd-badge small { display: block; font-size: 9px; font-weight: 500; letter-spacing: .05em; opacity: .8; margin-top: 2px; }
+  .home-otd-cards { flex: 1; display: flex; flex-direction: column; gap: 8px; min-width: 0; }
   @media (max-width: 820px) {
     .home-head { position: static; }
     .home-head-row .dmn-capture { width: auto; }
     body[data-route="home"] .dmn-col { padding-right: 0; }
+    .home-tiles { grid-template-columns: repeat(2, minmax(0,1fr)); }
+    .home-doms { grid-template-columns: repeat(3, minmax(0,1fr)); margin-bottom: 26px; }
+    .home-cards { grid-template-columns: 1fr; }
+  }
+  /* Mobile: Home/Find's New + Capture pair sit side by side (half width
+     each) instead of stacking — the stack cost ~100px of header height. */
+  @media (max-width: 820px) {
+    .dmn-head-actions { flex-direction: row; width: 100%; }
+    .dmn-head-actions > .dmn-capture { flex: 1 1 0; width: auto; min-width: 0; }
   }
 
   /* Title + week-nav + Capture stick to the top of the main column on
@@ -2336,7 +2389,7 @@
   // Bumped by hand on every deployed change (Cycle-2 preflight) — logged on
   // load and shown in-app (topbar + framed rail) so it's a glance which
   // build is actually running, instead of inferring it from git history.
-  const BUILD_STAMP = '2026-11-12-compose-polish';
+  const BUILD_STAMP = '2026-11-12-home-refresh';
   console.log(`RenitaOS build ${BUILD_STAMP}`);
 
   // --- Shared bootstrap: defined once, in one place. -----------------------
@@ -13606,9 +13659,9 @@
     });
 
     const needsAttention = {
-      driftProjects: homeComputeDriftProjects(projects, tasks, w),
+      driftProjects: homeComputeDriftProjects(projects, tasks, w).map((p) => ({ ...p, evidence: homeProjectEvidence(p, tasks, w) })),
       driftDomains: homeComputeDriftDomains(projects, tasks, notes, w),
-      finishedUnclosed: homeComputeFinishedUnclosed(projects, tasks, w),
+      finishedUnclosed: homeComputeFinishedUnclosed(projects, tasks, w).map((p) => ({ ...p, evidence: homeProjectEvidence(p, tasks, w) })),
       dormantDomains: homeComputeDormantDomains(projects),
     };
     const trends = homeComputeTrends(tasks, notes, tagTitleById, notesTypeOrder, w);
@@ -13634,8 +13687,34 @@
   // projects (§6.4). A project that's fully done (every task Completed)
   // surfaces under "Worth closing" instead (§6.3) — excluded here so the
   // two cousins never double-flag the same project under both headings.
+  // Nov 2026 — each Domain's "Inbox/Admin" catch-all project is a bucket,
+  // never a project that can drift or be finished; it's excluded from every
+  // project-level flag (its tasks still count toward its Domain).
+  const HOME_CATCH_ALL_IDS = new Set(DOMAIN_META.map((d) => normalizeDbId(d.catchAllProjectId)));
+  function homeIsCatchAll(p) { return HOME_CATCH_ALL_IDS.has(normalizeDbId(p.id)); }
+
+  // Card evidence for a flagged project (Nov 2026 visual refresh): the most
+  // recent completion ever (not just in-window) and completions per week
+  // for the last four weeks (oldest → newest), from tasks already in memory.
+  function homeProjectEvidence(p, tasks, w) {
+    const projTasks = tasks.filter((t) => t.project && t.project.id === p.id);
+    const lastDone = projTasks.reduce((max, t) => (t.completedDate && (!max || t.completedDate > max) ? t.completedDate : max), null);
+    const weeks = [0, 0, 0, 0];
+    projTasks.forEach((t) => {
+      if (!t.completedDate || t.completedDate > w.refresh) return;
+      for (let i = 0; i < 4; i++) {
+        const end = tdAddDays(w.refresh, -7 * (3 - i));
+        const start = tdAddDays(end, -6);
+        if (t.completedDate >= start && t.completedDate <= end) { weeks[i] += 1; break; }
+      }
+    });
+    const daysSince = lastDone ? Math.round((new Date(`${w.refresh}T00:00:00`) - new Date(`${lastDone}T00:00:00`)) / 86400000) : null;
+    return { lastDone, daysSince, weeks, total: projTasks.length, done: projTasks.filter((t) => !!t.completedDate).length };
+  }
+
   function homeComputeDriftProjects(projects, tasks, w) {
     return projects.filter((p) => {
+      if (homeIsCatchAll(p)) return false;
       if (!homeIsInProgress(p.statusName)) return false;
       if (homeCreatedLocalDate(p.createdTime) >= w.aStart) return false;
       if (homeIsFullyDone(p, tasks)) return false;
@@ -13663,6 +13742,7 @@
   // clause (§6.4).
   function homeComputeFinishedUnclosed(projects, tasks, w) {
     return projects.filter((p) => {
+      if (homeIsCatchAll(p)) return false;
       if (!homeIsInProgress(p.statusName)) return false;
       if (!homeIsFullyDone(p, tasks)) return false;
       const hasActivityInA = tasks.some((t) => t.project && t.project.id === p.id && homeInWindowA(t.completedDate, w));
@@ -13708,6 +13788,7 @@
       if (c >= 4 && r >= 1.5) {
         candidates.push({
           type: 'tag', c, p, strength, route: `tag/${tid}`,
+          kind: p <= 1 ? 'Emerging theme' : 'Rising tag', name: `#${name}`,
           left: `#${name} — ${p <= 1 ? 'emerging theme' : 'more notes than usual'}`,
         });
       }
@@ -13724,7 +13805,7 @@
       const p = notesB + tasksB;
       const { r, strength } = homeStrength(c, p);
       if (c >= 4 && r >= 1.5) {
-        candidates.push({ type: 'domain', c, p, strength, route: `domain/${dm.pageId}`, left: `${dm.code} — more activity than usual` });
+        candidates.push({ type: 'domain', c, p, strength, route: `domain/${dm.pageId}`, kind: 'Rising domain', name: `More ${dm.code} activity`, domainMeta: dm, left: `${dm.code} — more activity than usual` });
       }
     });
 
@@ -13741,7 +13822,7 @@
       });
       const { r, strength } = homeStrength(c, p);
       if (c >= 4 && r >= 1.5) {
-        candidates.push({ type: 'mode', c, p, strength, route: null, left: `${splitTrailingEmoji(typeName).name} — more notes than usual` });
+        candidates.push({ type: 'mode', c, p, strength, route: null, kind: 'Mode shift', name: `More ${splitTrailingEmoji(typeName).name} notes`, left: `${splitTrailingEmoji(typeName).name} — more notes than usual` });
       }
     });
 
@@ -13772,7 +13853,7 @@
       const p = pairsB.get(key) || 0;
       const { r, strength } = homeStrength(c, p);
       if (c >= 3 && r >= 1.5) {
-        candidates.push({ type: 'cooccurrence', c, p, strength, route: null, left: `#${name1} + #${name2} — showing up together` });
+        candidates.push({ type: 'cooccurrence', c, p, strength, route: null, kind: 'Showing up together', name: `#${name1} + #${name2}`, left: `#${name1} + #${name2} — showing up together` });
       }
     });
 
@@ -13835,88 +13916,139 @@
       ${reasonHtml}
     </div>`;
   }
-  function homeRenderSubhead(label, count) {
-    return `<div class="home-subhead">${escapeHtml(label)}<span class="dmn-n">${count}</span></div>`;
+  // --- Nov 2026 visual refresh — Weekly Review's visual language on Home:
+  // a sage metric-tile row, a six-domain status strip, numbered serif
+  // section headers ("acts"), and sage cards with a domain-colored edge.
+  // Computation above is unchanged; only presentation moved. The dense
+  // homeRenderRow above is kept for any future plain list.
+  function homeRenderAct(num, title, sub) {
+    return `<div class="home-act"><span class="home-act-num">${num}</span><span class="home-act-title">${escapeHtml(title)}</span>${sub ? `<span class="home-act-sub">${escapeHtml(sub)}</span>` : ''}</div>`;
+  }
+  function homeRenderGroup(label, count) {
+    return `<div class="home-grp">${escapeHtml(label)} · ${count}</div>`;
+  }
+  function homeDomainChip(dm) {
+    return (dm && dm.code) ? `<span class="pf-row-domain" style="background:${dm.fill};color:${dm.text};">${escapeHtml(dm.code)}</span>` : '';
+  }
+  function homeSpark(weeks) {
+    const max = Math.max(1, ...weeks);
+    const bars = weeks.map((n) => (n ? `<i style="height:${Math.max(4, Math.round((n / max) * 16))}px"></i>` : '<i class="home-spark-zero"></i>')).join('');
+    return `<span class="home-spark" title="Completions per week, last 4 weeks: ${weeks.join(' · ')}">${bars}</span>`;
+  }
+  function homeDaysAgoLabel(n) {
+    if (n == null) return 'no completions yet';
+    if (n <= 0) return 'last done today';
+    if (n === 1) return 'last done yesterday';
+    return `last done ${n} days ago`;
+  }
+  function homeRenderProjectCard(p, reason) {
+    const dm = p.domainMeta;
+    const edge = dm ? dm.text : '#9AAB6E';
+    const ev = p.evidence;
+    return `<div class="home-card pf-row--nav" data-pf-nav="project/${escapeHtml(p.id)}" style="--home-edge:${edge}">
+      <div class="home-card-title">${escapeHtml(p.title || 'Untitled')}${p.handle ? `<span class="pf-row-id">${escapeHtml(p.handle)}</span>` : ''}</div>
+      <div class="home-card-meta">${homeDomainChip(dm)}<span>${escapeHtml(reason)}</span>${ev ? homeSpark(ev.weeks) : ''}</div>
+    </div>`;
   }
 
-  function homeRenderNeedsAttention(d) {
-    const { driftProjects, driftDomains, finishedUnclosed, dormantDomains } = d.needsAttention;
-    if (!driftProjects.length && !driftDomains.length && !finishedUnclosed.length && !dormantDomains.length) return '';
-    const sections = [];
+  function homeRenderTiles(d) {
+    const na = d.needsAttention;
+    const tile = (label, value, note, warn) => `<div class="home-tile"><div class="home-tile-label">${escapeHtml(label)}</div><div class="home-tile-value${warn && value > 0 ? ' home-tile-value--warn' : ''}">${value}</div><div class="home-tile-note">${escapeHtml(note)}</div></div>`;
+    return `<div class="home-tiles">
+      ${tile('Inbox', d.inboxCount, 'waiting to sort', false)}
+      ${tile('Projects drifting', na.driftProjects.length, 'no completions · 14d', true)}
+      ${tile('Domains drifting', na.driftDomains.length, `of ${DOMAIN_META.length} domains`, true)}
+      ${tile('Shifts', d.trends.length, 'vs. prior 14 days', false)}
+    </div>`;
+  }
+
+  // The six fixed domains, always all six, each in its own color: drifting
+  // (outlined + dot), dormant (faded), otherwise active. Replaces the old
+  // "Domains drifting" and "Dormant" row lists — one glance, all six.
+  function homeRenderDomainStrip(d) {
+    const drifting = new Set(d.needsAttention.driftDomains.map((dm) => dm.code));
+    const dormant = new Set(d.needsAttention.dormantDomains.map((dm) => dm.code));
+    const tiles = DOMAIN_META.map((dm) => {
+      const state = drifting.has(dm.code) ? 'drifting' : (dormant.has(dm.code) ? 'dormant' : 'active');
+      const label = { drifting: 'Drifting', dormant: 'Dormant', active: 'Active' }[state];
+      const title = { drifting: 'No completions and no new notes in 14 days', dormant: 'No In Progress projects', active: 'Activity in the last 14 days' }[state];
+      return `<div class="home-dom home-dom--${state} pf-row--nav" data-pf-nav="domain/${escapeHtml(dm.pageId)}" title="${escapeHtml(title)}" style="background:${dm.fill};color:${dm.text};">
+        <div class="home-dom-code">${escapeHtml(dm.code)}</div><div class="home-dom-state">${label}</div>
+      </div>`;
+    }).join('');
+    return `<div class="home-doms">${tiles}</div>`;
+  }
+
+  function homeRenderNeedsAttention(d, num) {
+    const { driftProjects, finishedUnclosed } = d.needsAttention;
+    if (!driftProjects.length && !finishedUnclosed.length) return '';
+    const parts = [homeRenderAct(num, 'Needs attention', "what's gone quiet")];
     if (driftProjects.length) {
-      sections.push(homeRenderSubhead('Projects drifting', driftProjects.length) + driftProjects.map((p) => homeRenderRow({
-        route: `project/${p.id}`, title: p.title, handle: p.handle, domainChip: p.domainMeta, reason: 'no completions · 14d',
-      })).join(''));
-    }
-    if (driftDomains.length) {
-      sections.push(homeRenderSubhead('Domains drifting', driftDomains.length) + driftDomains.map((dm) => homeRenderRow({
-        route: `domain/${dm.pageId}`, title: dm.code, swatch: dm.fill, reason: 'no completions · no new notes · 14d',
-      })).join(''));
+      parts.push(homeRenderGroup('Projects drifting', driftProjects.length)
+        + `<div class="home-cards">${driftProjects.map((p) => homeRenderProjectCard(p, homeDaysAgoLabel(p.evidence.daysSince))).join('')}</div>`);
     }
     if (finishedUnclosed.length) {
-      sections.push(homeRenderSubhead('Worth closing', finishedUnclosed.length) + finishedUnclosed.map((p) => homeRenderRow({
-        route: `project/${p.id}`, title: p.title, handle: p.handle, domainChip: p.domainMeta, reason: 'quiet 14d · all tasks done',
-      })).join(''));
+      parts.push(homeRenderGroup('Worth closing', finishedUnclosed.length)
+        + `<div class="home-cards">${finishedUnclosed.map((p) => homeRenderProjectCard(p, `all ${p.evidence.total || ''} tasks done · quiet 14d`.replace('all  ', 'all '))).join('')}</div>`);
     }
-    if (dormantDomains.length) {
-      sections.push(homeRenderSubhead('Dormant', dormantDomains.length) + dormantDomains.map((dm) => homeRenderRow({
-        route: `domain/${dm.pageId}`, title: dm.code, swatch: dm.fill, reason: '0 active projects', muted: true,
-      })).join(''));
-    }
-    return `<section class="dmn-sec"><h2 class="dmn-sec-hd">Needs attention</h2>${sections.join('')}</section>`;
+    return `<section class="home-sec">${parts.join('')}</section>`;
   }
 
-  function homeRenderTrends(trends) {
+  function homeRenderTrends(trends, num) {
     if (!trends.length) return '';
-    const rowsHtml = trends.map((t) => homeRenderRow({ route: t.route, title: t.left, reason: `${t.c} · was ${t.p}` })).join('');
-    return `<section class="dmn-sec"><h2 class="dmn-sec-hd">Trends</h2>${rowsHtml}</section>`;
-  }
-
-  function homeRenderOnThisDay(groups) {
-    if (!groups.length) return '';
-    const sections = groups.map((g) => {
-      const rowsHtml = g.notes.map((n) => homeRenderRow({
-        route: `note/${n.id}`, title: n.title, handle: n.handle, domainChip: n.domainMeta,
-        pills: n.types.map((t) => splitTrailingEmoji(t).name),
-      })).join('');
-      return homeRenderSubhead(`${g.yearsAgo} year${g.yearsAgo === 1 ? '' : 's'} ago`, g.notes.length) + rowsHtml;
+    const cards = trends.map((t) => {
+      const max = Math.max(1, t.c, t.p);
+      const nav = t.route ? ` pf-row--nav" data-pf-nav="${escapeHtml(t.route)}` : '';
+      return `<div class="home-trend${nav}">
+        <div class="home-trend-kind">${escapeHtml(t.kind || 'Trend')}</div>
+        <div class="home-trend-name">${escapeHtml(t.name || t.left)}</div>
+        <div class="home-trend-bars">
+          <span>Last 14d</span><div class="home-trend-bar" style="width:${Math.max(4, (t.c / max) * 100)}%"></div><span class="home-trend-n">${t.c}</span>
+          <span>Prior</span><div class="home-trend-bar home-trend-bar--prior" style="width:${t.p ? Math.max(4, (t.p / max) * 100) : 2}%"></div><span class="home-trend-n">${t.p}</span>
+        </div>
+      </div>`;
     }).join('');
-    return `<section class="dmn-sec"><h2 class="dmn-sec-hd">On this day</h2>${sections}</section>`;
+    return `<section class="home-sec">${homeRenderAct(num, 'Trends', "what's rising")}<div class="home-cards">${cards}</div></section>`;
   }
 
-  // §5 Pulse — a digest assembled from the bands above, not its own
-  // computation. Every segment (including Inbox) is omitted at zero (§5)
-  // so the line itself can go empty when there's truly nothing to name.
-  function homeRenderPulse(d) {
-    const segments = [];
-    if (d.inboxCount > 0) segments.push(`Inbox ${d.inboxCount}`);
-    const driftingCount = d.needsAttention.driftProjects.length + d.needsAttention.driftDomains.length;
-    if (driftingCount > 0) segments.push(`${driftingCount} drifting`);
-    if (d.trends.length > 0) segments.push(`${d.trends.length} shift${d.trends.length === 1 ? '' : 's'}`);
-    if (!segments.length) return '';
-    return `<div class="today-metric home-pulse">${escapeHtml(segments.join(' · '))}</div>`;
+  function homeRenderOnThisDay(groups, num) {
+    if (!groups.length) return '';
+    const rows = groups.map((g) => {
+      const cards = g.notes.map((n) => {
+        const types = n.types.map((t) => splitTrailingEmoji(t).name).join(' · ');
+        const [y, m, dd] = (n.dateStr || '').split('-').map(Number);
+        const dateLabel = y ? new Date(y, m - 1, dd).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '';
+        return `<div class="home-card pf-row--nav" data-pf-nav="note/${escapeHtml(n.id)}" style="--home-edge:${n.domainMeta ? n.domainMeta.text : '#2A3408'}">
+          <div class="home-card-title">${escapeHtml(n.title || 'Untitled')}${n.handle ? `<span class="pf-row-id">${escapeHtml(n.handle)}</span>` : ''}</div>
+          <div class="home-card-meta">${homeDomainChip(n.domainMeta)}<span>${escapeHtml([types, dateLabel].filter(Boolean).join(' · '))}</span></div>
+        </div>`;
+      }).join('');
+      return `<div class="home-otd"><div class="home-otd-badge">${g.yearsAgo}<small>YEAR${g.yearsAgo === 1 ? '' : 'S'} AGO</small></div><div class="home-otd-cards">${cards}</div></div>`;
+    }).join('');
+    return `<section class="home-sec">${homeRenderAct(num, 'On this day', 'from past years')}${rows}</section>`;
   }
 
-  // §11 all-quiet copy — every band hides entirely when empty (no
-  // per-band placeholder); if Pulse is also empty, one calm serif line
-  // takes the whole screen's place rather than four missing sections.
-  function homeRenderBody(d, pulseHtml) {
-    const bandsHtml = [homeRenderNeedsAttention(d), homeRenderTrends(d.trends), homeRenderOnThisDay(d.onThisDay)].filter(Boolean);
-    if (!pulseHtml && !bandsHtml.length) {
-      return `<div class="dmn-divider"></div><div class="find-empty">All quiet — nothing needs noticing today.</div>`;
-    }
-    if (!bandsHtml.length) return '';
-    const divided = bandsHtml.map((html, i) => (i === 0 ? html : `<div class="dmn-divider"></div>${html}`)).join('');
-    return `<div class="dmn-divider"></div>${divided}`;
+  // Pulse is now the tile row (always shown — Weekly Review's metric-tile
+  // language, where zero is information, not noise). Sections number only
+  // the ones that render; if none do, the all-quiet line takes their place
+  // below the tiles + domain strip.
+  function homeRenderBody(d) {
+    let num = 0;
+    const sections = [];
+    const na = homeRenderNeedsAttention(d, num + 1); if (na) { num += 1; sections.push(na); }
+    const tr = homeRenderTrends(d.trends, num + 1); if (tr) { num += 1; sections.push(tr); }
+    const otd = homeRenderOnThisDay(d.onThisDay, num + 1); if (otd) { num += 1; sections.push(otd); }
+    const quiet = sections.length ? '' : `<div class="find-empty">All quiet — nothing needs noticing today.</div>`;
+    return `<div class="home-body">${homeRenderTiles(d)}${homeRenderDomainStrip(d)}${sections.join('')}${quiet}</div>`;
   }
 
-  function homeRenderHeader(pulseHtml) {
+  function homeRenderHeader() {
     return `<div class="dmn-head home-head">
       <div class="home-head-row">
         <div class="home-head-main">
           <div class="dmn-idline">${escapeHtml(tdLongDateLabel(todayIsoLocal()))}</div>
           <div class="dmn-title-row"><h1 class="dmn-title">HOME</h1></div>
-          ${pulseHtml}
+          <div class="home-sub">What's shifted in the last ${HOME_WINDOW_DAYS} days</div>
         </div>
         <div class="dmn-head-actions">${renderComposeLink(null, 'New')}${renderCaptureAffordance()}</div>
       </div>
@@ -13927,10 +14059,9 @@
 
   function paintHomeDashboard() {
     const s = homeState;
-    if (s.loading) { dmnMain.innerHTML = `${homeRenderHeader('')}<div class="dmn-status">Loading…</div>`; return; }
-    if (s.error) { dmnMain.innerHTML = `${homeRenderHeader('')}<div class="dmn-status dmn-status--error">${escapeHtml(s.error)}</div>`; return; }
-    const pulseHtml = homeRenderPulse(s.data);
-    dmnMain.innerHTML = `${homeRenderHeader(pulseHtml)}${homeRenderBody(s.data, pulseHtml)}`;
+    if (s.loading) { dmnMain.innerHTML = `${homeRenderHeader()}<div class="dmn-status">Loading…</div>`; return; }
+    if (s.error) { dmnMain.innerHTML = `${homeRenderHeader()}<div class="dmn-status dmn-status--error">${escapeHtml(s.error)}</div>`; return; }
+    dmnMain.innerHTML = `${homeRenderHeader()}${homeRenderBody(s.data)}`;
   }
 
   async function mountHomeDashboard() {

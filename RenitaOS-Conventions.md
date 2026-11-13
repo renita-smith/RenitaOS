@@ -624,7 +624,7 @@ Debounced (~1.5s idle) + save-on-blur + save-on-route-away, diffed against a `la
 
 # Addendum 8 — Home (as-built, July 31 2026)
 
-*Written from the code on `main` during the Oct 3 2026 reconciliation — Home shipped without its own addendum. **Not yet live-verified** (see Roadmap → Critical path, step 0); thresholds below are as-coded and may be tuned by feel.*
+*Written from the code on `main` during the Oct 3 2026 reconciliation. **Live-verified Nov 12 2026** — Nita confirmed the drift flags match reality. **Visual refresh Nov 2026** (see "Visual refresh" below) — computation unchanged except the catch-all exclusion.*
 
 ## Role — noticing, not seeking
 Home is the **evaluative** surface: *what needs attention, what shifted*. It is the counterpart to Find's descriptive Insights (Addendum 5, "The Home boundary") and to Today's seeking/planning board. **Read-only** — Home writes nothing.
@@ -649,6 +649,21 @@ Every comparison is **Window A = last 14 days (through today)** vs. **Window B =
 
 ## Data rules
 Domain attribution is always the **project rollup** (task → project → Domain), never a task-level field; an unresolvable domain renders **no chip**. "Fully done" prefers the Projects completed-count + total-task rollups, falling back to counting loaded tasks. Multi-Type notes count under each Type (by-type house rule).
+
+---
+
+## Visual refresh (Nov 2026) — Weekly Review's language
+Approved from a rendered mock. Presentation only; every rule above stands except where noted.
+- **Header:** long date · serif HOME · italic sub "What's shifted in the last 14 days". The Pulse *line* is retired.
+- **Metric tiles** (sage, `.wr-metric` treatment): Inbox · Projects drifting · Domains drifting · Shifts — **always shown, zero included** (a tile row reads zero as information). A non-zero drift count renders in amber `#8a5a1f`, Home's single "look here" accent.
+- **Domain strip:** all six domains in their own colors, each tile linking to its Domain. **Drifting** = outlined + dot; **Dormant** = faded; otherwise **Active**. This *replaces* the "Domains drifting" and "Dormant" row lists.
+- **Sections** are numbered serif acts (`.wr-act` treatment), numbered only among those that render: Needs attention ("what's gone quiet") → Trends ("what's rising") → On this day ("from past years").
+- **Project cards** (Projects drifting, Worth closing): sage card, 4px left edge in the domain's text color, title + handle, domain chip + evidence, and a **4-week completion sparkline** (weekly buckets ending today). Evidence = "last done N days ago" (most recent completion *ever*, not just in-window) or "no completions yet"; Worth closing = "all N tasks done · quiet 14d".
+- **Trend cards:** kind label (Emerging theme / Rising tag / Rising domain / Mode shift / Showing up together), a plain-language name, and two bars — last 14d vs prior — scaled to the larger.
+- **On this day:** a dark years-ago badge beside that year's note cards.
+- **Catch-all exclusion (logic change):** each Domain's **Inbox/Admin** project is never flagged as drifting or worth closing — it's a bucket, not a project. Its tasks still count toward its Domain.
+- **All quiet:** tiles + domain strip still render; the one serif line replaces the sections.
+- Mobile: tiles 2×2, domain strip 3×2, cards single-column.
 
 ---
 
