@@ -2180,11 +2180,9 @@
   .rp-chip--zero { opacity: .5; }
   .rp-search { width: 100%; box-sizing: border-box; border: 1px solid #DED8CA; background: #FBF9F3; border-radius: 999px; padding: 8px 14px; font-family: 'IBM Plex Sans', sans-serif; font-size: 13px; color: #2A3408; outline: none; margin-bottom: 4px; }
   .rp-search:focus { border-color: #9AAB6E; }
-  .rp-year { display: flex; justify-content: space-between; align-items: center; width: 100%; border: none; background: none; cursor: pointer; padding: 8px 8px 8px 0; margin-top: 8px; border-bottom: 1px solid #DED8CA; font-family: 'IBM Plex Sans', sans-serif; font-size: 11px; font-weight: 700; letter-spacing: .08em; color: oklch(0.55 0.012 75); }
-  .rp-year:hover { color: #2A3408; }
-  .rp-year-label { display: inline-flex; align-items: center; gap: 6px; }
-  .rp-year-caret { width: 13px; height: 13px; transition: transform .15s ease; }
-  .rp-year--open .rp-year-caret { transform: rotate(90deg); }
+  .rp-year { display: flex; justify-content: space-between; font-family: 'IBM Plex Sans', sans-serif; font-size: 11px; font-weight: 700; letter-spacing: .08em; color: oklch(0.55 0.012 75); margin: 16px 0 4px; }
+  .rp-more { display: block; width: 100%; margin-top: 14px; padding: 12px; border: none; border-radius: 10px; background: #E7ECD6; color: #2A3408; font-family: 'IBM Plex Sans', sans-serif; font-size: 12px; font-weight: 600; cursor: pointer; }
+  .rp-more:hover { background: #DBE2C1; }
   .rp-conn-list { display: flex; flex-direction: column; }
   .rp-conn { display: flex; justify-content: space-between; align-items: center; width: calc(100% + 20px); margin: 0 -10px; padding: 7px 10px; border: none; border-radius: 8px; background: none; cursor: pointer; font-family: 'IBM Plex Sans', sans-serif; font-size: 13px; color: #2A3408; text-align: left; }
   .rp-conn b { font-weight: 600; }
@@ -7767,10 +7765,11 @@
   // once per group); each appears once, wearing all its Types as pills.
   //   ≤ RP_SMALL notes → summary line, domain + "Often with" pills, cards.
   //   >  RP_SMALL     → + metric tiles, Type filter chips, search, compact
-  //                      collapsible year groups (newest open).
+  //                      rows grouped by year, first RP_PAGE then "Show all".
   // Collections number their notes (#1 = the first one) but list newest
   // first, like everything else.
   const RP_SMALL = 8;
+  const RP_PAGE = 25;
   const RP_KIND_LABEL = { person: 'Person', tag: 'Tag', collection: 'Collection' };
   const RP_PLURAL = { Dream: 'dreams', Thought: 'thoughts', Idea: 'ideas', Sermon: 'sermons', Teaching: 'teachings', Prayer: 'prayers', Quote: 'quotes', Reflection: 'reflections', Download: 'downloads', Reminder: 'reminders', Study: 'studies', 'Prophetic Word': 'prophetic words' };
   const RP_MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
@@ -7924,15 +7923,6 @@
 
   // The large-profile list body — its own function so search keystrokes
   // repaint only this region (keeps the input's focus and caret).
-  // Year groups toggle open/closed: the newest year starts open, older
-  // years collapsed (this replaced a "first 25 + Show all" pager). With a
-  // Type filter or search active, every year holding a match opens, so a
-  // match is never hidden; a year the user toggles keeps their choice.
-  function rpYearOpen(year, isNewest, narrowed) {
-    const s = relationProfileState;
-    if (s.yearOpen.has(year)) return s.yearOpen.get(year);
-    return narrowed || isNewest;
-  }
   function rpRenderLargeList(derived, isCollection) {
     const s = relationProfileState;
     const q = s.search.trim().toLowerCase();
@@ -7941,19 +7931,20 @@
     if (q) list = list.filter((n) => (n.title || '').toLowerCase().includes(q));
     if (!list.length) return `<div class="pf-tab-empty">No notes match${q ? ` "${escapeHtml(s.search.trim())}"` : ''}.</div>`;
     const narrowed = !!(s.typeFilter || q);
+    const shown = (narrowed || s.showAll) ? list : list.slice(0, RP_PAGE);
     const byYear = new Map();
-    list.forEach((n) => {
+    shown.forEach((n) => {
       const y = n.sortDate ? n.sortDate.slice(0, 4) : 'Undated';
       if (!byYear.has(y)) byYear.set(y, []);
       byYear.get(y).push(n);
     });
-    return Array.from(byYear.entries()).map(([y, ns], i) => {
-      const open = rpYearOpen(y, i === 0, narrowed);
-      return `<button type="button" class="rp-year${open ? ' rp-year--open' : ''}" data-rp-year="${escapeHtml(y)}" aria-expanded="${open}">
-          <span class="rp-year-label"><svg class="rp-year-caret" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg>${escapeHtml(y)}</span><span>${ns.length}</span>
-        </button>
-        ${open ? ns.map((n) => rpRenderNoteRow(n, isCollection, derived.ordinal.get(n.id))).join('') : ''}`;
-    }).join('');
+    const totalByYear = new Map();
+    list.forEach((n) => { const y = n.sortDate ? n.sortDate.slice(0, 4) : 'Undated'; totalByYear.set(y, (totalByYear.get(y) || 0) + 1); });
+    const groups = Array.from(byYear.entries()).map(([y, ns]) => `
+      <div class="rp-year"><span>${escapeHtml(y)}</span><span>${totalByYear.get(y)}</span></div>
+      ${ns.map((n) => rpRenderNoteRow(n, isCollection, derived.ordinal.get(n.id))).join('')}`).join('');
+    const more = shown.length < list.length ? `<button type="button" class="rp-more" data-rp-more>Show all ${list.length}</button>` : '';
+    return `${groups}${more}`;
   }
 
   function rpRenderNotesView(d, tab, derived) {
@@ -7997,7 +7988,7 @@
       <div class="rp-list" id="rpList">${rpRenderLargeList(derived, isCollection)}</div>`;
   }
 
-  const relationProfileState = { entityKey: null, id: null, loading: false, error: null, data: null, activeTab: null, typeFilter: null, search: '', yearOpen: new Map(), oftenWithNames: new Map() };
+  const relationProfileState = { entityKey: null, id: null, loading: false, error: null, data: null, activeTab: null, typeFilter: null, search: '', showAll: false, oftenWithNames: new Map() };
 
   function paintRelationProfile() {
     const s = relationProfileState;
@@ -8038,19 +8029,12 @@
   framedRoot.addEventListener('click', (e) => {
     if (!['person', 'tag', 'collection'].includes(currentRoute())) return;
     const typeEl = e.target.closest('[data-rp-type]');
-    if (typeEl) { relationProfileState.typeFilter = typeEl.dataset.rpType || null; relationProfileState.yearOpen = new Map(); paintRelationProfile(); return; }
-    const yearEl = e.target.closest('[data-rp-year]');
-    if (yearEl) {
-      const st = relationProfileState;
-      const y = yearEl.dataset.rpYear;
-      st.yearOpen.set(y, yearEl.getAttribute('aria-expanded') !== 'true');
-      rpRepaintList();
-    }
+    if (typeEl) { relationProfileState.typeFilter = typeEl.dataset.rpType || null; paintRelationProfile(); return; }
+    if (e.target.closest('[data-rp-more]')) { relationProfileState.showAll = true; rpRepaintList(); }
   });
   framedRoot.addEventListener('input', (e) => {
     if (!e.target.matches('[data-rp-search]')) return;
     relationProfileState.search = e.target.value;
-    relationProfileState.yearOpen = new Map();
     rpRepaintList();
   });
 
@@ -8062,7 +8046,7 @@
     s.error = null;
     s.typeFilter = null;
     s.search = '';
-    s.yearOpen = new Map();
+    s.showAll = false;
     s.oftenWithNames = new Map();
     s.data = null;
     s.activeTab = null;
