@@ -680,3 +680,26 @@ Approved from a rendered mock. Presentation only; every rule above stands except
 ## Capture layout rule (overflow fix)
 The composer never shrinks below its own content (`flex: 1 0 auto`; textarea min-height `max(160px, 35dvh)`). When Recognized cards grow, the Capture scroll column scrolls — the textarea never overlaps the cards.
 
+---
+
+# Addendum 10 — Person / Tag / Collection profile refresh + ‹ Back (Nov 2026)
+
+*Approved from rendered mocks (sparse and heavy cases). Supersedes the trio's tab-row layout and the Notes tab's group-by-Type presentation.*
+
+## ‹ Back — every entity profile
+Note, Task, Project, Domain, Person, Tag, Collection: a small sage `‹ Back` above the ID line. History-based (returns to wherever you came from in the app); opened cold from a link, it goes Home. It is history, not hierarchy — breadcrumbs still show hierarchy.
+
+## Connections replace the tab row
+The five relation tabs move to the right rail as **Connections** (label + count). Zero counts render muted but stay clickable — the "empty tabs shown, never hidden" rule holds. The main column shows the selected connection's list. On mobile (rail flows below content) Connections render as a horizontally scrolling chip row under the header instead.
+
+## Header
+`‹ Back` · ID line `PSN-87 · PERSON` · title · italic **summary line**: `{count} {noun}` (noun = the plural Type when every note shares one Type — "2 teachings" — else "notes") · `since Mon YYYY` (large only) · `most recent Mon D, YYYY`. Collection's unset Type shows a dashed **+ Type** ghost pill (was a "No type" value pill). Log shows dates only.
+
+## Notes — one layout, two densities
+Notes are **never grouped by Type** any more (a multi-Type note appeared once per group). Each note appears once, newest first, wearing all its Types as pills, with its date and a domain-colored edge.
+- **≤ 8 notes (small):** domain pills + "Often with" pills, then 2-column cards (Collections: numbered rows).
+- **> 8 notes (large):** metric tiles — **Notes** (+ since) · **Most recent activity** (date + that note's title, linked) · **Mostly** (top Type, n of N) · **Often with** — then domain pills with counts, **Type filter chips** (All + each Type, by-type counts), **search** (title, live; combines with the Type filter), and compact rows **grouped by year**. First 25, then **Show all N** (filters/search always show every match).
+- **Often with:** the top 3 Tags/People that share notes with this record (self excluded), with counts, each linking to its profile. Names resolve lazily (only those 3 pages fetched). Hidden when there are none.
+- **Collections** number their notes with **#1 = the oldest** (stable under filters) but list **newest first**.
+- Most recent activity is notes-based (Date, falling back to created time).
+

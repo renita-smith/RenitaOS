@@ -2120,6 +2120,86 @@
      .dmn-chip's 22px header-scale swatch) since this repeats once per row
      in a dense list rather than once beside an h1. */
   .home-row-swatch { display: inline-block; width: 10px; height: 10px; border-radius: 50%; flex: none; }
+
+  /* ---- ‹ Back on every profile (Nov 2026) ---- */
+  .dmn-back {
+    display: inline-flex; align-items: center; gap: 2px; margin: 0 0 10px; padding: 4px 10px 4px 7px;
+    border: none; border-radius: 7px; background: #E7ECD6; color: #4A5230; cursor: pointer;
+    font-family: 'IBM Plex Sans', sans-serif; font-size: 12px; font-weight: 600;
+  }
+  .dmn-back:hover { background: #DBE2C1; }
+
+  /* ---- Person / Tag / Collection refresh (Nov 2026) — see paintRelationProfile.
+     Same visual language as Home: sage tiles + cards with a domain edge. ---- */
+  .rp-kind { margin-left: 6px; font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: oklch(0.55 0.012 75); letter-spacing: .04em; }
+  .rp-summary { font-family: 'Newsreader', serif; font-style: italic; font-size: 15px; color: oklch(0.55 0.012 75); margin-top: 2px; }
+  .rp-body { margin-top: 14px; }
+  .rp-pills { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-bottom: 20px; }
+  .rp-pills-label { font-family: 'IBM Plex Sans', sans-serif; font-size: 12px; color: oklch(0.55 0.012 75); margin: 0 2px 0 8px; }
+  .rp-dom { font-family: 'IBM Plex Sans', sans-serif; font-size: 11px; font-weight: 700; padding: 4px 9px; border-radius: 7px; cursor: pointer; }
+  .rp-dom i { font-style: normal; font-weight: 500; opacity: .65; }
+  .rp-ow { font-family: 'IBM Plex Sans', sans-serif; font-size: 11px; font-weight: 600; padding: 4px 9px; border-radius: 7px; background: #E7ECD6; color: #2A3408; cursor: pointer; white-space: nowrap; }
+  .rp-ow:hover { background: #DBE2C1; }
+  .rp-ow i { font-style: normal; font-weight: 500; opacity: .55; margin-left: 5px; }
+  .rp-ow--loading { cursor: default; opacity: .5; }
+  .rp-sec-head { display: flex; align-items: baseline; gap: 10px; border-bottom: 1px solid #DED8CA; padding-bottom: 10px; margin-bottom: 12px; }
+  .rp-sec-title { font-family: 'Newsreader', serif; font-size: 21px; color: #2A3408; }
+  .rp-sec-n { font-family: 'IBM Plex Sans', sans-serif; font-size: 12px; font-weight: 600; color: oklch(0.55 0.012 75); }
+  .rp-sec-note { margin-left: auto; font-family: 'IBM Plex Sans', sans-serif; font-size: 12px; color: oklch(0.55 0.012 75); }
+  .rp-cards { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 10px; }
+  .rp-card { background: #E7ECD6; border-radius: 12px; padding: 12px 14px 12px 16px; border-left: 4px solid var(--rp-edge, #9AAB6E); cursor: pointer; min-width: 0; }
+  .rp-card:hover, .rp-row:hover { background: #DBE2C1; }
+  .rp-card-title { font-family: 'Newsreader', serif; font-size: 17px; color: #2A3408; display: flex; align-items: baseline; gap: 8px; min-width: 0; flex-wrap: wrap; }
+  .rp-card-meta { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin-top: 8px; font-family: 'IBM Plex Sans', sans-serif; font-size: 12px; color: #4A5230; }
+  .rp-type { font-family: 'IBM Plex Sans', sans-serif; font-size: 11px; font-weight: 600; padding: 2px 7px; border-radius: 6px; background: #F6F2E9; color: #2A3408; white-space: nowrap; }
+  .rp-type--bare { background: none; padding: 0; font-size: 16px; }
+  .rp-rows { display: flex; flex-direction: column; gap: 8px; }
+  .rp-rows .rp-row { background: #E7ECD6; border-radius: 10px; border-bottom: none; }
+  .rp-row { display: grid; grid-template-columns: auto minmax(0,1fr) auto 64px; gap: 12px; align-items: center; padding: 9px 8px 9px 12px; border-bottom: 1px solid #DED8CA; border-left: 3px solid var(--rp-edge, #9AAB6E); cursor: pointer; }
+  .rp-row--nonum { grid-template-columns: minmax(0,1fr) auto 64px; }
+  .rp-row--nonum .rp-row-title { grid-column: 1; }
+  .rp-row-title { font-family: 'Newsreader', serif; font-size: 16px; color: #2A3408; display: flex; align-items: baseline; gap: 8px; min-width: 0; grid-column: 2; }
+  .rp-row-types { display: flex; gap: 4px; flex-wrap: wrap; justify-content: flex-end; }
+  .rp-row-date { font-family: 'IBM Plex Sans', sans-serif; font-size: 12px; color: oklch(0.55 0.012 75); text-align: right; }
+  .rp-num { font-family: 'IBM Plex Sans', sans-serif; font-size: 12px; font-weight: 600; color: oklch(0.55 0.012 75); min-width: 18px; grid-column: 1; }
+  .rp-tiles { display: grid; grid-template-columns: 1fr 1fr 1fr 1.4fr; gap: 10px; margin-bottom: 12px; }
+  .rp-tiles--3 { grid-template-columns: repeat(3, minmax(0,1fr)); }
+  .rp-tile { background: #E7ECD6; border-radius: 12px; padding: 12px 14px; min-width: 0; }
+  .rp-tile-label { font-family: 'IBM Plex Sans', sans-serif; font-size: 10px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: oklch(0.55 0.012 75); }
+  .rp-tile-value { font-family: 'IBM Plex Sans', sans-serif; font-size: 24px; font-weight: 600; color: #2A3408; margin-top: 2px; }
+  .rp-tile-value--sm { font-size: 16px; margin-top: 6px; }
+  .rp-tile-note { font-family: 'IBM Plex Sans', sans-serif; font-size: 11px; color: oklch(0.55 0.012 75); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .rp-tile-link { color: #2A3408; text-decoration: underline; text-underline-offset: 2px; cursor: pointer; }
+  .rp-ow-wrap { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 7px; }
+  .rp-ow-wrap .rp-ow { padding: 3px 7px; }
+  .rp-ow-wrap .rp-ow { background: #F6F2E9; }
+  .rp-filters { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+  .rp-chip { border: none; cursor: pointer; font-family: 'IBM Plex Sans', sans-serif; font-size: 12px; font-weight: 600; padding: 6px 11px; border-radius: 999px; background: #E7ECD6; color: #2A3408; white-space: nowrap; }
+  .rp-chip i { font-style: normal; font-weight: 500; opacity: .6; margin-left: 2px; }
+  .rp-chip--on { background: #2A3408; color: #F6F2E9; }
+  .rp-chip--zero { opacity: .5; }
+  .rp-search { width: 100%; box-sizing: border-box; border: 1px solid #DED8CA; background: #FBF9F3; border-radius: 999px; padding: 8px 14px; font-family: 'IBM Plex Sans', sans-serif; font-size: 13px; color: #2A3408; outline: none; margin-bottom: 4px; }
+  .rp-search:focus { border-color: #9AAB6E; }
+  .rp-year { display: flex; justify-content: space-between; font-family: 'IBM Plex Sans', sans-serif; font-size: 11px; font-weight: 700; letter-spacing: .08em; color: oklch(0.55 0.012 75); margin: 16px 0 4px; }
+  .rp-more { display: block; width: 100%; margin-top: 14px; padding: 12px; border: none; border-radius: 10px; background: #E7ECD6; color: #2A3408; font-family: 'IBM Plex Sans', sans-serif; font-size: 12px; font-weight: 600; cursor: pointer; }
+  .rp-more:hover { background: #DBE2C1; }
+  .rp-conn-list { display: flex; flex-direction: column; }
+  .rp-conn { display: flex; justify-content: space-between; align-items: center; width: calc(100% + 20px); margin: 0 -10px; padding: 7px 10px; border: none; border-radius: 8px; background: none; cursor: pointer; font-family: 'IBM Plex Sans', sans-serif; font-size: 13px; color: #2A3408; text-align: left; }
+  .rp-conn b { font-weight: 600; }
+  .rp-conn:hover { background: #EEF1E2; }
+  .rp-conn--on { background: #E7ECD6; }
+  .rp-conn--zero { color: oklch(0.7 0.012 75); }
+  .rp-conn-mobile { display: none; }
+  @media (max-width: 820px) {
+    .rp-conn-sec { display: none; }
+    .rp-conn-mobile { display: flex; gap: 6px; overflow-x: auto; margin: 12px 0 4px; padding-bottom: 4px; }
+    .rp-cards { grid-template-columns: 1fr; }
+    .rp-tiles, .rp-tiles--3 { grid-template-columns: repeat(2, minmax(0,1fr)); }
+    .rp-row { grid-template-columns: auto minmax(0,1fr) 54px; }
+    .rp-row--nonum { grid-template-columns: minmax(0,1fr) 54px; }
+    .rp-row-types { display: none; }
+  }
+
   /* ---- Home visual refresh (Nov 2026) — Weekly Review's language:
      sage metric tiles (.wr-metric), domain-colored tiles (.wr-domain-tile),
      numbered serif acts (.wr-act). Amber (#8a5a1f) is Home's one "look
@@ -2389,7 +2469,7 @@
   // Bumped by hand on every deployed change (Cycle-2 preflight) — logged on
   // load and shown in-app (topbar + framed rail) so it's a glance which
   // build is actually running, instead of inferring it from git history.
-  const BUILD_STAMP = '2026-11-12-home-refresh';
+  const BUILD_STAMP = '2026-11-14-profiles';
   console.log(`RenitaOS build ${BUILD_STAMP}`);
 
   // --- Shared bootstrap: defined once, in one place. -----------------------
@@ -5601,7 +5681,7 @@
   // there's no structural parent for a breadcrumb path — just the note's
   // own unique-id handle ("NOTE-247"), read-only, flat.
   function renderNoteHeader(n) {
-    return `<div class="dmn-head">
+    return `<div class="dmn-head">${renderBackButton()}
       <div class="dmn-idline"><span class="dmn-crumb-id">${n.uniqueId ? escapeHtml(n.uniqueId) : '—'}</span></div>
       <div class="dmn-title-row">${renderEditableTitleHtml('note', n.title)}</div>
     </div>`;
@@ -5850,7 +5930,7 @@
     // (applyTaskCompletionToggle). No separate Done checkbox field exists
     // in Notion.
     const isDone = (t.statusName || '').toLowerCase() === 'done';
-    return `<div class="dmn-head">
+    return `<div class="dmn-head">${renderBackButton()}
       <div class="dmn-idline">${idSpan}${pathHtml}</div>
       <div class="dmn-title-row">
         <span class="dmn-hero-checkbox${isDone ? ' dmn-hero-checkbox--checked' : ''}" data-pfe-action="task:complete" role="checkbox" aria-checked="${isDone}">${isDone ? '✓' : ''}</span>
@@ -7502,6 +7582,18 @@
       // profile itself reads), no extra request.
       if (tabKey === 'notes') {
         row.types = ((p.properties[CONFIG.NOTES_PROP.TYPE] || {}).multi_select || []).map((o) => o.name);
+        // Nov 2026 profile refresh — date, created time and the note's own
+        // Tags/People links, all read off the page already fetched (no extra
+        // request), for the summary line, year grouping and "Often with".
+        const dateVal = (p.properties[CONFIG.NOTES_PROP.DATE] || {}).date;
+        row.dateStr = (dateVal && dateVal.start) ? tdDateOnly(dateVal.start) : null;
+        row.createdTime = p.created_time;
+        const [tagsProp, peopleProp] = await Promise.all([
+          relationPropertyName(CONFIG.DB.NOTES, CONFIG.DB.TAGS).catch(() => null),
+          relationPropertyName(CONFIG.DB.NOTES, CONFIG.DB.PEOPLE).catch(() => null),
+        ]);
+        row.tagIds = tagsProp ? ((p.properties[tagsProp] || {}).relation || []).map((r) => r.id) : [];
+        row.peopleIds = peopleProp ? ((p.properties[peopleProp] || {}).relation || []).map((r) => r.id) : [];
       }
       return row;
     }));
@@ -7665,72 +7757,286 @@
     return `<div class="pf-tab-panel">${countHtml}${bodyHtml}</div>`;
   }
 
-  function renderRelationHeader(d) {
-    return `<div class="dmn-head">
-      <div class="dmn-idline"><span class="dmn-crumb-id">${d.uniqueId ? escapeHtml(d.uniqueId) : '—'}</span></div>
+  // ===== Person / Tag / Collection profile refresh (Nov 2026) =========
+  // One shared layout, two densities. The tab row moved into the right
+  // rail as "Connections" (zeros muted but still clickable — the "never
+  // hidden" rule holds), so the main column is the active list itself.
+  // Notes are never grouped by Type any more (a multi-Type note showed up
+  // once per group); each appears once, wearing all its Types as pills.
+  //   ≤ RP_SMALL notes → summary line, domain + "Often with" pills, cards.
+  //   >  RP_SMALL     → + metric tiles, Type filter chips, search, compact
+  //                      rows grouped by year, first RP_PAGE then "Show all".
+  // Collections number their notes (#1 = the first one) but list newest
+  // first, like everything else.
+  const RP_SMALL = 8;
+  const RP_PAGE = 25;
+  const RP_KIND_LABEL = { person: 'Person', tag: 'Tag', collection: 'Collection' };
+  const RP_PLURAL = { Dream: 'dreams', Thought: 'thoughts', Idea: 'ideas', Sermon: 'sermons', Teaching: 'teachings', Prayer: 'prayers', Quote: 'quotes', Reflection: 'reflections', Download: 'downloads', Reminder: 'reminders', Study: 'studies', 'Prophetic Word': 'prophetic words' };
+  const RP_MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+  function rpNoteDate(r) { return r.dateStr || (r.createdTime ? isoOf(new Date(r.createdTime)) : null); }
+  function rpFmt(dateStr, withYear) {
+    if (!dateStr) return '';
+    const [y, m, d] = dateStr.split('-').map(Number);
+    return `${RP_MONTHS[m - 1]} ${d}${withYear ? `, ${y}` : ''}`;
+  }
+  function rpFmtMonthYear(dateStr) {
+    if (!dateStr) return '';
+    const [y, m] = dateStr.split('-').map(Number);
+    return `${RP_MONTHS[m - 1]} ${y}`;
+  }
+  function rpFmtDateOnly(iso) {
+    if (!iso) return '—';
+    const d = new Date(iso);
+    return `${RP_MONTHS[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}`;
+  }
+  function rpTypeChip(typeName) {
+    const { name, icon } = splitTrailingEmoji(typeName);
+    return `<span class="rp-type">${icon ? `${escapeHtml(icon)} ` : ''}${escapeHtml(name)}</span>`;
+  }
+  function rpDomainMeta(code) { return code ? DOMAIN_META.find((dm) => dm.code === code) || null : null; }
+
+  // Everything the Notes view shows, derived once per paint from the
+  // hydrated records (sorted newest first by Date, falling back to created).
+  function rpDeriveNotes(records, selfId) {
+    const notes = records.map((r) => ({ ...r, sortDate: rpNoteDate(r) }))
+      .sort((x, y) => (y.sortDate || '').localeCompare(x.sortDate || ''));
+    // Collection numbering: #1 is the oldest, stable under any filter.
+    const ordinal = new Map(notes.map((n, i) => [n.id, notes.length - i]));
+    const typeCounts = new Map();
+    notes.forEach((n) => (n.types || []).forEach((t) => typeCounts.set(t, (typeCounts.get(t) || 0) + 1)));
+    const domainCounts = new Map();
+    notes.forEach((n) => { if (n.domainChip && n.domainChip.label) domainCounts.set(n.domainChip.label, (domainCounts.get(n.domainChip.label) || 0) + 1); });
+    const self = normalizeDbId(selfId || '');
+    const coCounts = new Map();
+    notes.forEach((n) => {
+      (n.tagIds || []).forEach((id) => { if (normalizeDbId(id) !== self) coCounts.set(`tag:${id}`, (coCounts.get(`tag:${id}`) || 0) + 1); });
+      (n.peopleIds || []).forEach((id) => { if (normalizeDbId(id) !== self) coCounts.set(`person:${id}`, (coCounts.get(`person:${id}`) || 0) + 1); });
+    });
+    const oftenWithKeys = Array.from(coCounts.entries()).sort((x, y) => y[1] - x[1]).slice(0, 3);
+    const dated = notes.filter((n) => n.sortDate);
+    return {
+      notes, ordinal, typeCounts, domainCounts, oftenWithKeys,
+      newest: dated[0] || null,
+      oldestDate: dated.length ? dated[dated.length - 1].sortDate : null,
+    };
+  }
+
+  // "Often with" names resolve lazily (only the top 3 pages are fetched),
+  // cached per profile so filtering/searching never re-fetches.
+  async function rpResolveOftenWith(keys) {
+    const s = relationProfileState;
+    const want = keys.filter(([k]) => !s.oftenWithNames.has(k));
+    if (!want.length) return;
+    const tagIds = want.filter(([k]) => k.startsWith('tag:')).map(([k]) => k.slice(4));
+    const personIds = want.filter(([k]) => k.startsWith('person:')).map(([k]) => k.slice(7));
+    const id = s.id;
+    const [tags, people] = await Promise.all([
+      resolveRelationNames(CONFIG.DB.TAGS, tagIds).catch(() => []),
+      resolveRelationNames(CONFIG.DB.PEOPLE, personIds).catch(() => []),
+    ]);
+    if (s.id !== id) return;
+    tags.forEach((t) => s.oftenWithNames.set(`tag:${tagIds.find((x) => normalizeDbId(x) === normalizeDbId(t.id)) || t.id}`, t.name));
+    people.forEach((p) => s.oftenWithNames.set(`person:${personIds.find((x) => normalizeDbId(x) === normalizeDbId(p.id)) || p.id}`, p.name));
+    want.forEach(([k]) => { if (!s.oftenWithNames.has(k)) s.oftenWithNames.set(k, null); });
+    paintRelationProfile();
+  }
+  function rpOftenWithPills(keys) {
+    const s = relationProfileState;
+    return keys.map(([k, n]) => {
+      if (!s.oftenWithNames.has(k)) return `<span class="rp-ow rp-ow--loading">…</span>`;
+      const name = s.oftenWithNames.get(k);
+      if (!name) return '';
+      const isTag = k.startsWith('tag:');
+      const id = k.slice(isTag ? 4 : 7);
+      return `<span class="rp-ow pf-row--nav" data-pf-nav="${isTag ? 'tag' : 'person'}/${escapeHtml(id)}">${isTag ? '#' : '👤 '}${escapeHtml(name)}<i>${n}</i></span>`;
+    }).join('');
+  }
+
+  function rpSummaryLine(d, derived, notesCount, entityKey) {
+    if (!notesCount) return 'Nothing linked yet';
+    let noun = notesCount === 1 ? 'note' : 'notes';
+    if (derived && derived.typeCounts.size === 1) {
+      const only = splitTrailingEmoji(Array.from(derived.typeCounts.keys())[0]).name;
+      if (RP_PLURAL[only]) noun = notesCount === 1 ? only.toLowerCase() : RP_PLURAL[only];
+    }
+    const parts = [`${notesCount} ${noun}`];
+    if (derived && derived.oldestDate && notesCount > RP_SMALL) parts.push(`since ${rpFmtMonthYear(derived.oldestDate)}`);
+    if (derived && derived.newest) parts.push(`most recent ${rpFmt(derived.newest.sortDate, true)}`);
+    return parts.join(' · ');
+  }
+
+  function renderRelationHeader(d, summary) {
+    const kind = RP_KIND_LABEL[relationProfileState.entityKey] || d.consumerLabel;
+    return `<div class="dmn-head">${renderBackButton()}
+      <div class="dmn-idline"><span class="dmn-crumb-id">${d.uniqueId ? escapeHtml(d.uniqueId) : '—'}</span><span class="rp-kind">· ${escapeHtml(kind.toUpperCase())}</span></div>
       <div class="dmn-title-row"><h1 class="dmn-title">${escapeHtml(d.title || 'Untitled')}</h1></div>
+      ${summary ? `<div class="rp-summary">${escapeHtml(summary)}</div>` : ''}
     </div>`;
   }
 
-  // Right-rail hierarchy pass — the only value pill any of this trio ever
-  // carries is Collection's Type (resolved in loadRelationProfileBase by
-  // keyword; Tag/Person never resolve it, per spec, regardless of their own
-  // schema). Omitted entirely — not even a "No type" fallback — when the
-  // Collections database doesn't have a Type property at all, vs. shown
-  // with the usual fallback when the property exists but this page's value
-  // doesn't.
+  // Collection's Type — a dashed "+ Type" prompt when unset (the old
+  // "No type" pill read like a value). Display only, as before.
   function renderRelationValuePills(d) {
     if (!d.hasTypeProp) return '';
-    return renderValuePill(d.typeName ? escapeHtml(d.typeName) : 'No type');
+    return d.typeName ? renderValuePill(escapeHtml(d.typeName)) : renderGhostPill('Type');
   }
-
-  // No Dates section for this trio — none of the three currently resolve
-  // a meaningful user-facing date (loaders are unchanged this sprint).
-  // Properties is relations-only and only present when there's something
-  // to show — "sparse rails are fine," per the brief, "the frame already
-  // handles this on Domain" — so this trio's own Properties stays empty
-  // until a relation-style field is added for one of them.
-  function renderRelationProperties() {
-    return '';
-  }
+  function renderRelationProperties() { return ''; }
 
   function renderRelationLog(d) {
     return `<section class="dmn-prop-sec dmn-prop-sec--log">
       <h3>Log</h3>
-      <div class="dmn-kv"><span class="k">Created</span><span class="v">${escapeHtml(formatDateTime(d.createdTime))}</span></div>
-      <div class="dmn-kv"><span class="k">Last edited</span><span class="v">${escapeHtml(formatDateTime(d.lastEditedTime))}</span></div>
+      <div class="dmn-kv"><span class="k">Created</span><span class="v">${escapeHtml(rpFmtDateOnly(d.createdTime))}</span></div>
+      <div class="dmn-kv"><span class="k">Last edited</span><span class="v">${escapeHtml(rpFmtDateOnly(d.lastEditedTime))}</span></div>
     </section>`;
   }
 
-  const relationProfileState = { entityKey: null, id: null, loading: false, error: null, data: null, activeTab: null };
+  // Connections — the old tab row, as a rail list (desktop) and a chip row
+  // (mobile, where the rail flows below the content).
+  function renderRelationConnections(d, activeKey) {
+    const rows = d.tabs.map((t) => `<button type="button" class="rp-conn${t.key === activeKey ? ' rp-conn--on' : ''}${t.count ? '' : ' rp-conn--zero'}" data-pf-tab="${t.key}"><span>${escapeHtml(t.label)}</span><b>${t.count}</b></button>`).join('');
+    return `<section class="dmn-prop-sec rp-conn-sec"><h3>Connections</h3><div class="rp-conn-list">${rows}</div></section>`;
+  }
+  function renderRelationConnectionsMobile(d, activeKey) {
+    return `<div class="rp-conn-mobile">${d.tabs.map((t) => `<button type="button" class="rp-chip${t.key === activeKey ? ' rp-chip--on' : ''}${t.count ? '' : ' rp-chip--zero'}" data-pf-tab="${t.key}">${escapeHtml(t.label)} <i>${t.count}</i></button>`).join('')}</div>`;
+  }
+
+  function rpRenderNoteCard(n, isCollection, ordinal) {
+    const edge = n.domainChip ? n.domainChip.text : '#2A3408';
+    const types = (n.types || []).map(rpTypeChip).join('');
+    const num = isCollection ? `<span class="rp-num">${ordinal}</span>` : '';
+    return `<div class="rp-card pf-row--nav" data-pf-nav="note/${escapeHtml(n.id)}" style="--rp-edge:${edge}">
+      <div class="rp-card-title">${num}<span>${escapeHtml(n.title || 'Untitled')}</span>${n.uniqueId ? `<span class="pf-row-id">${escapeHtml(n.uniqueId)}</span>` : ''}</div>
+      <div class="rp-card-meta">${types}<span>${escapeHtml(rpFmt(n.sortDate, true))}</span></div>
+    </div>`;
+  }
+  function rpRenderNoteRow(n, isCollection, ordinal) {
+    const edge = n.domainChip ? n.domainChip.text : '#9AAB6E';
+    const types = (n.types || []).map(rpTypeChip).join('');
+    return `<div class="rp-row${isCollection ? '' : ' rp-row--nonum'} pf-row--nav" data-pf-nav="note/${escapeHtml(n.id)}" style="--rp-edge:${edge}">
+      ${isCollection ? `<span class="rp-num">${ordinal}</span>` : ''}
+      <span class="rp-row-title">${escapeHtml(n.title || 'Untitled')}${n.uniqueId ? `<span class="pf-row-id">${escapeHtml(n.uniqueId)}</span>` : ''}</span>
+      <span class="rp-row-types">${types}</span>
+      <span class="rp-row-date">${escapeHtml(rpFmt(n.sortDate, false))}</span>
+    </div>`;
+  }
+
+  // The large-profile list body — its own function so search keystrokes
+  // repaint only this region (keeps the input's focus and caret).
+  function rpRenderLargeList(derived, isCollection) {
+    const s = relationProfileState;
+    const q = s.search.trim().toLowerCase();
+    let list = derived.notes;
+    if (s.typeFilter) list = list.filter((n) => (n.types || []).includes(s.typeFilter));
+    if (q) list = list.filter((n) => (n.title || '').toLowerCase().includes(q));
+    if (!list.length) return `<div class="pf-tab-empty">No notes match${q ? ` "${escapeHtml(s.search.trim())}"` : ''}.</div>`;
+    const narrowed = !!(s.typeFilter || q);
+    const shown = (narrowed || s.showAll) ? list : list.slice(0, RP_PAGE);
+    const byYear = new Map();
+    shown.forEach((n) => {
+      const y = n.sortDate ? n.sortDate.slice(0, 4) : 'Undated';
+      if (!byYear.has(y)) byYear.set(y, []);
+      byYear.get(y).push(n);
+    });
+    const totalByYear = new Map();
+    list.forEach((n) => { const y = n.sortDate ? n.sortDate.slice(0, 4) : 'Undated'; totalByYear.set(y, (totalByYear.get(y) || 0) + 1); });
+    const groups = Array.from(byYear.entries()).map(([y, ns]) => `
+      <div class="rp-year"><span>${escapeHtml(y)}</span><span>${totalByYear.get(y)}</span></div>
+      ${ns.map((n) => rpRenderNoteRow(n, isCollection, derived.ordinal.get(n.id))).join('')}`).join('');
+    const more = shown.length < list.length ? `<button type="button" class="rp-more" data-rp-more>Show all ${list.length}</button>` : '';
+    return `${groups}${more}`;
+  }
+
+  function rpRenderNotesView(d, tab, derived) {
+    const s = relationProfileState;
+    const isCollection = s.entityKey === 'collection';
+    const n = derived.notes.length;
+    if (!n) return `<div class="pf-tab-empty">No notes reference this ${escapeHtml(d.consumerLabel.toLowerCase())} yet.</div>`;
+    const domainPills = Array.from(derived.domainCounts.entries()).sort((x, y) => y[1] - x[1]).map(([code, c]) => {
+      const dm = rpDomainMeta(code);
+      return dm ? `<span class="rp-dom pf-row--nav" data-pf-nav="domain/${escapeHtml(dm.pageId)}" style="background:${dm.fill};color:${dm.text}">${escapeHtml(code)}${n > RP_SMALL ? ` <i>${c}</i>` : ''}</span>` : '';
+    }).join('');
+    const ow = rpOftenWithPills(derived.oftenWithKeys);
+    const head = `<div class="rp-sec-head"><span class="rp-sec-title">Notes</span><span class="rp-sec-n">${n}</span><span class="rp-sec-note">newest first</span></div>`;
+
+    if (n <= RP_SMALL) {
+      const pills = (domainPills || ow) ? `<div class="rp-pills">${domainPills}${ow ? `<span class="rp-pills-label">Often with</span>${ow}` : ''}</div>` : '';
+      const body = isCollection
+        ? `<div class="rp-rows">${derived.notes.map((x) => rpRenderNoteRow(x, true, derived.ordinal.get(x.id))).join('')}</div>`
+        : `<div class="rp-cards">${derived.notes.map((x) => rpRenderNoteCard(x, false)).join('')}</div>`;
+      return `${pills}${head}${body}`;
+    }
+
+    // Large: tiles → domain pills → filter chips + search → year rows.
+    const topType = Array.from(derived.typeCounts.entries()).sort((x, y) => y[1] - x[1])[0];
+    const newest = derived.newest;
+    const tiles = `<div class="rp-tiles${ow ? '' : ' rp-tiles--3'}">
+      <div class="rp-tile"><div class="rp-tile-label">Notes</div><div class="rp-tile-value">${n}</div><div class="rp-tile-note">${derived.oldestDate ? `since ${escapeHtml(rpFmtMonthYear(derived.oldestDate))}` : ''}</div></div>
+      <div class="rp-tile"><div class="rp-tile-label">Most recent activity</div><div class="rp-tile-value rp-tile-value--sm">${newest ? escapeHtml(rpFmt(newest.sortDate, false)) : '—'}</div>${newest ? `<div class="rp-tile-note rp-tile-link pf-row--nav" data-pf-nav="note/${escapeHtml(newest.id)}">${escapeHtml(newest.title || 'Untitled')}</div>` : ''}</div>
+      <div class="rp-tile"><div class="rp-tile-label">Mostly</div><div class="rp-tile-value rp-tile-value--sm">${topType ? rpTypeChip(topType[0]).replace('rp-type', 'rp-type rp-type--bare') : '—'}</div><div class="rp-tile-note">${topType ? `${topType[1]} of ${n}` : ''}</div></div>
+      ${ow ? `<div class="rp-tile"><div class="rp-tile-label">Often with</div><div class="rp-ow-wrap">${ow}</div></div>` : ''}
+    </div>`;
+    const typeKeys = (tab.typeOrder && tab.typeOrder.length ? tab.typeOrder : Array.from(derived.typeCounts.keys())).filter((t) => derived.typeCounts.has(t));
+    const chips = `<button type="button" class="rp-chip${s.typeFilter ? '' : ' rp-chip--on'}" data-rp-type="">All <i>${n}</i></button>`
+      + typeKeys.map((t) => {
+        const { name, icon } = splitTrailingEmoji(t);
+        return `<button type="button" class="rp-chip${s.typeFilter === t ? ' rp-chip--on' : ''}" data-rp-type="${escapeHtml(t)}">${icon ? `${escapeHtml(icon)} ` : ''}${escapeHtml(name)} <i>${derived.typeCounts.get(t)}</i></button>`;
+      }).join('');
+    return `${tiles}${domainPills ? `<div class="rp-pills">${domainPills}</div>` : ''}${head}
+      <div class="rp-filters">${chips}</div>
+      <input type="search" class="rp-search" data-rp-search placeholder="Search these notes…" value="${escapeHtml(s.search)}" autocomplete="off">
+      <div class="rp-list" id="rpList">${rpRenderLargeList(derived, isCollection)}</div>`;
+  }
+
+  const relationProfileState = { entityKey: null, id: null, loading: false, error: null, data: null, activeTab: null, typeFilter: null, search: '', showAll: false, oftenWithNames: new Map() };
 
   function paintRelationProfile() {
     const s = relationProfileState;
     if (s.loading) {
-      dmnMain.innerHTML = `<div class="dmn-status">Loading…</div>`;
+      dmnMain.innerHTML = `<div class="dmn-head">${renderBackButton()}</div><div class="dmn-status">Loading…</div>`;
       dmnProps.innerHTML = renderCaptureAffordance();
       return;
     }
     if (s.error) {
-      dmnMain.innerHTML = `<div class="dmn-status dmn-status--error">${escapeHtml(s.error)}</div>`;
+      dmnMain.innerHTML = `<div class="dmn-head">${renderBackButton()}</div><div class="dmn-status dmn-status--error">${escapeHtml(s.error)}</div>`;
       dmnProps.innerHTML = renderCaptureAffordance();
       return;
     }
     const d = s.data;
-    // All tabs always render, even at 0 — per the Conventions.md's "Empty
-    // tabs are shown greyed with a 0, never hidden" rule (here: plain, not
-    // greyed-and-disabled, since 0-count tabs stay fully clickable).
-    const tabsHtml = `<div class="pf-tabs" role="tablist">${d.tabs.map((t) => `
-        <button type="button" class="pf-tab${t.key === s.activeTab ? ' pf-tab--active' : ''}" data-pf-tab="${t.key}" role="tab" aria-selected="${t.key === s.activeTab}">
-          <span class="pf-tab-label">${escapeHtml(t.label)}</span>
-          <span class="pf-tab-n">${t.count}</span>
-        </button>`).join('')}</div>`;
+    const notesTab = d.tabs.find((t) => t.key === 'notes');
+    const derived = (notesTab && notesTab.hydrated && notesTab.records) ? rpDeriveNotes(notesTab.records, d.id) : null;
+    if (derived && derived.oftenWithKeys.length) rpResolveOftenWith(derived.oftenWithKeys);
+    const summary = rpSummaryLine(d, derived, notesTab ? notesTab.count : 0, s.entityKey);
     const activeTab = d.tabs.find((t) => t.key === s.activeTab) || d.tabs[0];
-    const panelHtml = renderRelationTabPanel(activeTab, d.consumerLabel);
-
-    dmnMain.innerHTML = `${renderRelationHeader(d)}${renderValuePillRow(renderRelationValuePills(d))}<section class="dmn-sec">${tabsHtml}${panelHtml}</section>`;
-    dmnProps.innerHTML = `${renderCaptureAffordance()}${renderRelationProperties()}${renderRelationLog(d)}`;
+    let bodyHtml;
+    if (activeTab.key === 'notes' && derived && !activeTab.loading && !activeTab.error) {
+      bodyHtml = rpRenderNotesView(d, activeTab, derived);
+    } else {
+      bodyHtml = renderRelationTabPanel(activeTab, d.consumerLabel);
+    }
+    const pills = renderRelationValuePills(d);
+    dmnMain.innerHTML = `${renderRelationHeader(d, summary)}${pills ? renderValuePillRow(pills) : ''}${renderRelationConnectionsMobile(d, activeTab.key)}<section class="dmn-sec rp-body">${bodyHtml}</section>`;
+    dmnProps.innerHTML = `${renderCaptureAffordance()}${renderRelationConnections(d, activeTab.key)}${renderRelationProperties()}${renderRelationLog(d)}`;
   }
+
+  function rpRepaintList() {
+    const s = relationProfileState;
+    const el = document.getElementById('rpList');
+    if (!el || !s.data) { paintRelationProfile(); return; }
+    const notesTab = s.data.tabs.find((t) => t.key === 'notes');
+    el.innerHTML = rpRenderLargeList(rpDeriveNotes(notesTab.records, s.data.id), s.entityKey === 'collection');
+  }
+  framedRoot.addEventListener('click', (e) => {
+    if (!['person', 'tag', 'collection'].includes(currentRoute())) return;
+    const typeEl = e.target.closest('[data-rp-type]');
+    if (typeEl) { relationProfileState.typeFilter = typeEl.dataset.rpType || null; paintRelationProfile(); return; }
+    if (e.target.closest('[data-rp-more]')) { relationProfileState.showAll = true; rpRepaintList(); }
+  });
+  framedRoot.addEventListener('input', (e) => {
+    if (!e.target.matches('[data-rp-search]')) return;
+    relationProfileState.search = e.target.value;
+    rpRepaintList();
+  });
 
   async function mountRelationProfile(entityKey, id) {
     const s = relationProfileState;
@@ -7738,6 +8044,10 @@
     s.id = id;
     s.loading = true;
     s.error = null;
+    s.typeFilter = null;
+    s.search = '';
+    s.showAll = false;
+    s.oftenWithNames = new Map();
     s.data = null;
     s.activeTab = null;
     ensureFramedShell();
@@ -8240,7 +8550,7 @@
     const domainSegment = p.domainName
       ? `<span class="dmn-crumb-sep">·</span><a class="dmn-crumb-link" data-pf-nav="domain/${escapeHtml(p.domainId)}">${escapeHtml(p.domainName)}</a>`
       : '';
-    return `<div class="dmn-head">
+    return `<div class="dmn-head">${renderBackButton()}
       <div class="dmn-idline"><span class="dmn-crumb-id">${p.uniqueId ? escapeHtml(p.uniqueId) : '—'}</span>${domainSegment}</div>
       <div class="dmn-title-row">${renderEditableTitleHtml('project', p.title)}</div>
     </div>`;
@@ -9767,7 +10077,7 @@
   }
 
   function renderDomainHeader(d) {
-    return `<div class="dmn-head">
+    return `<div class="dmn-head">${renderBackButton()}
       <div class="dmn-idline"><span class="dmn-crumb-id">${d.uniqueId ? escapeHtml(d.uniqueId) : '—'}</span></div>
       <div class="dmn-title-row">
         <h1 class="dmn-title">${escapeHtml(d.title || 'Untitled')}</h1>
@@ -14119,6 +14429,21 @@
   // Triage's own click/input/change/wheel listeners below gate on "is this
   // the inbox route" by name alone — kept as a thin wrapper over
   // parseRoute so that plumbing doesn't need to change.
+  // ‹ Back (Nov 2026) — on every entity profile (Note, Task, Project,
+  // Domain, Person, Tag, Collection), top of the header. History-based:
+  // returns to wherever you came from inside the app; opened cold from a
+  // link (nothing in-app to go back to), it goes Home instead.
+  let appNavCount = 0;
+  window.addEventListener('hashchange', () => { appNavCount += 1; });
+  function renderBackButton() {
+    return '<button type="button" class="dmn-back" data-dmn-back aria-label="Back">‹ Back</button>';
+  }
+  document.addEventListener('click', (e) => {
+    if (!e.target.closest('[data-dmn-back]')) return;
+    e.preventDefault();
+    if (appNavCount > 0) history.back(); else location.hash = '#/home';
+  });
+
   function currentRoute() {
     return parseRoute().name;
   }
