@@ -225,9 +225,13 @@ body {
   overflow: hidden; pointer-events: none; color: var(--text);
   white-space: pre-wrap; overflow-wrap: break-word; word-wrap: break-word;
 }
-.capture-highlight .hl { background: none; color: inherit; padding: 0; border-radius: 0; }
-.capture-highlight .hl--ok { color: #5F7D2A; }
-.capture-highlight .hl--new { color: #B07A1E; }
+.capture-highlight .hl { color: inherit; padding: 0; border-radius: 4px; -webkit-box-decoration-break: clone; box-decoration-break: clone; }
+/* Nov 2026 contrast pass (Nita: "needs more contrast") — text stays the
+   normal dark olive; a soft highlighter fill sits behind each instruction.
+   The 2px "padding" is a box-shadow, so it never changes text width (which
+   would break the backdrop's alignment with the textarea). */
+.capture-highlight .hl--ok { background: #D9E5BA; box-shadow: 0 0 0 2px #D9E5BA; }
+.capture-highlight .hl--new { background: #F4DDAE; box-shadow: 0 0 0 2px #F4DDAE; }
 .capture-textarea--overlay {
   position: relative; z-index: 1;
   color: transparent; -webkit-text-fill-color: transparent; caret-color: var(--text);
