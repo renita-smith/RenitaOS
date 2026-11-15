@@ -141,6 +141,8 @@ Each Domain has one **catch-all project** that holds loose tasks — a `%`-tagge
 | Origin lock | Rejects any request whose Origin isn't `https://renita-smith.github.io` with 403 (so `/calendar/events` in a raw browser tab returns 403 by design — verify from the app). |
 | Request pattern Code should use | See the existing RenitaOS code — it already calls the Worker to reach Notion; match that pattern. |
 | Notion API version header | See the existing code (the `Notion-Version` header it already sends). |
+| Rate limits (Nov 2026) | Notion: 180 req/min per connection on non-Business plans (fixed 60s window) + a shared per-workspace limit. Both front ends (`notionRequest` in index.html, `request` in js/notion.js) retry a **429** up to 3× — waiting `additional_data.retry_after` / Retry-After, else 1s/2s/4s, with jitter. A 429 is never processed by Notion, so retrying writes is safe. Other errors are not retried. |
+| **Data-source rule** (Nov 2026) | The app sends `Notion-Version: 2022-06-28`. Since Sept 2025 Notion lets a database hold **multiple data sources**; on this API version any database with more than one returns a **400** ("Databases with multiple data sources are not supported in this API version"). **Never add a second data source to any of the eight databases.** No end-of-support date exists for 2022-06-28; upgrading to `2025-09-03`+ (database → data_source endpoints) is a deliberate future project, not urgent. |
 
 ---
 
