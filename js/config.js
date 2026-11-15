@@ -65,12 +65,12 @@ export const TYPE_PREFIXES = {
 
 // §4 — Domain code -> its page id, catch-all project name/id, and CSS var.
 export const DOMAINS = {
-  RCBS:  { pageId: '33110b0375a8800fa48dcf469ed04677', catchAllProjectId: '39310b0375a880a3bfafe163619679e3', catchAllName: '💚 RCBS - Inbox/Admin', cssVar: '--domain-rcbs' },
-  RWS:   { pageId: '33210b0375a880b79f77d0509dae6d65', catchAllProjectId: '39310b0375a880008c2bc21fa471c95b', catchAllName: '💡 RWS - Inbox/Admin',  cssVar: '--domain-rws' },
-  SM:    { pageId: '33210b0375a88014ac55d4c88117f218', catchAllProjectId: '39310b0375a880e282dfc70f942b0a67', catchAllName: '💒 SM - Inbox/Admin',   cssVar: '--domain-sm' },
-  MTS:   { pageId: '33210b0375a88000b144fc1ce2cd5758', catchAllProjectId: '39310b0375a880d9a10ce4d29c2015be', catchAllName: '👩🏽‍💼 MTS - Inbox/Admin', cssVar: '--domain-mts' },
-  EPLC:  { pageId: '33210b0375a88006910bc1c5e4cc7e4f', catchAllProjectId: '39310b0375a880f79aa6c95bbdae6913', catchAllName: '🏫 EPLC - Inbox/Admin', cssVar: '--domain-eplc' },
-  PEEPS: { pageId: '38a10b0375a880e38ed6fcbb8a5f2b9b', catchAllProjectId: '39310b0375a8804184cced41ad1395c0', catchAllName: '👥 PEEPS - Inbox/Admin', cssVar: '--domain-peeps' },
+  RCBS:  { pageId: '33110b0375a8800fa48dcf469ed04677', catchAllProjectId: '39310b0375a880a3bfafe163619679e3', catchAllName: '💚 RCBS - Inbox/Admin', cssVar: '--domain-rcbs', fill: '#D6DDBE', text: '#46552A' },
+  RWS:   { pageId: '33210b0375a880b79f77d0509dae6d65', catchAllProjectId: '39310b0375a880008c2bc21fa471c95b', catchAllName: '💡 RWS - Inbox/Admin',  cssVar: '--domain-rws', fill: '#EBDFC0', text: '#6C5316' },
+  SM:    { pageId: '33210b0375a88014ac55d4c88117f218', catchAllProjectId: '39310b0375a880e282dfc70f942b0a67', catchAllName: '💒 SM - Inbox/Admin',   cssVar: '--domain-sm', fill: '#E8CDBE', text: '#7C4A2E' },
+  MTS:   { pageId: '33210b0375a88000b144fc1ce2cd5758', catchAllProjectId: '39310b0375a880d9a10ce4d29c2015be', catchAllName: '👩🏽‍💼 MTS - Inbox/Admin', cssVar: '--domain-mts', fill: '#EDD0D4', text: '#7E4351' },
+  EPLC:  { pageId: '33210b0375a88006910bc1c5e4cc7e4f', catchAllProjectId: '39310b0375a880f79aa6c95bbdae6913', catchAllName: '🏫 EPLC - Inbox/Admin', cssVar: '--domain-eplc', fill: '#D3D9D8', text: '#465657' },
+  PEEPS: { pageId: '38a10b0375a880e38ed6fcbb8a5f2b9b', catchAllProjectId: '39310b0375a8804184cced41ad1395c0', catchAllName: '👥 PEEPS - Inbox/Admin', cssVar: '--domain-peeps', fill: '#E0D7D3', text: '#665049' },
 };
 
 export const DOMAIN_CODES = Object.keys(DOMAINS);

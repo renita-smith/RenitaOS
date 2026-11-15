@@ -27,13 +27,22 @@
 
     <div class="pill-row">
       <span id="taskPill" class="task-pill">Note</span>
-      <span class="hint-row">#tag · @person · !project · %domain · /type · +task</span>
+      <!-- Nov 2026 refresh — the shorthand hints are tappable keys: each
+           inserts its symbol at the caret (saves a trip to the phone's
+           symbol keyboard). Labels show on wider screens only. -->
+      <div class="sym-keys" role="group" aria-label="Insert shorthand">
+        <button type="button" class="sym-key" data-sym="#" title="Tag">#<span>tag</span></button>
+        <button type="button" class="sym-key" data-sym="@" title="Person">@<span>person</span></button>
+        <button type="button" class="sym-key" data-sym="!" title="Project">!<span>project</span></button>
+        <button type="button" class="sym-key" data-sym="%" title="Domain">%<span>domain</span></button>
+        <button type="button" class="sym-key" data-sym="/" title="Type">/<span>type</span></button>
+        <button type="button" class="sym-key" data-sym="+" title="Make it a task">+<span>task</span></button>
+      </div>
     </div>
 
     <div class="composer">
       <input id="titleInput" class="capture-title-input" type="text" placeholder="Title (optional)" maxlength="200">
       <textarea id="captureText" class="capture-textarea" placeholder="What's on your mind?"></textarea>
-      <div id="autocomplete" class="autocomplete hidden"></div>
     </div>
 
     <div id="voicePanel" class="mode-panel hidden">
@@ -66,13 +75,12 @@
   </div>
 
   <div class="capture-footer">
-    <div class="mode-toggle">
-      <div class="mode-toggle-track">
-        <button class="mode-btn active" data-mode="type">Type</button>
-        <button class="mode-btn" data-mode="voice">Voice</button>
-        <button class="mode-btn" data-mode="photo">Photo</button>
-      </div>
-    </div>
+    <!-- Nov 2026 refresh — Voice/Photo mode switch removed until either is
+         actually wired (both panels only said "isn't wired up yet"); the
+         panels and state.mode stay in place for when they are.
+         Autocomplete moved here from under the caret: a chip strip just
+         above Save, so suggestions never cover the line being typed. -->
+    <div id="autocomplete" class="ac-strip hidden" aria-label="Suggestions"></div>
 
     <div class="save-row">
       <button id="saveBtn" class="save-btn">Save to Inbox</button>

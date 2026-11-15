@@ -142,10 +142,41 @@ body {
   color: var(--muted-text);
 }
 
+/* Nov 2026 — Note/Task as an outlined pill; Task goes solid olive so
+   "this will save as a task" reads at a glance (was off-palette lavender). */
+.task-pill { border: 1px solid #CFC9B6; background: #FBF9F3; color: var(--text); border-radius: 999px; }
 .task-pill--task {
-  background: oklch(0.945 0.028 275);
-  color: oklch(0.4 0.1 275);
+  background: #2A3408;
+  border-color: #2A3408;
+  color: #F6F2E9;
 }
+.sym-keys { display: flex; gap: 6px; flex-wrap: wrap; }
+.sym-key {
+  display: inline-flex; align-items: center; justify-content: center; gap: 5px;
+  min-width: 34px; height: 30px; padding: 0 8px; border: none; border-radius: 8px;
+  background: #E7ECD6; color: var(--text); cursor: pointer;
+  font-family: 'IBM Plex Sans', sans-serif; font-size: 14px; font-weight: 600;
+}
+.sym-key:hover { background: #DBE2C1; }
+.sym-key:active { background: #2A3408; color: #F6F2E9; }
+.sym-key span { display: none; font-size: 11px; font-weight: 500; color: #4A5230; }
+@media (min-width: 768px) { .sym-key span { display: inline; } .sym-key { height: 28px; padding: 0 10px; font-size: 12px; } }
+
+/* Suggestions strip (Nov 2026) — sits just above Save instead of dropping
+   over the text being typed. Horizontal, scrollable, thumb-reachable. */
+.ac-strip {
+  display: flex; align-items: center; gap: 6px; overflow-x: auto;
+  padding: 2px 0 4px; scrollbar-width: none;
+}
+.ac-strip::-webkit-scrollbar { display: none; }
+.ac-strip .ac-trigger { flex: none; font-family: 'IBM Plex Sans', sans-serif; font-size: 12px; font-weight: 600; color: var(--muted-text); margin-right: 2px; }
+.ac-strip .ac-item {
+  flex: none; border: none; cursor: pointer; white-space: nowrap;
+  padding: 7px 13px; border-radius: 999px; background: #E7ECD6; color: var(--text);
+  font-family: 'IBM Plex Sans', sans-serif; font-size: 13px; font-weight: 600;
+}
+.ac-strip .ac-item:hover { background: #DBE2C1; }
+.ac-strip .ac-item--first { background: #2A3408; color: #F6F2E9; }
 
 .hint-row {
   font-size: 11px;
@@ -333,7 +364,7 @@ body {
 .thought-card {
   background: oklch(0.99 0.004 75);
   border: 1px solid var(--hairline);
-  border-left: 4px solid var(--type-color);
+  border-left: 4px solid var(--card-edge, var(--type-color));
   border-radius: var(--radius-lg);
   padding: 16px 18px;
   display: flex;
@@ -483,14 +514,15 @@ body {
 }
 .chip--project { font-size: 10px; }
 
+/* Nov 2026 — the design system's own domain fill/text (set inline from
+   config DOMAINS), replacing Capture's older off-palette domain hues. */
 .domain-badge {
   font-size: 10px;
-  font-weight: 600;
-  padding: 2px 9px;
+  font-weight: 700;
+  padding: 3px 9px;
   border-radius: var(--radius-sm);
-  background: color-mix(in oklch, var(--domain-color, var(--text)) 12%, white);
-  color: var(--domain-color, var(--text));
-  border: 1px solid color-mix(in oklch, var(--domain-color, var(--text)) 40%, transparent);
+  background: #E7ECD6;
+  color: var(--text);
 }
 .domain-badge--pending {
   background: oklch(0.97 0.004 75);
@@ -512,13 +544,16 @@ body {
   padding: 16px;
   border-radius: var(--radius-lg);
   border: none;
-  background: var(--surface-soft);
-  color: var(--text);
+  background: #2A3408;
+  color: #F6F2E9;
   font-size: 16px;
   font-weight: 600;
   font-family: 'IBM Plex Sans', sans-serif;
   cursor: pointer;
 }
+/* Nov 2026 — Save is Capture's one primary action: solid olive (was a
+   pale sage bar quieter than the mode switch above it). */
+.save-btn:hover:not(:disabled) { background: #3A4410; }
 .save-btn:active { background: var(--button-pressed); color: var(--cream); }
 .save-btn:disabled { opacity: .6; cursor: not-allowed; }
 
@@ -606,4 +641,7 @@ body {
   .capture-scroll {
     padding-top: 32px;
   }
+  /* Nov 2026 — a centered writing column (about Compose's width) instead
+     of text running the full ~1150px panel. */
+  .capture-scroll > *, .capture-footer > * { width: 100%; max-width: 720px; margin-left: auto; margin-right: auto; box-sizing: border-box; }
 }
