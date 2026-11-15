@@ -724,5 +724,5 @@ Notes are **never grouped by Type** any more (a multi-Type note appeared once pe
 - **Suggestions strip:** autocomplete moved from a dropdown under the caret (it covered the line being typed) to a horizontal chip strip just above Save; the first match is highlighted; picking keeps the keyboard open.
 - **Palette:** domain badges use the design system's domain fill/text (were off-palette hues); a recognized card's left edge takes its domain's color once a domain is recognized.
 - **Desktop:** content sits in a centered ~720px column.
-- **Next (own slice):** shorthand coloring in the text itself — green = recognized, amber = will be created. Open question for the mock: color only the tokens, or the whole first line.
+- **Next (own slice):** shorthand coloring in the text itself — green = recognized, amber = will be created. **Decided: color only the instructions** (`/type`, `[title]`, `#tag`, `@person`, `!project`, `%domain`, `+`), never the note's own words.
 
