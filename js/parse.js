@@ -302,8 +302,24 @@ export function parseEntry(raw, caches, confirmedNew, offset = 0, titleOverride 
       ? dreamTitle()
       : (explicitTitle || prefixedSnippet || 'Untitled');
 
+  // Nov 2026 — instruction spans for Capture's in-text coloring, absolute
+  // within the textarea. 'ok' = recognized/matches something that exists;
+  // 'new' = will be created on save, or doesn't match (near-miss, unknown
+  // domain). Still-typing tokens ('pending') stay uncolored. Never the
+  // note's own words.
+  const marks = [];
+  const plus = raw.match(/^\s*\+/);
+  if (plus) marks.push({ start: offset + plus[0].length - 1, end: offset + plus[0].length, state: 'ok' });
+  if (typeSpan) marks.push({ start: offset + typeSpan.start, end: offset + typeSpan.end, state: 'ok' });
+  if (titleSpan) marks.push({ start: offset + titleSpan.start, end: offset + titleSpan.end, state: 'ok' });
+  [...people, ...tags, ...projects, ...(domain ? [domain] : [])].forEach((c) => {
+    if (c.state === 'pending') return;
+    marks.push({ start: c.absStart, end: c.absEnd, state: c.state === 'confirmed' ? 'ok' : 'new' });
+  });
+
   return {
     raw,
+    marks,
     isTask,
     typeLabel: bareRelationLabel || typeName || (isTask ? 'Task' : 'Note'),
     noteType: !isTask ? typeName : null,

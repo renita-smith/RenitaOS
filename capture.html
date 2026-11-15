@@ -42,7 +42,13 @@
 
     <div class="composer">
       <input id="titleInput" class="capture-title-input" type="text" placeholder="Title (optional)" maxlength="200">
-      <textarea id="captureText" class="capture-textarea" placeholder="What's on your mind?"></textarea>
+      <!-- Nov 2026 — instruction coloring: the textarea's own text is made
+           transparent (only once js/app.js has the backdrop running) and a
+           pixel-aligned copy underneath paints the instructions green/amber. -->
+      <div class="ta-wrap">
+        <div id="captureHighlight" class="capture-highlight" aria-hidden="true"></div>
+        <textarea id="captureText" class="capture-textarea" placeholder="What's on your mind?"></textarea>
+      </div>
     </div>
 
     <div id="voicePanel" class="mode-panel hidden">
