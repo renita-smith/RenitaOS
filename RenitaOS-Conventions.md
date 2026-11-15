@@ -719,3 +719,12 @@ Notes are **never grouped by Type** any more (a multi-Type note appeared once pe
 - **Desktop:** content sits in a centered ~720px column.
 - **Instruction coloring (built, own slice):** as you type, the instructions themselves change color — `/type`, `[title]`, `#tag`, `@person`, `!project`, `%domain` and the task `+` — **never the note's own words**. Shown as a **highlighter fill** behind the instruction (text stays dark; chosen Nov 2026 for contrast over colored text): **green `#D9E5BA`** = recognized (matches something that exists); **amber `#F4DDAE`** = will be created on save, a near-miss ("did you mean"), or an unknown domain. A token still being typed stays uncolored until it resolves. Mechanism: a pixel-aligned backdrop under a transparent-text textarea (caret, selection and typing stay native); if the backdrop fails, Capture falls back to plain text.
 
+---
+
+# Addendum 13 — Column layouts in note bodies (Nov 2026)
+
+*Bug from Nita: older notes (e.g. 1–2-year-old Dreams from Home's "On this day") showed only "(column list)" — their text lives inside a Notion column layout (column_list → column → blocks), and bodies were read one level deep.*
+- **Note & Task profiles** expand column layouts: columns render side by side (stacked on mobile); every line inside is editable/toggleable/deletable like a top-level line (lookups search inside columns). The layout itself isn't deletable here, and "+ add a line" appends at the top level. One level deep — a column layout nested inside a column keeps its labeled fallback.
+- **Body text** used by Find search and Inbox snippets reads through column layouts too.
+- **Compose** still can't edit column layouts. It never touches blocks it didn't load, so the content is safe; when a note has such content, Compose shows a notice linking back to the note page instead of looking empty.
+
