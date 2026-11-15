@@ -217,6 +217,23 @@ body {
   border-bottom: 1px solid var(--hairline);
 }
 
+/* Nov 2026 — instruction coloring. .ta-wrap takes over the textarea's
+   flex slot so the backdrop can be positioned against it. */
+.ta-wrap { position: relative; flex: 1; display: flex; flex-direction: column; min-height: 0; }
+.capture-highlight {
+  position: absolute; z-index: 0; box-sizing: border-box; margin: 0; border: none;
+  overflow: hidden; pointer-events: none; color: var(--text);
+  white-space: pre-wrap; overflow-wrap: break-word; word-wrap: break-word;
+}
+.capture-highlight .hl { background: none; color: inherit; padding: 0; border-radius: 0; }
+.capture-highlight .hl--ok { color: #5F7D2A; }
+.capture-highlight .hl--new { color: #B07A1E; }
+.capture-textarea--overlay {
+  position: relative; z-index: 1;
+  color: transparent; -webkit-text-fill-color: transparent; caret-color: var(--text);
+}
+.capture-textarea--overlay::placeholder { color: oklch(0.7 0.012 75); -webkit-text-fill-color: oklch(0.7 0.012 75); }
+.capture-textarea--overlay::selection { background: rgba(42, 52, 8, .18); }
 .capture-textarea {
   width: 100%;
   flex: 1;

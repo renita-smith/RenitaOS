@@ -70,7 +70,60 @@ const el = {
   toast: document.getElementById('toast'),
   closeBtn: document.getElementById('closeBtn'),
   composeBtn: document.getElementById('composeBtn'),
+  highlight: document.getElementById('captureHighlight'),
 };
+
+// --- Instruction coloring (Nov 2026) --------------------------------------
+// A backdrop under the textarea mirrors its text exactly (same font, size,
+// padding, wrap width, scroll) and wraps each instruction span in a colored
+// <mark>; the textarea's own glyphs go transparent so only the backdrop's
+// show, while the caret, selection and typing stay native. Only the
+// instructions are ever colored (Nita's rule) — never the note's words.
+// If anything here fails, the overlay class is never added and Capture
+// simply shows plain text as before.
+const HL_PROPS = ['fontFamily', 'fontSize', 'fontWeight', 'fontStyle', 'lineHeight', 'letterSpacing', 'wordSpacing',
+  'paddingTop', 'paddingRight', 'paddingBottom', 'paddingLeft', 'textIndent', 'textTransform', 'tabSize'];
+function syncHighlightBox() {
+  const ta = el.textarea;
+  const hl = el.highlight;
+  const cs = getComputedStyle(ta);
+  HL_PROPS.forEach((p) => { hl.style[p] = cs[p]; });
+  hl.style.top = `${ta.offsetTop + ta.clientTop}px`;
+  hl.style.left = `${ta.offsetLeft + ta.clientLeft}px`;
+  hl.style.width = `${ta.clientWidth}px`;
+  hl.style.height = `${ta.clientHeight}px`;
+  hl.scrollTop = ta.scrollTop;
+}
+function paintHighlight(thoughts) {
+  if (!el.highlight) return;
+  const text = state.text;
+  const marks = thoughts.flatMap((t) => t.marks || [])
+    .filter((m) => m.end > m.start && m.start >= 0 && m.end <= text.length)
+    .sort((a, b) => a.start - b.start);
+  let html = '';
+  let cursor = 0;
+  marks.forEach((m) => {
+    if (m.start < cursor) return;
+    html += escapeHtml(text.slice(cursor, m.start));
+    html += `<mark class="hl hl--${m.state}">${escapeHtml(text.slice(m.start, m.end))}</mark>`;
+    cursor = m.end;
+  });
+  html += escapeHtml(text.slice(cursor));
+  // A trailing newline needs a glyph after it, or the mirror is one line short.
+  el.highlight.innerHTML = `${html}${text.endsWith('\n') ? ' ' : ''}`;
+  syncHighlightBox();
+}
+try {
+  if (el.highlight) {
+    el.textarea.classList.add('capture-textarea--overlay');
+    el.textarea.addEventListener('scroll', () => { el.highlight.scrollTop = el.textarea.scrollTop; });
+    if (window.ResizeObserver) new ResizeObserver(() => syncHighlightBox()).observe(el.textarea);
+    window.addEventListener('resize', syncHighlightBox);
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(syncHighlightBox);
+  }
+} catch (err) {
+  el.textarea.classList.remove('capture-textarea--overlay');
+}
 
 let toastTimer = null;
 
@@ -220,6 +273,7 @@ function render() {
   el.saveBtn.textContent = state.saving ? 'Saving…' : 'Save to Inbox';
 
   const { thoughts, eligible } = computeVisibleThoughts();
+  try { paintHighlight(thoughts); } catch (err) { el.textarea.classList.remove('capture-textarea--overlay'); }
   el.recognizedSection.classList.toggle('hidden', thoughts.length === 0);
   el.thoughtsList.innerHTML = thoughts.map(renderThoughtCard).join('');
 
