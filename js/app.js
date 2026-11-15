@@ -146,7 +146,7 @@ function renderDomainBadge(domain) {
   if (!domain) return '';
   if (domain.state === 'confirmed') {
     const cfg = DOMAINS[domain.canonical];
-    return `<span class="domain-badge" style="--domain-color:var(${cfg.cssVar})">${escapeHtml(domain.canonical)}</span>`;
+    return `<span class="domain-badge" style="background:${cfg.fill};color:${cfg.text}">${escapeHtml(domain.canonical)}</span>`;
   }
   if (domain.state === 'pending') return `<span class="domain-badge domain-badge--pending">${escapeHtml(domain.value)}…</span>`;
   return `<span class="domain-badge domain-badge--invalid" title="Domains can't be created — must match RCBS/RWS/SM/MTS/EPLC/PEEPS">${escapeHtml(domain.value)}?</span>`;
@@ -162,8 +162,13 @@ function renderThoughtCard(thought) {
   // one canonical Type palette (index.html's Triage TYPE_EDGE) instead of
   // Capture's pre-palette flat olive for every type.
   const edgeColor = TYPE_EDGE[thought.typeLabel] || TYPE_EDGE_DEFAULT;
+  // Nov 2026 — the card's left edge takes the domain's color once a
+  // domain is recognized (matching every profile's domain-edged cards);
+  // the Type dot/label keep the Type palette.
+  const domainCfg = thought.domain && thought.domain.state === 'confirmed' ? DOMAINS[thought.domain.canonical] : null;
+  const cardEdge = domainCfg ? domainCfg.text : edgeColor;
 
-  return `<div class="thought-card" data-type="${escapeHtml(thought.typeLabel)}" style="--type-color:${edgeColor}">
+  return `<div class="thought-card" data-type="${escapeHtml(thought.typeLabel)}" style="--type-color:${edgeColor};--card-edge:${cardEdge}">
     <div class="thought-head">
       <span class="thought-dot"></span>
       <span class="thought-type">${escapeHtml(thought.typeLabel)}</span>
@@ -236,9 +241,8 @@ function render() {
     const matches = names.filter((n) => n.toLowerCase().startsWith(state.autocomplete.query.toLowerCase())).slice(0, 6);
     if (matches.length) {
       el.autocomplete.classList.remove('hidden');
-      el.autocomplete.innerHTML = matches.map((name, i) => `<div class="ac-item" data-index="${i}">
-        <span class="ac-trigger">${escapeHtml(state.autocomplete.trigger)}</span>${escapeHtml(name)}
-      </div>`).join('');
+      el.autocomplete.innerHTML = `<span class="ac-trigger">${escapeHtml(state.autocomplete.trigger)}</span>`
+        + matches.map((name, i) => `<button type="button" class="ac-item${i === 0 ? ' ac-item--first' : ''}" data-index="${i}">${escapeHtml(name)}</button>`).join('');
       state.autocomplete.list = matches;
     } else {
       el.autocomplete.classList.add('hidden');
@@ -251,7 +255,7 @@ function render() {
 
   el.recentSection.classList.toggle('hidden', state.recent.length === 0);
   el.recentList.innerHTML = state.recent.map((r) => `<div class="recent-row">
-    <span class="recent-dot" style="background:${r.isTask ? 'oklch(0.6 0.11 275)' : 'oklch(0.8 0.01 75)'}"></span>
+    <span class="recent-dot" style="background:${r.isTask ? '#2A3408' : 'oklch(0.8 0.01 75)'}"></span>
     <span class="recent-text">${escapeHtml(r.text)}</span>
     <span class="recent-when">${escapeHtml(r.when)}</span>
   </div>`).join('');
@@ -319,6 +323,46 @@ el.textarea.addEventListener('click', () => { updateAutocomplete(); render(); })
 el.titleInput.addEventListener('input', () => {
   state.titleText = el.titleInput.value;
   render();
+});
+
+// Tapping a suggestion chip must not blur the textarea (that would close
+// the phone keyboard mid-thought) — pick on mousedown/touch, keep focus.
+el.autocomplete.addEventListener('mousedown', (e) => { if (e.target.closest('.ac-item')) e.preventDefault(); });
+
+// Shorthand keys (Nov 2026) — insert the symbol at the caret, with a space
+// before it when it would otherwise glue onto a word. "+" marks a task, which
+// the grammar reads at the START of a line, so it's prefixed to the current
+// line (once) instead of inserted mid-sentence.
+const symKeys = document.querySelectorAll('.sym-key');
+symKeys.forEach((btn) => {
+  btn.addEventListener('mousedown', (e) => e.preventDefault());
+  btn.addEventListener('click', () => {
+    const sym = btn.dataset.sym;
+    const ta = el.textarea;
+    const pos = ta.selectionStart ?? state.text.length;
+    const end = ta.selectionEnd ?? pos;
+    let text = state.text;
+    let caret;
+    if (sym === '+') {
+      const lineStart = text.lastIndexOf('\n', pos - 1) + 1;
+      if (/^\s*\+/.test(text.slice(lineStart))) { caret = pos; } else {
+        text = `${text.slice(0, lineStart)}+ ${text.slice(lineStart)}`;
+        caret = pos + 2;
+      }
+    } else {
+      const prev = pos > 0 ? text[pos - 1] : '';
+      const pad = prev && !/\s/.test(prev) ? ' ' : '';
+      text = text.slice(0, pos) + pad + sym + text.slice(end);
+      caret = pos + pad.length + sym.length;
+    }
+    state.text = text;
+    if (state.toastAction) { clearTimeout(toastTimer); state.toast = ''; state.toastAction = null; }
+    render();
+    ta.focus();
+    ta.setSelectionRange(caret, caret);
+    updateAutocomplete();
+    render();
+  });
 });
 
 el.autocomplete.addEventListener('click', (e) => {

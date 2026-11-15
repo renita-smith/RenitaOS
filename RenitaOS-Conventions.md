@@ -712,3 +712,17 @@ Notes are **never grouped by Type** any more (a multi-Type note appeared once pe
 - **Navigation (tabs)** — underlined text + count, no box (Project's Tasks/Notes, the Domain reference shelf). The panel's repeated "TASKS 4" heading is hidden under a tab bar.
 - **Actions** — ride the tab line, right-aligned, only on the tab they act on: one solid primary button (**+ New Task**) and secondary actions as text links (**Select**). The select-mode bulk bar drops to its own row under the tab line. **Domain's Work and Inbox/Admin** sections follow the same rule with the section heading in the tab line's place (Select + **+ New Project**; **+ New Task**). Domain's Notes tab keeps its by-Type grouping (Nita's call).
 
+---
+
+# Addendum 12 — Capture refresh (Nov 2026)
+
+*Its own sealed-Capture slice, approved from mocks. Grammar, parsing and save logic unchanged.*
+- **Save to Inbox** is Capture's one solid (olive) primary button.
+- **Voice / Photo mode switch removed** until either is wired; panels and `state.mode` stay for later.
+- **Shorthand keys:** the hint line is now a row of tappable keys (`# @ ! % / +`, labeled on ≥768px). Each inserts its symbol at the caret (padding a space if it would glue to a word) without dropping focus. `+` prefixes the current line once (the task marker is line-start grammar).
+- **Note / Task** is an outlined pill; **Task** goes solid olive.
+- **Suggestions strip:** autocomplete moved from a dropdown under the caret (it covered the line being typed) to a horizontal chip strip just above Save; the first match is highlighted; picking keeps the keyboard open.
+- **Palette:** domain badges use the design system's domain fill/text (were off-palette hues); a recognized card's left edge takes its domain's color once a domain is recognized.
+- **Desktop:** content sits in a centered ~720px column.
+- **Next (own slice):** shorthand coloring in the text itself — green = recognized, amber = will be created. **Decided: color only the instructions** (`/type`, `[title]`, `#tag`, `@person`, `!project`, `%domain`, `+`), never the note's own words.
+
