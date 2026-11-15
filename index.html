@@ -2121,6 +2121,56 @@
      in a dense list rather than once beside an h1. */
   .home-row-swatch { display: inline-block; width: 10px; height: 10px; border-radius: 50%; flex: none; }
 
+
+  /* ---- Nov 2026 header roles — three kinds of control, three looks ----
+     PROPERTIES (editable values): outlined cream pill + ▾.
+     NAVIGATION (tabs): underlined text + count, no box.
+     ACTIONS: one solid primary button; secondary actions as text links.
+     Applies app-wide to editable value pills, .pf-tabs (Project) and the
+     Domain shelf's .dmn-tabs. Read-only value pills keep the sage fill. */
+  .pf-pill--value[data-pfe-action] {
+    background: #FBF9F3; border: 1px solid #CFC9B6; border-radius: 999px; padding: 5px 11px 5px 10px;
+  }
+  .pf-pill--value[data-pfe-action]::after { content: '▾'; font-size: 10px; color: oklch(0.55 0.012 75); margin-left: 1px; }
+  .pf-pill--value[data-pfe-action]:hover { background: #F1EFE4; border-color: #A9A48F; }
+  .pf-pill--ghost[data-pfe-action] { border-radius: 999px; padding: 5px 11px; }
+  .pf-status-dot { width: 8px; height: 8px; border-radius: 50%; flex: none; }
+  .pf-tabbar { display: flex; align-items: flex-end; gap: 12px; border-bottom: 1px solid #DED8CA; margin: 8px 0 18px; }
+  .pf-tabs.pf-tabs--bar, .dmn-tabs { display: flex; flex-wrap: nowrap; gap: 22px; margin: 0; }
+  .pf-tabs--bar .pf-tab, .dmn-tab {
+    background: none; border: none; border-radius: 0; box-shadow: none; cursor: pointer;
+    padding: 0 2px 10px; margin-bottom: -1px; border-bottom: 2px solid transparent;
+    font-family: 'IBM Plex Sans', sans-serif; font-size: 14px; font-weight: 600; letter-spacing: normal; text-transform: none;
+    color: oklch(0.55 0.012 75); display: inline-flex; align-items: baseline; gap: 5px;
+  }
+  .pf-tabs--bar .pf-tab:hover, .dmn-tab:hover { background: none; color: #2A3408; }
+  .pf-tabs--bar .pf-tab--active, .dmn-tab.active { background: none; box-shadow: none; color: #2A3408; border-bottom-color: #2A3408; }
+  .pf-tabs--bar .pf-tab-n, .dmn-tab .dmn-n { font-size: 12px; font-weight: 500; color: inherit; opacity: .8; margin-left: 0; }
+  .dmn-tabs { border-bottom: 1px solid #DED8CA; margin-bottom: 18px; flex-wrap: wrap; row-gap: 6px; }
+  .pf-tabbar-actions { margin-left: auto; display: flex; align-items: center; gap: 14px; padding-bottom: 7px; }
+  .pf-tabbar-actions .tg-btn-select {
+    background: none; padding: 0; border: none; border-radius: 0; color: #4A5230;
+    font-size: 12px; font-weight: 600; text-decoration: underline; text-underline-offset: 3px; cursor: pointer;
+  }
+  .pf-tabbar-actions .tg-btn-select.on { background: none; color: #2A3408; }
+  .pfe-create-context--primary {
+    margin: 0; padding: 7px 13px; border: none; border-radius: 8px; background: #2A3408; color: #F6F2E9;
+  }
+  .pfe-create-context--primary:hover { background: #3A4410; color: #F6F2E9; }
+  .pf-tabbar-bulk { margin: -6px 0 14px; }
+  /* Domain's Work / Inbox-Admin headings with their actions on the same
+     line (no tabs there — the heading plays the tab line's role). */
+  .dmn-sec-bar { display: flex; align-items: flex-end; gap: 12px; border-bottom: 1px solid #DED8CA; margin-bottom: 14px; }
+  .dmn-sec-bar .dmn-sec-hd { margin: 0; padding-bottom: 10px; }
+  .dmn-sec-bar + .pf-tabbar-bulk { margin-top: 0; }
+  /* The tab already shows its own count — the panel's "TASKS 4" heading
+     under a tab bar just repeats it. */
+  .pf-tabbar ~ .pf-tab-panel > .pf-tab-panel-count, .dmn-tabs ~ .pf-tab-panel > .pf-tab-panel-count { display: none; }
+  @media (max-width: 820px) {
+    .pf-tabbar { flex-wrap: wrap; }
+    .pf-tabbar-actions { padding-bottom: 8px; }
+  }
+
   /* ---- ‹ Back on every profile (Nov 2026) ---- */
   .dmn-back {
     display: inline-flex; align-items: center; gap: 2px; margin: 0 0 10px; padding: 4px 10px 4px 7px;
@@ -2469,7 +2519,7 @@
   // Bumped by hand on every deployed change (Cycle-2 preflight) — logged on
   // load and shown in-app (topbar + framed rail) so it's a glance which
   // build is actually running, instead of inferring it from git history.
-  const BUILD_STAMP = '2026-11-14-profiles';
+  const BUILD_STAMP = '2026-11-14-project-header';
   console.log(`RenitaOS build ${BUILD_STAMP}`);
 
   // --- Shared bootstrap: defined once, in one place. -----------------------
@@ -5948,11 +5998,13 @@
   // exists, so the whole pill opens its picker" (Conventions "Pills").
   function renderTaskValuePills(t) {
     const statusPop = pfeOpenFor('task', 'status') ? renderPfeSelectPopover(t.statusOptions, t.statusName, { label: 'Status' }) : '';
-    const statusHtml = `<span class="tg-pop-wrap">${renderValuePill(t.statusName ? escapeHtml(t.statusName) : 'No status', 'task:status')}${statusPop}</span>`;
+    const dot = `<span class="pf-status-dot" style="background:${projectStatusDotColor(t.statusName)}"></span>`;
+    const statusHtml = `<span class="tg-pop-wrap">${renderValuePill(t.statusName ? `${dot}${escapeHtml(t.statusName)}` : 'No status', 'task:status')}${statusPop}</span>`;
     let priorityHtml;
     if (t.priorityPropName) {
       const priorityPop = pfeOpenFor('task', 'priority') ? renderPfeSelectPopover(t.priorityOptions, t.priorityName, { label: 'Priority', clearable: !!t.priorityName }) : '';
-      priorityHtml = `<span class="tg-pop-wrap">${renderValuePill(t.priorityName ? escapeHtml(t.priorityName) : 'No priority', 'task:priority')}${priorityPop}</span>`;
+      const pill = t.priorityName ? renderValuePill(escapeHtml(t.priorityName), 'task:priority') : renderGhostPill('Priority', 'task:priority');
+      priorityHtml = `<span class="tg-pop-wrap">${pill}${priorityPop}</span>`;
     } else {
       priorityHtml = renderValuePill(t.priorityName ? escapeHtml(t.priorityName) : 'No priority');
     }
@@ -8572,13 +8624,26 @@
 
   // Right-rail hierarchy pass — Status/Priority move to the main column's
   // value-pill row; unchanged renderValuePill/renderPriorityValue markup.
+  function projectStatusDotColor(name) {
+    const n = (name || '').toLowerCase();
+    if (n.includes('progress')) return '#C9A24A';
+    if (n.includes('done') || n.includes('complete')) return '#7F9A4E';
+    if (n.includes('pause')) return '#B5835F';
+    if (n.includes('archiv')) return '#A9A595';
+    return '#C9C6B4';
+  }
   function renderProjectValuePills(p) {
     const statusPop = pfeOpenFor('project', 'status') ? renderPfeSelectPopover(p.statusOptions, p.statusName, { label: 'Status' }) : '';
-    const statusHtml = `<span class="tg-pop-wrap">${renderValuePill(p.statusName ? escapeHtml(p.statusName) : 'No status', 'project:status')}${statusPop}</span>`;
+    // Nov 2026 header roles — Status carries a colored dot (by status
+    // name); an unset Priority is a dashed "+ Priority" ghost (same
+    // convention as "+ Type"), not a value pill reading "No priority".
+    const dot = `<span class="pf-status-dot" style="background:${projectStatusDotColor(p.statusName)}"></span>`;
+    const statusHtml = `<span class="tg-pop-wrap">${renderValuePill(p.statusName ? `${dot}${escapeHtml(p.statusName)}` : 'No status', 'project:status')}${statusPop}</span>`;
     let priorityHtml;
     if (p.priorityPropName) {
       const priorityPop = pfeOpenFor('project', 'priority') ? renderPfeSelectPopover(p.priorityOptions, p.priorityName, { label: 'Priority', clearable: !!p.priorityName }) : '';
-      priorityHtml = `<span class="tg-pop-wrap">${renderValuePill(renderPriorityValue(p.priorityName), 'project:priority')}${priorityPop}</span>`;
+      const pill = p.priorityName ? renderValuePill(renderPriorityValue(p.priorityName), 'project:priority') : renderGhostPill('Priority', 'project:priority');
+      priorityHtml = `<span class="tg-pop-wrap">${pill}${priorityPop}</span>`;
     } else {
       priorityHtml = renderValuePill(renderPriorityValue(p.priorityName));
     }
@@ -8701,7 +8766,7 @@
       return;
     }
     const p = s.data.header;
-    const tabsHtml = `<div class="pf-tabs" role="tablist">${s.data.tabs.map((t) => `
+    const tabsHtml = `<div class="pf-tabs pf-tabs--bar" role="tablist">${s.data.tabs.map((t) => `
         <button type="button" class="pf-tab${t.key === s.activeTab ? ' pf-tab--active' : ''}" data-pf-project-tab="${t.key}" role="tab" aria-selected="${t.key === s.activeTab}">
           <span class="pf-tab-label">${escapeHtml(t.label)}</span>
           <span class="pf-tab-n">${t.count}</span>
@@ -8713,10 +8778,16 @@
 
     // Create-in-context (§5.6) — "+ New Task", pre-filled with this
     // project's relation, only on the Tasks tab (the tab it populates).
-    const createTaskHtml = activeTab.key === 'tasks'
-      ? `<button type="button" class="pfe-create-context" data-pfe-create-context="project:task">+ New Task</button><span class="pfe-select-bar">${renderMassSelectToggle('project', s.selecting)}${renderProjectBulkBar()}</span>`
+    // Nov 2026 header roles — tabs are underlined navigation; the Tasks
+    // tab's actions ride the same line, right-aligned: Select as a quiet
+    // text link, "+ New Task" as the one solid primary button. The bulk
+    // bar (select mode) drops to its own row below so the line stays calm.
+    const actionsHtml = activeTab.key === 'tasks'
+      ? `<div class="pf-tabbar-actions">${renderMassSelectToggle('project', s.selecting)}<button type="button" class="pfe-create-context pfe-create-context--primary" data-pfe-create-context="project:task">+ New Task</button></div>`
       : '';
-    dmnMain.innerHTML = `${renderProjectHeader(p)}${renderValuePillRow(renderProjectValuePills(p) + `<span class="dmn-datepills-inline">${renderProjectDateRows(p)}</span>`)}<section class="dmn-sec">${tabsHtml}${createTaskHtml}${panelHtml}</section>${renderPfeToast()}`;
+    const bulkHtml = activeTab.key === 'tasks' && s.selecting ? `<div class="pf-tabbar-bulk">${renderProjectBulkBar()}</div>` : '';
+    const tabbarHtml = `<div class="pf-tabbar">${tabsHtml}${actionsHtml}</div>${bulkHtml}`;
+    dmnMain.innerHTML = `${renderProjectHeader(p)}${renderValuePillRow(renderProjectValuePills(p) + `<span class="dmn-datepills-inline">${renderProjectDateRows(p)}</span>`)}<section class="dmn-sec">${tabbarHtml}${panelHtml}</section>${renderPfeToast()}`;
     dmnProps.innerHTML = `${renderCaptureAffordance()}${renderProjectProgressRail(p)}${renderProjectDates(p)}${renderProjectProperties(p)}${renderProjectLog(p)}`;
   }
 
@@ -10126,8 +10197,11 @@
     // project cards (here) and Inbox/Admin tasks (below); both bulk bars
     // anchor next to that one toggle rather than trailing their own
     // section's card list.
-    const selectBar = `<span class="pfe-select-bar">${renderMassSelectToggle('domain', s.selecting)}${renderDomainProjectBulkBar()}${renderDomainTaskBulkBar()}</span>`;
-    return `<section class="dmn-sec"><h2 class="dmn-sec-hd">Work</h2><button type="button" class="pfe-create-context" data-pfe-create-context="domain:project">+ New Project</button>${selectBar}${body}</section>`;
+    // Nov 2026 header roles (Addendum 11) — actions ride the section's
+    // heading line, right-aligned: Select as a text link, "+ New Project"
+    // as the section's one solid button. Bulk bars drop to their own row.
+    const bulk = s.selecting ? `<div class="pf-tabbar-bulk">${renderDomainProjectBulkBar()}${renderDomainTaskBulkBar()}</div>` : '';
+    return `<section class="dmn-sec"><div class="dmn-sec-bar"><h2 class="dmn-sec-hd">Work</h2><div class="pf-tabbar-actions">${renderMassSelectToggle('domain', s.selecting)}<button type="button" class="pfe-create-context pfe-create-context--primary" data-pfe-create-context="domain:project">+ New Project</button></div></div>${bulk}${body}</section>`;
   }
 
   // Checkbox carved out of the card's click area, same as Project's Tasks
@@ -10147,7 +10221,7 @@
     const body = tasks.length
       ? `<div class="dmn-task-grid">${tasks.map((t) => renderDomainTaskCard(t, statusOptions, priorityOptions)).join('')}</div>`
       : `<div class="dmn-empty">Nothing loose right now.</div>`;
-    return `<section class="dmn-sec"><h2 class="dmn-sec-hd">Inbox/Admin</h2><button type="button" class="pfe-create-context" data-pfe-create-context="domain:task">+ New Task</button>${body}</section>`;
+    return `<section class="dmn-sec"><div class="dmn-sec-bar"><h2 class="dmn-sec-hd">Inbox/Admin</h2><div class="pf-tabbar-actions"><button type="button" class="pfe-create-context pfe-create-context--primary" data-pfe-create-context="domain:task">+ New Task</button></div></div>${body}</section>`;
   }
 
   // Two independent bulk bars (tasks vs projects are different Notion

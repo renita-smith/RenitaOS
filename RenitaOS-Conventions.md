@@ -703,3 +703,12 @@ Notes are **never grouped by Type** any more (a multi-Type note appeared once pe
 - **Collections** number their notes with **#1 = the oldest** (stable under filters) but list **newest first**.
 - Most recent activity is notes-based (Date, falling back to created time).
 
+---
+
+# Addendum 11 — Header roles: properties vs. navigation vs. actions (Nov 2026)
+
+*From Nita's Project-profile feedback: status pills, tabs and action buttons all wore the same sage box and read as one kind of thing. Approved from a before/after mock.* Three kinds of control, three looks — app-wide:
+- **Properties (editable values)** — outlined cream pill with `▾` (`.pf-pill--value[data-pfe-action]`). Project/Task **Status** carries a colored dot (in progress amber, done green, paused clay, not started grey). An unset **Priority** is a dashed **+ Priority** ghost, never a "No priority" value. Read-only value pills keep the sage fill.
+- **Navigation (tabs)** — underlined text + count, no box (Project's Tasks/Notes, the Domain reference shelf). The panel's repeated "TASKS 4" heading is hidden under a tab bar.
+- **Actions** — ride the tab line, right-aligned, only on the tab they act on: one solid primary button (**+ New Task**) and secondary actions as text links (**Select**). The select-mode bulk bar drops to its own row under the tab line. **Domain's Work and Inbox/Admin** sections follow the same rule with the section heading in the tab line's place (Select + **+ New Project**; **+ New Task**). Domain's Notes tab keeps its by-Type grouping (Nita's call).
+
