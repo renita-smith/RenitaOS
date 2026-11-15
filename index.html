@@ -2158,6 +2158,11 @@
   }
   .pfe-create-context--primary:hover { background: #3A4410; color: #F6F2E9; }
   .pf-tabbar-bulk { margin: -6px 0 14px; }
+  /* Domain's Work / Inbox-Admin headings with their actions on the same
+     line (no tabs there — the heading plays the tab line's role). */
+  .dmn-sec-bar { display: flex; align-items: flex-end; gap: 12px; border-bottom: 1px solid #DED8CA; margin-bottom: 14px; }
+  .dmn-sec-bar .dmn-sec-hd { margin: 0; padding-bottom: 10px; }
+  .dmn-sec-bar + .pf-tabbar-bulk { margin-top: 0; }
   /* The tab already shows its own count — the panel's "TASKS 4" heading
      under a tab bar just repeats it. */
   .pf-tabbar ~ .pf-tab-panel > .pf-tab-panel-count, .dmn-tabs ~ .pf-tab-panel > .pf-tab-panel-count { display: none; }
@@ -10192,8 +10197,11 @@
     // project cards (here) and Inbox/Admin tasks (below); both bulk bars
     // anchor next to that one toggle rather than trailing their own
     // section's card list.
-    const selectBar = `<span class="pfe-select-bar">${renderMassSelectToggle('domain', s.selecting)}${renderDomainProjectBulkBar()}${renderDomainTaskBulkBar()}</span>`;
-    return `<section class="dmn-sec"><h2 class="dmn-sec-hd">Work</h2><button type="button" class="pfe-create-context" data-pfe-create-context="domain:project">+ New Project</button>${selectBar}${body}</section>`;
+    // Nov 2026 header roles (Addendum 11) — actions ride the section's
+    // heading line, right-aligned: Select as a text link, "+ New Project"
+    // as the section's one solid button. Bulk bars drop to their own row.
+    const bulk = s.selecting ? `<div class="pf-tabbar-bulk">${renderDomainProjectBulkBar()}${renderDomainTaskBulkBar()}</div>` : '';
+    return `<section class="dmn-sec"><div class="dmn-sec-bar"><h2 class="dmn-sec-hd">Work</h2><div class="pf-tabbar-actions">${renderMassSelectToggle('domain', s.selecting)}<button type="button" class="pfe-create-context pfe-create-context--primary" data-pfe-create-context="domain:project">+ New Project</button></div></div>${bulk}${body}</section>`;
   }
 
   // Checkbox carved out of the card's click area, same as Project's Tasks
@@ -10213,7 +10221,7 @@
     const body = tasks.length
       ? `<div class="dmn-task-grid">${tasks.map((t) => renderDomainTaskCard(t, statusOptions, priorityOptions)).join('')}</div>`
       : `<div class="dmn-empty">Nothing loose right now.</div>`;
-    return `<section class="dmn-sec"><h2 class="dmn-sec-hd">Inbox/Admin</h2><button type="button" class="pfe-create-context" data-pfe-create-context="domain:task">+ New Task</button>${body}</section>`;
+    return `<section class="dmn-sec"><div class="dmn-sec-bar"><h2 class="dmn-sec-hd">Inbox/Admin</h2><div class="pf-tabbar-actions"><button type="button" class="pfe-create-context pfe-create-context--primary" data-pfe-create-context="domain:task">+ New Task</button></div></div>${body}</section>`;
   }
 
   // Two independent bulk bars (tasks vs projects are different Notion
