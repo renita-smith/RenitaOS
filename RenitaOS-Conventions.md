@@ -321,16 +321,9 @@ The screen and route formerly "Triage" are now **Inbox** (`#/inbox`; `#/triage` 
 
 The nav rail sits **on the cream canvas — not a filled sage slab.** Nav items are plain olive text; only the **active** item gets the deeper-sage pill + olive keyline (the standard active state). Greyed placeholders for screens not yet built (Today, Domains, Search). Nav type ~15px, tight vertical rhythm. The bins/cards are the only sage masses; the rail recedes. On a record profile, no rail item is active.
 
-## Titling cascade (revised — Backend §11–12 now stale)
+## Titling cascade — *superseded; see Backend Notes §11 (source of truth)*
 
-Note auto-titling no longer prefixes type/date codes (the Unique ID now carries reference). Cascade, stop at first match:
-1. **Task** → the task's own text.
-2. **Dream** → `DRM | MMDDYY` (from the Date field). Day-merge behavior unchanged.
-3. **Typed `[title]`** → used verbatim (bracket rule unchanged).
-4. **Otherwise** → plain body snippet (first ~5 words). **No type prefix, no date, no `—`.** MLT / NTE fallbacks retired.
-5. **Empty** → "Untitled".
-
-Regeneration: non-Dream snippet titles no longer track Type/Date; Dream titles regenerate on Date change; a typed/hand-edited title is never overwritten. **Forward-only** — existing titles untouched. **Backend doc §11–12 still describes the old cascade and should be reconciled.**
+*Reconciled Nov 14 2026.* This section once described a no-prefix cascade; the shipped code (and Backend §11) uses Type prefixes. Current rule, in short: Task → own text · Dream → `DRM | MMDDYY` · typed title (title field or `[bracket]`) → **`{PREFIX} | {title}`** for typed notes (Nov 2026 change), verbatim for untyped · otherwise `{PREFIX} | {snippet}` / plain snippet · empty → `Untitled`. A typed or hand-edited title is never overwritten; inline profile edits save exactly as typed.
 
 ---
 

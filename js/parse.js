@@ -296,11 +296,17 @@ export function parseEntry(raw, caches, confirmedNew, offset = 0, titleOverride 
   const snippet = deriveTitle(body);
   const prefix = typeName && TYPE_PREFIXES[typeName];
   const prefixedSnippet = prefix && snippet ? `${prefix} | ${snippet}` : snippet;
+  // Nov 2026 (Nita) — a typed title (title field or [bracket]) KEEPS the
+  // Type prefix: "/teaching [Walking in Authority]" → "TCH | Walking in
+  // Authority". Untyped notes still use a typed title verbatim; a title
+  // that already starts with its prefix isn't doubled.
+  const prefixedExplicit = explicitTitle && prefix && !explicitTitle.toUpperCase().startsWith(`${prefix} |`)
+    ? `${prefix} | ${explicitTitle}` : explicitTitle;
   const title = isTask
     ? body
     : typeName === DAY_MERGE_TYPE
       ? dreamTitle()
-      : (explicitTitle || prefixedSnippet || 'Untitled');
+      : (prefixedExplicit || prefixedSnippet || 'Untitled');
 
   // Nov 2026 — instruction spans for Capture's in-text coloring, absolute
   // within the textarea. 'ok' = recognized/matches something that exists;
@@ -330,7 +336,7 @@ export function parseEntry(raw, caches, confirmedNew, offset = 0, titleOverride 
     title,
     body,
     bodyLines,
-    explicitTitle,
+    explicitTitle: prefixedExplicit,
     dueDateISO,
     isBareRelation,
   };

@@ -187,12 +187,12 @@ On save, set each Note's title by this **cascade** — stop at the first match:
 
 1. **Task** → the task's own text (no prefix). *(A task is not a note; listed for contrast.)*
 2. **First Type = Dream** → `DRM | MMDDYY` (MMDDYY from the **Date field**). Dreams **never** take a typed title — the title names the day the record merges into. Regenerates on **Date change** only.
-3. **Explicit title present** (Capture title field, a `[bracket]` in the body, or an inline profile edit) → used **verbatim, no prefix**. Persists forever.
+3. **Explicit title present** (Capture title field or a `[bracket]` in the body) → **`{PREFIX} | {title}`** when the first Type has a prefix (Nov 2026, Nita: typed titles keep the prefix — e.g. `/teaching [Walking in Authority]` → `TCH | Walking in Authority`); untyped → verbatim. Never doubled if the typed title already starts with its prefix. An **inline profile edit** is still saved exactly as typed. Persists forever.
 4. **First Type has a prefix** → `{PREFIX} | {body snippet}` (first ~5 words). **No date.**
 5. **Untyped, body present** → plain body snippet, no prefix.
 6. **Empty body** → `Untitled`.
 
-**Bracket title rule:** the first complete `[...]` in the entry (first `[` to the next `]`) is the title; it may appear anywhere; remove the brackets and their contents from the body and use the contents verbatim; only the first `[...]` counts; an unclosed `[` is not a title.
+**Bracket title rule:** the first complete `[...]` in the entry (first `[` to the next `]`) is the title; it may appear anywhere; remove the brackets and their contents from the body and use the contents as the title (prefixed per step 3); only the first `[...]` counts; an unclosed `[` is not a title.
 
 **Type prefix map:** Dream `DRM` · Thought `THT` · Idea `IDA` · Convo `CNV` · Sermon `SRM` · Prophetic Word `PRW` · Virtual `VRT` · Teaching `TCH` · Prayer `PRY` · Quote `QOT` · Study `STD` · Reflection `RFL` · Download `DWL` · Reminder `RMD` · One on One `ONO` · Podcast `POD`.
 
